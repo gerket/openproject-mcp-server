@@ -509,6 +509,43 @@ class OpenProjectClient:
         """
         return await self._request("GET", f"/work_packages/{work_package_id}")
 
+    async def get_allowed_status_transitions(
+        self, work_package_id: int, lock_version: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """Return the statuses this work package may legally transition to NOW.
+
+        OpenProject enforces a configurable workflow: from a given status, only
+        certain target statuses are valid for the work package's type and the
+        acting user's role. The authoritative allowed set comes from the work
+        package's update form — we ask OpenProject rather than reimplement the
+        workflow rules.
+
+        Args:
+            work_package_id: The work package ID.
+            lock_version: Current lockVersion. Fetched if not supplied. The
+                /form endpoint is optimistic-locked and 409s without it.
+
+        Returns:
+            List of ``{"id": int, "name": str}`` allowed target statuses
+            (includes the current status, which OpenProject lists as allowed).
+        """
+        if lock_version is None:
+            current = await self.get_work_package(work_package_id)
+            lock_version = current.get("lockVersion", 0)
+
+        form = await self._request(
+            "POST", f"/work_packages/{work_package_id}/form", {"lockVersion": lock_version}
+        )
+        status_schema = (
+            form.get("_embedded", {}).get("schema", {}).get("status", {})
+        )
+        allowed = status_schema.get("_embedded", {}).get("allowedValues", [])
+        return [
+            {"id": v.get("id"), "name": v.get("name")}
+            for v in allowed
+            if v.get("id") is not None
+        ]
+
     async def update_work_package(self, work_package_id: int, data: Dict) -> Dict:
         """
         Update an existing work package.
@@ -522,9 +559,43 @@ class OpenProjectClient:
         """
         # First get current work package to get lock version
         current_wp = await self.get_work_package(work_package_id)
+        lock_version = current_wp.get("lockVersion", 0)
+
+        # Workflow-aware status transition guard: if the caller is changing the
+        # status, confirm the target is a legal transition from the current
+        # status (OpenProject enforces a per-type/role workflow). A blind
+        # status_id poke to a disallowed value otherwise fails with an opaque
+        # 422; here we fail early with the list of valid options. Skip the check
+        # when validate_status_transition is False (e.g. trusted bulk loads).
+        if data.get("status_id") is not None and data.get(
+            "validate_status_transition", True
+        ):
+            current_status_href = (
+                current_wp.get("_links", {}).get("status", {}).get("href", "")
+            )
+            current_status_id = (
+                int(current_status_href.rstrip("/").split("/")[-1])
+                if current_status_href
+                else None
+            )
+            target_status_id = int(data["status_id"])
+            if target_status_id != current_status_id:
+                allowed = await self.get_allowed_status_transitions(
+                    work_package_id, lock_version
+                )
+                allowed_ids = {s["id"] for s in allowed}
+                if target_status_id not in allowed_ids:
+                    options = ", ".join(
+                        f"{s['name']} (id {s['id']})" for s in allowed
+                    )
+                    raise Exception(
+                        f"Status transition to id {target_status_id} is not allowed "
+                        f"from the current status by the workflow. "
+                        f"Allowed transitions: {options or 'none'}."
+                    )
 
         # Prepare payload with lock version
-        payload = {"lockVersion": current_wp.get("lockVersion", 0)}
+        payload = {"lockVersion": lock_version}
 
         # Add fields to update
         if "subject" in data:

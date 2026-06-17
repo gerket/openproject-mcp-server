@@ -58,6 +58,15 @@ class UpdateWorkPackageInput(BaseModel):
             '{"customField12": "JIRA-123"}.'
         ),
     )
+    validate_status_transition: bool = Field(
+        True,
+        description=(
+            "When changing status_id, first verify the target is a legal "
+            "workflow transition from the current status and fail early with the "
+            "allowed options if not. Set False to skip the check (e.g. trusted "
+            "bulk loads / migrations where the status is known-valid)."
+        ),
+    )
 
 
 @mcp.tool
@@ -524,6 +533,7 @@ async def update_work_package(input: UpdateWorkPackageInput) -> str:
             data["type_id"] = input.type_id
         if input.status_id is not None:
             data["status_id"] = input.status_id
+            data["validate_status_transition"] = input.validate_status_transition
         if input.priority_id is not None:
             data["priority_id"] = input.priority_id
         if input.assignee_id is not None:

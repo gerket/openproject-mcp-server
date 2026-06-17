@@ -94,6 +94,8 @@ OPENPROJECT_API_KEY=your-api-key-here
 
 **Resilience:** API requests automatically retry on transient failures — `429 Too Many Requests` (honoring the `Retry-After` header) and `5xx` server/network errors — with exponential backoff (up to 4 attempts). `4xx` client errors are not retried.
 
+**Workflow-aware status changes:** when `update_work_package` changes `status_id`, it first checks the target against the work package's allowed transitions (OpenProject enforces a per-type/role workflow) and fails early with the list of valid options instead of an opaque `422`. Pass `validate_status_transition: false` to skip the check for trusted bulk loads/migrations.
+
 ### Getting an API Key
 
 1. Log in to your OpenProject instance
