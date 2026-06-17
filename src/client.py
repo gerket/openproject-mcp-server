@@ -5,6 +5,7 @@ A comprehensive async client for OpenProject API v3 with proxy support.
 """
 
 import os
+import re
 import json
 import logging
 from typing import Dict, List, Optional, Any
@@ -21,11 +22,47 @@ logger = logging.getLogger(__name__)
 # Version information
 __version__ = "2.0.0"
 
+# OpenProject custom-field properties are always named customField<N> (e.g.
+# customField12). We restrict the custom_fields dict to this pattern before
+# merging so a stray/typo'd key (e.g. "subject", "lockVersion") can't silently
+# overwrite a real top-level work-package property.
+_CUSTOM_FIELD_KEY = re.compile(r"^customField\d+$")
+
+
+def _merge_custom_fields(payload: Dict, custom_fields: Optional[Dict]) -> None:
+    """Merge validated custom-field values into a work-package payload in place.
+
+    Each key must match ``customField<N>``; anything else raises ValueError so
+    the caller fails loudly rather than injecting an arbitrary top-level field.
+    """
+    if not custom_fields:
+        return
+    for cf_name, cf_value in custom_fields.items():
+        if not _CUSTOM_FIELD_KEY.match(str(cf_name)):
+            raise ValueError(
+                f"Invalid custom field key {cf_name!r}: must match "
+                f"'customField<N>' (e.g. 'customField12'). Refusing to set an "
+                f"arbitrary top-level property."
+            )
+        payload[cf_name] = cf_value
+
 
 class OpenProjectClient:
     """Client for the OpenProject API v3 with optional proxy support"""
 
-    def __init__(self, base_url: str, api_key: str, proxy: Optional[str] = None):
+    # Total attempts for a single request before giving up (includes the first
+    # try). Retries apply only to transient failures (429 / 5xx / network).
+    _MAX_RETRIES = 4
+    # Base for exponential backoff (seconds): 1, 2, 4, ... per attempt.
+    _BACKOFF_BASE = 1.0
+
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str,
+        proxy: Optional[str] = None,
+        ca_bundle: Optional[str] = None,
+    ):
         """
         Initialize the OpenProject client.
 
@@ -33,10 +70,22 @@ class OpenProjectClient:
             base_url: The base URL of the OpenProject instance
             api_key: API key for authentication
             proxy: Optional HTTP proxy URL
+            ca_bundle: Optional path to a CA bundle (PEM) used to verify the
+                OpenProject TLS cert. Needed when the instance serves a cert from
+                a private CA (e.g. an internal step-ca) that is not in the system
+                trust store. Falls back to the OPENPROJECT_CA_BUNDLE env var.
+                When unset, the system default trust store is used.
         """
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.proxy = proxy
+        self.ca_bundle = ca_bundle or os.getenv("OPENPROJECT_CA_BUNDLE") or None
+
+        # Build the SSL context once. If a CA bundle is configured, trust that
+        # CA explicitly (additive to the system roots); otherwise use defaults.
+        self.ssl_context = ssl.create_default_context()
+        if self.ca_bundle:
+            self.ssl_context.load_verify_locations(cafile=self.ca_bundle)
 
         # Setup headers with Basic Auth
         self.headers = {
@@ -49,11 +98,30 @@ class OpenProjectClient:
         logger.info(f"OpenProject Client initialized for: {self.base_url}")
         if self.proxy:
             logger.info(f"Using proxy: {self.proxy}")
+        if self.ca_bundle:
+            logger.info(f"Using custom CA bundle: {self.ca_bundle}")
 
     def _encode_api_key(self) -> str:
         """Encode API key for Basic Auth"""
         credentials = f"apikey:{self.api_key}"
         return base64.b64encode(credentials.encode()).decode()
+
+    @classmethod
+    def _retry_delay(cls, attempt: int, headers: Optional[Any]) -> float:
+        """Compute the backoff delay for a retry attempt (0-indexed).
+
+        Honors a ``Retry-After`` header (seconds form) when present — the server's
+        instruction wins over our exponential backoff. Otherwise returns
+        ``_BACKOFF_BASE * 2**attempt``.
+        """
+        if headers is not None:
+            retry_after = headers.get("Retry-After")
+            if retry_after:
+                try:
+                    return float(retry_after)
+                except (TypeError, ValueError):
+                    pass  # Non-numeric (HTTP-date form) — fall back to backoff.
+        return cls._BACKOFF_BASE * (2**attempt)
 
     async def _request(
         self, method: str, endpoint: str, data: Optional[Dict] = None
@@ -78,53 +146,87 @@ class OpenProjectClient:
         if data:
             logger.debug(f"Request body: {json.dumps(data, indent=2)}")
 
-        # Configure SSL and timeout
-        ssl_context = ssl.create_default_context()
-        connector = aiohttp.TCPConnector(ssl=ssl_context)
+        connector = aiohttp.TCPConnector(ssl=self.ssl_context)
         timeout = aiohttp.ClientTimeout(total=30)
 
         async with aiohttp.ClientSession(
             connector=connector, timeout=timeout
         ) as session:
-            try:
-                # Build request parameters
-                request_params = {
-                    "method": method,
-                    "url": url,
-                    "headers": self.headers,
-                    "json": data,
-                }
+            # Bounded retry on transient failures: 429 (rate limit, honoring
+            # Retry-After) and 5xx (server). 4xx other than 429 are caller
+            # errors and are NOT retried. Exponential backoff between attempts.
+            last_error: Optional[str] = None
+            for attempt in range(self._MAX_RETRIES):
+                try:
+                    request_params = {
+                        "method": method,
+                        "url": url,
+                        "headers": self.headers,
+                        "json": data,
+                    }
+                    if self.proxy:
+                        request_params["proxy"] = self.proxy
 
-                # Add proxy if configured
-                if self.proxy:
-                    request_params["proxy"] = self.proxy
+                    async with session.request(**request_params) as response:
+                        response_text = await response.text()
+                        logger.debug(f"Response status: {response.status}")
 
-                async with session.request(**request_params) as response:
-                    response_text = await response.text()
+                        # Retry on rate-limit / server errors.
+                        if response.status == 429 or response.status >= 500:
+                            last_error = self._format_error_message(
+                                response.status, response_text
+                            )
+                            if attempt < self._MAX_RETRIES - 1:
+                                delay = self._retry_delay(attempt, response.headers)
+                                logger.warning(
+                                    f"{response.status} on {method} {url}; "
+                                    f"retry {attempt + 1}/{self._MAX_RETRIES - 1} in {delay:.1f}s"
+                                )
+                                await asyncio.sleep(delay)
+                                continue
+                            raise Exception(last_error)
 
-                    logger.debug(f"Response status: {response.status}")
+                        try:
+                            response_json = (
+                                json.loads(response_text) if response_text else {}
+                            )
+                        except json.JSONDecodeError:
+                            logger.error(
+                                f"Invalid JSON response: {response_text[:200]}..."
+                            )
+                            response_json = {}
 
-                    # Parse response
-                    try:
-                        response_json = (
-                            json.loads(response_text) if response_text else {}
+                        # Non-retryable client errors (4xx other than 429).
+                        if response.status >= 400:
+                            raise Exception(
+                                self._format_error_message(
+                                    response.status, response_text
+                                )
+                            )
+
+                        return response_json
+
+                except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                    # Network-level error: retry the transient ones too. aiohttp's
+                    # ClientTimeout surfaces as asyncio.TimeoutError (NOT a
+                    # ClientError subclass), so it must be caught explicitly —
+                    # a request timeout is exactly the transient failure retry is
+                    # meant to cover. (3.11+: asyncio.TimeoutError == TimeoutError.)
+                    err_label = "Timeout" if isinstance(e, asyncio.TimeoutError) else "Network error"
+                    last_error = f"{err_label} accessing {url}: {str(e)}"
+                    if attempt < self._MAX_RETRIES - 1:
+                        delay = self._retry_delay(attempt, None)
+                        logger.warning(
+                            f"{err_label} on {method} {url}; "
+                            f"retry {attempt + 1}/{self._MAX_RETRIES - 1} in {delay:.1f}s: {e}"
                         )
-                    except json.JSONDecodeError:
-                        logger.error(f"Invalid JSON response: {response_text[:200]}...")
-                        response_json = {}
+                        await asyncio.sleep(delay)
+                        continue
+                    logger.error(f"{err_label}: {str(e)}")
+                    raise Exception(last_error)
 
-                    # Handle errors
-                    if response.status >= 400:
-                        error_msg = self._format_error_message(
-                            response.status, response_text
-                        )
-                        raise Exception(error_msg)
-
-                    return response_json
-
-            except aiohttp.ClientError as e:
-                logger.error(f"Network error: {str(e)}")
-                raise Exception(f"Network error accessing {url}: {str(e)}")
+            # Loop exhausted without returning (all attempts were retryable failures).
+            raise Exception(last_error or f"Request to {url} failed after retries")
 
     def _format_error_message(self, status: int, response_text: str) -> str:
         """Format error message based on HTTP status code"""
@@ -284,6 +386,10 @@ class OpenProjectClient:
         if "date" in data:
             payload["date"] = data["date"]
 
+        # Custom fields: merge validated customField<N> keys as top-level payload
+        # entries (OpenProject represents custom values as flat top-level props).
+        _merge_custom_fields(payload, data.get("custom_fields"))
+
         # Create work package
         return await self._request("POST", "/work_packages", payload)
 
@@ -431,6 +537,43 @@ class OpenProjectClient:
         """
         return await self._request("GET", f"/work_packages/{work_package_id}")
 
+    async def get_allowed_status_transitions(
+        self, work_package_id: int, lock_version: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """Return the statuses this work package may legally transition to NOW.
+
+        OpenProject enforces a configurable workflow: from a given status, only
+        certain target statuses are valid for the work package's type and the
+        acting user's role. The authoritative allowed set comes from the work
+        package's update form — we ask OpenProject rather than reimplement the
+        workflow rules.
+
+        Args:
+            work_package_id: The work package ID.
+            lock_version: Current lockVersion. Fetched if not supplied. The
+                /form endpoint is optimistic-locked and 409s without it.
+
+        Returns:
+            List of ``{"id": int, "name": str}`` allowed target statuses
+            (includes the current status, which OpenProject lists as allowed).
+        """
+        if lock_version is None:
+            current = await self.get_work_package(work_package_id)
+            lock_version = current.get("lockVersion", 0)
+
+        form = await self._request(
+            "POST", f"/work_packages/{work_package_id}/form", {"lockVersion": lock_version}
+        )
+        status_schema = (
+            form.get("_embedded", {}).get("schema", {}).get("status", {})
+        )
+        allowed = status_schema.get("_embedded", {}).get("allowedValues", [])
+        return [
+            {"id": v.get("id"), "name": v.get("name")}
+            for v in allowed
+            if v.get("id") is not None
+        ]
+
     async def update_work_package(self, work_package_id: int, data: Dict) -> Dict:
         """
         Update an existing work package.
@@ -444,9 +587,43 @@ class OpenProjectClient:
         """
         # First get current work package to get lock version
         current_wp = await self.get_work_package(work_package_id)
+        lock_version = current_wp.get("lockVersion", 0)
+
+        # Workflow-aware status transition guard: if the caller is changing the
+        # status, confirm the target is a legal transition from the current
+        # status (OpenProject enforces a per-type/role workflow). A blind
+        # status_id poke to a disallowed value otherwise fails with an opaque
+        # 422; here we fail early with the list of valid options. Skip the check
+        # when validate_status_transition is False (e.g. trusted bulk loads).
+        if data.get("status_id") is not None and data.get(
+            "validate_status_transition", True
+        ):
+            current_status_href = (
+                current_wp.get("_links", {}).get("status", {}).get("href", "")
+            )
+            current_status_id = (
+                int(current_status_href.rstrip("/").split("/")[-1])
+                if current_status_href
+                else None
+            )
+            target_status_id = int(data["status_id"])
+            if target_status_id != current_status_id:
+                allowed = await self.get_allowed_status_transitions(
+                    work_package_id, lock_version
+                )
+                allowed_ids = {s["id"] for s in allowed}
+                if target_status_id not in allowed_ids:
+                    options = ", ".join(
+                        f"{s['name']} (id {s['id']})" for s in allowed
+                    )
+                    raise Exception(
+                        f"Status transition to id {target_status_id} is not allowed "
+                        f"from the current status by the workflow. "
+                        f"Allowed transitions: {options or 'none'}."
+                    )
 
         # Prepare payload with lock version
-        payload = {"lockVersion": current_wp.get("lockVersion", 0)}
+        payload = {"lockVersion": lock_version}
 
         # Add fields to update
         if "subject" in data:
@@ -502,6 +679,9 @@ class OpenProjectClient:
             payload["dueDate"] = data["dueDate"]
         if "date" in data:
             payload["date"] = data["date"]
+
+        # Custom fields: merge validated customField<N> keys as top-level entries.
+        _merge_custom_fields(payload, data.get("custom_fields"))
 
         return await self._request(
             "PATCH", f"/work_packages/{work_package_id}", payload
