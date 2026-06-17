@@ -1,4 +1,7 @@
-"""Unit tests for OpenProjectClient retry/backoff + custom-field payload logic.
+"""Unit tests for OpenProjectClient retry/backoff logic.
+
+(Custom-field payload behavior is covered separately in
+test_client_custom_fields.py.)
 
 Network-free: aiohttp.ClientSession.request is monkeypatched with a fake that
 returns scripted responses, and asyncio.sleep is patched to record (not wait on)
@@ -120,3 +123,39 @@ def test_retry_delay_prefers_retry_after_header():
     assert OpenProjectClient._retry_delay(0, {"Retry-After": "Wed, 21 Oct 2099 07:28:00 GMT"}) == 1.0
     # no header → exponential
     assert OpenProjectClient._retry_delay(3, None) == 8.0
+
+
+class _TimeoutThenOkSession:
+    """First request() raises asyncio.TimeoutError (aiohttp's total-timeout
+    surfaces this, NOT a ClientError); the second succeeds."""
+
+    def __init__(self, response):
+        self._response = response
+        self.attempts = 0
+
+    @asynccontextmanager
+    async def request(self, **kwargs):
+        self.attempts += 1
+        if self.attempts == 1:
+            raise asyncio.TimeoutError("timed out")
+        yield self._response
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+def test_retries_on_timeout(monkeypatch):
+    # Regression for PR review: aiohttp timeouts raise asyncio.TimeoutError,
+    # which is not an aiohttp.ClientError — must still be retried.
+    sleeps = []
+    session = _TimeoutThenOkSession(_FakeResponse(200, {"ok": True}))
+    _patch(monkeypatch, session, sleeps)
+
+    result = asyncio.run(_client()._request("GET", "/x"))
+
+    assert result == {"ok": True}
+    assert session.attempts == 2            # retried after the timeout
+    assert sleeps == [1.0]                   # one backoff delay

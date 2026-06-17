@@ -5,6 +5,7 @@ A comprehensive async client for OpenProject API v3 with proxy support.
 """
 
 import os
+import re
 import json
 import logging
 from typing import Dict, List, Optional, Any
@@ -20,6 +21,30 @@ logger = logging.getLogger(__name__)
 
 # Version information
 __version__ = "2.0.0"
+
+# OpenProject custom-field properties are always named customField<N> (e.g.
+# customField12). We restrict the custom_fields dict to this pattern before
+# merging so a stray/typo'd key (e.g. "subject", "lockVersion") can't silently
+# overwrite a real top-level work-package property.
+_CUSTOM_FIELD_KEY = re.compile(r"^customField\d+$")
+
+
+def _merge_custom_fields(payload: Dict, custom_fields: Optional[Dict]) -> None:
+    """Merge validated custom-field values into a work-package payload in place.
+
+    Each key must match ``customField<N>``; anything else raises ValueError so
+    the caller fails loudly rather than injecting an arbitrary top-level field.
+    """
+    if not custom_fields:
+        return
+    for cf_name, cf_value in custom_fields.items():
+        if not _CUSTOM_FIELD_KEY.match(str(cf_name)):
+            raise ValueError(
+                f"Invalid custom field key {cf_name!r}: must match "
+                f"'customField<N>' (e.g. 'customField12'). Refusing to set an "
+                f"arbitrary top-level property."
+            )
+        payload[cf_name] = cf_value
 
 
 class OpenProjectClient:
@@ -181,18 +206,23 @@ class OpenProjectClient:
 
                         return response_json
 
-                except aiohttp.ClientError as e:
-                    # Network-level error: retry the transient ones too.
-                    last_error = f"Network error accessing {url}: {str(e)}"
+                except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                    # Network-level error: retry the transient ones too. aiohttp's
+                    # ClientTimeout surfaces as asyncio.TimeoutError (NOT a
+                    # ClientError subclass), so it must be caught explicitly —
+                    # a request timeout is exactly the transient failure retry is
+                    # meant to cover. (3.11+: asyncio.TimeoutError == TimeoutError.)
+                    err_label = "Timeout" if isinstance(e, asyncio.TimeoutError) else "Network error"
+                    last_error = f"{err_label} accessing {url}: {str(e)}"
                     if attempt < self._MAX_RETRIES - 1:
                         delay = self._retry_delay(attempt, None)
                         logger.warning(
-                            f"Network error on {method} {url}; "
+                            f"{err_label} on {method} {url}; "
                             f"retry {attempt + 1}/{self._MAX_RETRIES - 1} in {delay:.1f}s: {e}"
                         )
                         await asyncio.sleep(delay)
                         continue
-                    logger.error(f"Network error: {str(e)}")
+                    logger.error(f"{err_label}: {str(e)}")
                     raise Exception(last_error)
 
             # Loop exhausted without returning (all attempts were retryable failures).
@@ -356,11 +386,9 @@ class OpenProjectClient:
         if "date" in data:
             payload["date"] = data["date"]
 
-        # Custom fields: merge customField<N> keys as top-level payload entries
-        # (OpenProject represents custom values as flat top-level properties).
-        if data.get("custom_fields"):
-            for cf_name, cf_value in data["custom_fields"].items():
-                payload[cf_name] = cf_value
+        # Custom fields: merge validated customField<N> keys as top-level payload
+        # entries (OpenProject represents custom values as flat top-level props).
+        _merge_custom_fields(payload, data.get("custom_fields"))
 
         # Create work package
         return await self._request("POST", "/work_packages", payload)
@@ -652,10 +680,8 @@ class OpenProjectClient:
         if "date" in data:
             payload["date"] = data["date"]
 
-        # Custom fields: merge customField<N> keys as top-level payload entries.
-        if data.get("custom_fields"):
-            for cf_name, cf_value in data["custom_fields"].items():
-                payload[cf_name] = cf_value
+        # Custom fields: merge validated customField<N> keys as top-level entries.
+        _merge_custom_fields(payload, data.get("custom_fields"))
 
         return await self._request(
             "PATCH", f"/work_packages/{work_package_id}", payload

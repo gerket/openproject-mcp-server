@@ -7,6 +7,8 @@ land as top-level customField<N> keys in the POST/PATCH payload. Run:
 
 import asyncio
 
+import pytest
+
 from src.client import OpenProjectClient
 
 
@@ -61,3 +63,22 @@ def test_no_custom_fields_leaves_payload_clean():
     asyncio.run(c.update_work_package(1, {"subject": "x"}))
     _, _, payload = calls[-1]
     assert not any(k.startswith("customField") for k in payload)
+
+
+def test_invalid_custom_field_key_rejected_on_create():
+    # Regression for PR review: only customField<N> keys may be merged, so a
+    # stray/typo'd key can't inject an arbitrary top-level property.
+    c, calls = _client_recording()
+    with pytest.raises(ValueError, match="customField"):
+        asyncio.run(c.create_work_package({
+            "project": 1, "subject": "s", "type": 1,
+            "custom_fields": {"subject": "hijack"},
+        }))
+
+
+def test_invalid_custom_field_key_rejected_on_update():
+    c, calls = _client_recording()
+    with pytest.raises(ValueError, match="customField"):
+        asyncio.run(c.update_work_package(1, {
+            "custom_fields": {"lockVersion": 999},
+        }))
