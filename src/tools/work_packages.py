@@ -1,7 +1,7 @@
 """Work package management tools - Priority CRITICAL tools for 12 users."""
 
 import json
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 from src.server import mcp, get_client
@@ -27,6 +27,14 @@ class CreateWorkPackageInput(BaseModel):
     status_id: Optional[int] = Field(None, description="Status ID", gt=0)
     priority_id: Optional[int] = Field(None, description="Priority ID", gt=0)
     version_id: Optional[int] = Field(None, description="Version/milestone ID to assign work package to", gt=0)
+    custom_fields: Optional[Dict[str, Any]] = Field(
+        None,
+        description=(
+            "Custom field values keyed by API name, e.g. "
+            '{"customField12": "JIRA-123"}. Use the OpenProject /api/v3/work_packages/'
+            "form (or the admin custom-fields page) to find a field's customField<N> id."
+        ),
+    )
 
 
 class UpdateWorkPackageInput(BaseModel):
@@ -43,6 +51,22 @@ class UpdateWorkPackageInput(BaseModel):
     due_date: Optional[str] = Field(None, description="New due date (YYYY-MM-DD)")
     percentage_done: Optional[int] = Field(None, description="Progress percentage (0-100)", ge=0, le=100)
     version_id: Optional[int] = Field(None, description="Version/milestone ID to assign work package to", gt=0)
+    custom_fields: Optional[Dict[str, Any]] = Field(
+        None,
+        description=(
+            "Custom field values keyed by API name, e.g. "
+            '{"customField12": "JIRA-123"}.'
+        ),
+    )
+    validate_status_transition: bool = Field(
+        True,
+        description=(
+            "When changing status_id, first verify the target is a legal "
+            "workflow transition from the current status and fail early with the "
+            "allowed options if not. Set False to skip the check (e.g. trusted "
+            "bulk loads / migrations where the status is known-valid)."
+        ),
+    )
 
 
 @mcp.tool
@@ -436,6 +460,10 @@ async def create_work_package(input: CreateWorkPackageInput) -> str:
         if input.due_date:
             data["dueDate"] = input.due_date
 
+        # Custom fields (keyed by API name, e.g. customField12) pass through as-is.
+        if input.custom_fields:
+            data["custom_fields"] = input.custom_fields
+
         # Create work package
         result = await client.create_work_package(data)
 
@@ -505,6 +533,7 @@ async def update_work_package(input: UpdateWorkPackageInput) -> str:
             data["type_id"] = input.type_id
         if input.status_id is not None:
             data["status_id"] = input.status_id
+            data["validate_status_transition"] = input.validate_status_transition
         if input.priority_id is not None:
             data["priority_id"] = input.priority_id
         if input.assignee_id is not None:
@@ -519,6 +548,10 @@ async def update_work_package(input: UpdateWorkPackageInput) -> str:
             data["startDate"] = input.start_date
         if input.due_date is not None:
             data["dueDate"] = input.due_date
+
+        # Custom fields (keyed by API name, e.g. customField12) pass through as-is.
+        if input.custom_fields:
+            data["custom_fields"] = input.custom_fields
 
         if not data:
             return format_error("No fields provided to update")
@@ -816,11 +849,14 @@ async def add_work_package_comment(
         text += f"**Internal**: {'Yes' if internal else 'No'}\n"
         text += f"**Comment**: {comment_raw[:200]}{'...' if len(comment_raw) > 200 else ''}\n"
 
-        # Show author info if available
+        # Show author info. OpenProject keys the activity author under
+        # _links.user (newer) or _links.author; fall back to a clear note rather
+        # than "Unknown" — the comment IS recorded under the authenticated API
+        # user server-side, this line is only for display.
         links = result.get("_links", {})
-        user_link = links.get("user", {})
-        if user_link:
-            text += f"**Posted by**: {user_link.get('title', 'Unknown')}\n"
+        author_link = links.get("user") or links.get("author") or {}
+        author_title = author_link.get("title")
+        text += f"**Posted by**: {author_title or 'the authenticated API user'}\n"
 
         if result.get("createdAt"):
             text += f"**Created**: {result['createdAt']}\n"

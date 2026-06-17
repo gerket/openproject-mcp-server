@@ -88,8 +88,13 @@ OPENPROJECT_API_KEY=your-api-key-here
 | `OPENPROJECT_URL` | Yes | Your OpenProject instance URL | `https://mycompany.openproject.com` |
 | `OPENPROJECT_API_KEY` | Yes | API key from your OpenProject user profile | `8169846b42461e6e...` |
 | `OPENPROJECT_PROXY` | No | HTTP proxy URL if needed | `http://proxy.company.com:8080` |
+| `OPENPROJECT_CA_BUNDLE` | No | Path to a CA bundle (PEM) used to verify the OpenProject TLS cert. Needed when the instance serves a cert from a private CA (e.g. an internal step-ca) not in the system trust store. | `/etc/ssl/certs/homelab-root-ca.crt` |
 | `LOG_LEVEL` | No | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` |
 | `TEST_CONNECTION_ON_STARTUP` | No | Test API connection when server starts | `true` |
+
+**Resilience:** API requests automatically retry on transient failures — `429 Too Many Requests` (honoring the `Retry-After` header) and `5xx` server/network errors — with exponential backoff (up to 4 attempts). `4xx` client errors are not retried.
+
+**Workflow-aware status changes:** when `update_work_package` changes `status_id`, it first checks the target against the work package's allowed transitions (OpenProject enforces a per-type/role workflow) and fails early with the list of valid options instead of an opaque `422`. Pass `validate_status_transition: false` to skip the check for trusted bulk loads/migrations.
 
 ### Getting an API Key
 
@@ -422,6 +427,7 @@ Create a new work package.
 - `description` (string, optional): Description in Markdown format
 - `priority_id` (integer, optional): Priority ID
 - `assignee_id` (integer, optional): User ID to assign to
+- `custom_fields` (object, optional): Custom field values keyed by API name, e.g. `{"customField12": "JIRA-123"}`. The API only sets values on fields that already exist — custom field *definitions* must be created in the admin UI (API v3 has no endpoint for defining them). Find a field's `customField<N>` id via the work-package form/schema. `update_work_package` accepts the same parameter.
 
 **Example:**
 ```
