@@ -25,7 +25,19 @@ __version__ = "2.0.0"
 class OpenProjectClient:
     """Client for the OpenProject API v3 with optional proxy support"""
 
-    def __init__(self, base_url: str, api_key: str, proxy: Optional[str] = None):
+    # Total attempts for a single request before giving up (includes the first
+    # try). Retries apply only to transient failures (429 / 5xx / network).
+    _MAX_RETRIES = 4
+    # Base for exponential backoff (seconds): 1, 2, 4, ... per attempt.
+    _BACKOFF_BASE = 1.0
+
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str,
+        proxy: Optional[str] = None,
+        ca_bundle: Optional[str] = None,
+    ):
         """
         Initialize the OpenProject client.
 
@@ -33,10 +45,22 @@ class OpenProjectClient:
             base_url: The base URL of the OpenProject instance
             api_key: API key for authentication
             proxy: Optional HTTP proxy URL
+            ca_bundle: Optional path to a CA bundle (PEM) used to verify the
+                OpenProject TLS cert. Needed when the instance serves a cert from
+                a private CA (e.g. an internal step-ca) that is not in the system
+                trust store. Falls back to the OPENPROJECT_CA_BUNDLE env var.
+                When unset, the system default trust store is used.
         """
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.proxy = proxy
+        self.ca_bundle = ca_bundle or os.getenv("OPENPROJECT_CA_BUNDLE") or None
+
+        # Build the SSL context once. If a CA bundle is configured, trust that
+        # CA explicitly (additive to the system roots); otherwise use defaults.
+        self.ssl_context = ssl.create_default_context()
+        if self.ca_bundle:
+            self.ssl_context.load_verify_locations(cafile=self.ca_bundle)
 
         # Setup headers with Basic Auth
         self.headers = {
@@ -49,11 +73,30 @@ class OpenProjectClient:
         logger.info(f"OpenProject Client initialized for: {self.base_url}")
         if self.proxy:
             logger.info(f"Using proxy: {self.proxy}")
+        if self.ca_bundle:
+            logger.info(f"Using custom CA bundle: {self.ca_bundle}")
 
     def _encode_api_key(self) -> str:
         """Encode API key for Basic Auth"""
         credentials = f"apikey:{self.api_key}"
         return base64.b64encode(credentials.encode()).decode()
+
+    @classmethod
+    def _retry_delay(cls, attempt: int, headers: Optional[Any]) -> float:
+        """Compute the backoff delay for a retry attempt (0-indexed).
+
+        Honors a ``Retry-After`` header (seconds form) when present — the server's
+        instruction wins over our exponential backoff. Otherwise returns
+        ``_BACKOFF_BASE * 2**attempt``.
+        """
+        if headers is not None:
+            retry_after = headers.get("Retry-After")
+            if retry_after:
+                try:
+                    return float(retry_after)
+                except (TypeError, ValueError):
+                    pass  # Non-numeric (HTTP-date form) — fall back to backoff.
+        return cls._BACKOFF_BASE * (2**attempt)
 
     async def _request(
         self, method: str, endpoint: str, data: Optional[Dict] = None
@@ -78,53 +121,82 @@ class OpenProjectClient:
         if data:
             logger.debug(f"Request body: {json.dumps(data, indent=2)}")
 
-        # Configure SSL and timeout
-        ssl_context = ssl.create_default_context()
-        connector = aiohttp.TCPConnector(ssl=ssl_context)
+        connector = aiohttp.TCPConnector(ssl=self.ssl_context)
         timeout = aiohttp.ClientTimeout(total=30)
 
         async with aiohttp.ClientSession(
             connector=connector, timeout=timeout
         ) as session:
-            try:
-                # Build request parameters
-                request_params = {
-                    "method": method,
-                    "url": url,
-                    "headers": self.headers,
-                    "json": data,
-                }
+            # Bounded retry on transient failures: 429 (rate limit, honoring
+            # Retry-After) and 5xx (server). 4xx other than 429 are caller
+            # errors and are NOT retried. Exponential backoff between attempts.
+            last_error: Optional[str] = None
+            for attempt in range(self._MAX_RETRIES):
+                try:
+                    request_params = {
+                        "method": method,
+                        "url": url,
+                        "headers": self.headers,
+                        "json": data,
+                    }
+                    if self.proxy:
+                        request_params["proxy"] = self.proxy
 
-                # Add proxy if configured
-                if self.proxy:
-                    request_params["proxy"] = self.proxy
+                    async with session.request(**request_params) as response:
+                        response_text = await response.text()
+                        logger.debug(f"Response status: {response.status}")
 
-                async with session.request(**request_params) as response:
-                    response_text = await response.text()
+                        # Retry on rate-limit / server errors.
+                        if response.status == 429 or response.status >= 500:
+                            last_error = self._format_error_message(
+                                response.status, response_text
+                            )
+                            if attempt < self._MAX_RETRIES - 1:
+                                delay = self._retry_delay(attempt, response.headers)
+                                logger.warning(
+                                    f"{response.status} on {method} {url}; "
+                                    f"retry {attempt + 1}/{self._MAX_RETRIES - 1} in {delay:.1f}s"
+                                )
+                                await asyncio.sleep(delay)
+                                continue
+                            raise Exception(last_error)
 
-                    logger.debug(f"Response status: {response.status}")
+                        try:
+                            response_json = (
+                                json.loads(response_text) if response_text else {}
+                            )
+                        except json.JSONDecodeError:
+                            logger.error(
+                                f"Invalid JSON response: {response_text[:200]}..."
+                            )
+                            response_json = {}
 
-                    # Parse response
-                    try:
-                        response_json = (
-                            json.loads(response_text) if response_text else {}
+                        # Non-retryable client errors (4xx other than 429).
+                        if response.status >= 400:
+                            raise Exception(
+                                self._format_error_message(
+                                    response.status, response_text
+                                )
+                            )
+
+                        return response_json
+
+                except aiohttp.ClientError as e:
+                    # Network-level error: retry the transient ones too.
+                    last_error = f"Network error accessing {url}: {str(e)}"
+                    if attempt < self._MAX_RETRIES - 1:
+                        delay = self._retry_delay(attempt, None)
+                        logger.warning(
+                            f"Network error on {method} {url}; "
+                            f"retry {attempt + 1}/{self._MAX_RETRIES - 1} in {delay:.1f}s: {e}"
                         )
-                    except json.JSONDecodeError:
-                        logger.error(f"Invalid JSON response: {response_text[:200]}...")
-                        response_json = {}
+                        await asyncio.sleep(delay)
+                        continue
+                    logger.error(f"Network error: {str(e)}")
+                    raise Exception(last_error)
 
-                    # Handle errors
-                    if response.status >= 400:
-                        error_msg = self._format_error_message(
-                            response.status, response_text
-                        )
-                        raise Exception(error_msg)
-
-                    return response_json
-
-            except aiohttp.ClientError as e:
-                logger.error(f"Network error: {str(e)}")
-                raise Exception(f"Network error accessing {url}: {str(e)}")
+            # Loop exhausted without returning (all attempts were retryable failures).
+            raise Exception(last_error or f"Request to {url} failed after retries")
 
     def _format_error_message(self, status: int, response_text: str) -> str:
         """Format error message based on HTTP status code"""
@@ -283,6 +355,12 @@ class OpenProjectClient:
             payload["dueDate"] = data["dueDate"]
         if "date" in data:
             payload["date"] = data["date"]
+
+        # Custom fields: merge customField<N> keys as top-level payload entries
+        # (OpenProject represents custom values as flat top-level properties).
+        if data.get("custom_fields"):
+            for cf_name, cf_value in data["custom_fields"].items():
+                payload[cf_name] = cf_value
 
         # Create work package
         return await self._request("POST", "/work_packages", payload)
@@ -502,6 +580,11 @@ class OpenProjectClient:
             payload["dueDate"] = data["dueDate"]
         if "date" in data:
             payload["date"] = data["date"]
+
+        # Custom fields: merge customField<N> keys as top-level payload entries.
+        if data.get("custom_fields"):
+            for cf_name, cf_value in data["custom_fields"].items():
+                payload[cf_name] = cf_value
 
         return await self._request(
             "PATCH", f"/work_packages/{work_package_id}", payload
