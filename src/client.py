@@ -1638,3 +1638,110 @@ class OpenProjectClient:
         await self._request("POST", "/notifications/read_all_ian")
         return True
 
+    async def _upload_request(
+        self,
+        endpoint: str,
+        file_bytes: bytes,
+        filename: str,
+        content_type: str,
+    ) -> Dict:
+        """Upload a file via multipart form-data POST.
+
+        Replicates the retry/backoff logic from _request but uses FormData
+        instead of JSON payload. The Authorization header is the same.
+        """
+        import aiohttp as _aiohttp
+
+        url = f"{self.base_url}/api/v3{endpoint}"
+        connector = _aiohttp.TCPConnector(ssl=self.ssl_context)
+        timeout = _aiohttp.ClientTimeout(total=60)
+
+        last_error: Optional[str] = None
+        async with _aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+            for attempt in range(self._MAX_RETRIES):
+                try:
+                    form = _aiohttp.FormData()
+                    form.add_field(
+                        "attachment",
+                        file_bytes,
+                        filename=filename,
+                        content_type=content_type,
+                    )
+                    # Strip Content-Type from headers so aiohttp sets multipart boundary
+                    upload_headers = {
+                        k: v for k, v in self.headers.items() if k.lower() != "content-type"
+                    }
+                    request_params: Dict = {
+                        "method": "POST",
+                        "url": url,
+                        "headers": upload_headers,
+                        "data": form,
+                    }
+                    if self.proxy:
+                        request_params["proxy"] = self.proxy
+
+                    async with session.request(**request_params) as response:
+                        response_text = await response.text()
+                        if response.status == 429 or response.status >= 500:
+                            last_error = self._format_error_message(response.status, response_text)
+                            if attempt < self._MAX_RETRIES - 1:
+                                delay = self._retry_delay(attempt, response.headers)
+                                await asyncio.sleep(delay)
+                                continue
+                            raise Exception(last_error)
+                        try:
+                            response_json = json.loads(response_text) if response_text else {}
+                        except json.JSONDecodeError:
+                            response_json = {}
+                        if response.status >= 400:
+                            raise Exception(self._format_error_message(response.status, response_text))
+                        return response_json
+                except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                    err_label = "Timeout" if isinstance(e, asyncio.TimeoutError) else "Network error"
+                    last_error = f"{err_label} during upload to {url}: {str(e)}"
+                    if attempt < self._MAX_RETRIES - 1:
+                        delay = self._retry_delay(attempt, None)
+                        await asyncio.sleep(delay)
+                        continue
+                    raise Exception(last_error)
+        raise Exception(last_error or f"Upload to {url} failed after retries")
+
+    _ATTACHMENT_CONTAINERS = {"work_packages", "wiki_pages", "projects"}
+
+    async def upload_attachment(
+        self,
+        container_type: str,
+        container_id: int,
+        file_bytes: bytes,
+        filename: str,
+        content_type: str = "application/octet-stream",
+    ) -> Dict:
+        """Upload a file attachment to a work package, wiki page, or project.
+
+        Args:
+            container_type: One of 'work_packages', 'wiki_pages', 'projects'
+            container_id: ID of the container resource
+            file_bytes: Raw file bytes
+            filename: Original filename (used for Content-Disposition)
+            content_type: MIME type (default: application/octet-stream)
+        """
+        if container_type not in self._ATTACHMENT_CONTAINERS:
+            raise ValueError(
+                f"container_type must be one of {self._ATTACHMENT_CONTAINERS}, got '{container_type}'"
+            )
+        endpoint = f"/{container_type}/{container_id}/attachments"
+        return await self._upload_request(endpoint, file_bytes, filename, content_type)
+
+    async def get_attachment(self, attachment_id: int) -> Dict:
+        """Get metadata for an attachment by ID."""
+        return await self._request("GET", f"/attachments/{attachment_id}")
+
+    async def delete_attachment(self, attachment_id: int) -> bool:
+        """Delete an attachment by ID."""
+        await self._request("DELETE", f"/attachments/{attachment_id}")
+        return True
+
+    async def list_attachments(self, container_type: str, container_id: int) -> Dict:
+        """List attachments for a work package, wiki page, or project."""
+        return await self._request("GET", f"/{container_type}/{container_id}/attachments")
+

@@ -81,8 +81,9 @@ try:
     from src.tools import wiki             # 4 tools: list_wiki_pages, get_wiki_page, upsert_wiki_page, delete_wiki_page
     from src.tools import groups            # 2 tools: list_groups, get_group
     from src.tools import notifications     # 3 tools: list_notifications, mark_notification_read, mark_all_notifications_read
+    from src.tools import attachments       # 4 tools: upload_attachment, list_attachments, get_attachment, delete_attachment
 
-    logger.info("✅ All 58 tool modules loaded successfully")
+    logger.info("✅ All 62 tool modules loaded successfully")
 except ImportError as e:
     logger.warning(f"⚠️  Some tool modules failed to import: {e}")
     raise
