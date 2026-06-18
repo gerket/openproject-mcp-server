@@ -1608,3 +1608,11 @@ class OpenProjectClient:
         await self._request("DELETE", f"/projects/{project_id}/wiki_pages/{slug}")
         return True
 
+    async def get_groups(self) -> Dict:
+        """List all groups in the OpenProject instance."""
+        return await self._request("GET", "/groups")
+
+    async def get_group(self, group_id: int) -> Dict:
+        """Get a specific group by ID."""
+        return await self._request("GET", f"/groups/{group_id}")
+
