@@ -1,6 +1,5 @@
 """Notification management tools for OpenProject."""
 
-from typing import Optional
 from src.server import mcp, get_client
 from src.utils.formatting import format_error
 
