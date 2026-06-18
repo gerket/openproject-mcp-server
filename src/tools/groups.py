@@ -1,7 +1,7 @@
 """Group management tools for OpenProject (read-only)."""
 
 from src.server import mcp, get_client
-from src.utils.formatting import format_success, format_error
+from src.utils.formatting import format_error
 
 
 @mcp.tool
