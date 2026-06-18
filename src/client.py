@@ -1635,7 +1635,7 @@ class OpenProjectClient:
 
     async def mark_all_notifications_read(self) -> bool:
         """Mark all notifications as read for the current user."""
-        await self._request("POST", "/notifications/read_all_ian")
+        await self._request("POST", "/notifications/read_ian")
         return True
 
     async def _upload_request(
@@ -1647,8 +1647,11 @@ class OpenProjectClient:
     ) -> Dict:
         """Upload a file via multipart form-data POST.
 
-        Replicates the retry/backoff logic from _request but uses FormData
-        instead of JSON payload. The Authorization header is the same.
+        OpenProject v3 attachment upload requires a two-part multipart body:
+          - 'metadata': JSON part with {"fileName": "...", "contentType": "..."}
+          - 'file': binary part with the actual file bytes
+
+        Replicates the retry/backoff logic from _request.
         """
         import aiohttp as _aiohttp
 
@@ -1662,7 +1665,12 @@ class OpenProjectClient:
                 try:
                     form = _aiohttp.FormData()
                     form.add_field(
-                        "attachment",
+                        "metadata",
+                        json.dumps({"fileName": filename, "contentType": content_type}),
+                        content_type="application/json",
+                    )
+                    form.add_field(
+                        "file",
                         file_bytes,
                         filename=filename,
                         content_type=content_type,
