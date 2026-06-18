@@ -1696,7 +1696,7 @@ class OpenProjectClient:
                         if response.status >= 400:
                             raise Exception(self._format_error_message(response.status, response_text))
                         return response_json
-                except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                except (_aiohttp.ClientError, asyncio.TimeoutError) as e:
                     err_label = "Timeout" if isinstance(e, asyncio.TimeoutError) else "Network error"
                     last_error = f"{err_label} during upload to {url}: {str(e)}"
                     if attempt < self._MAX_RETRIES - 1:

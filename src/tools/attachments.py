@@ -1,7 +1,6 @@
 """Attachment tools for OpenProject — upload, list, get, delete."""
 
 import base64
-from typing import Optional
 from pydantic import BaseModel, Field
 
 from src.server import mcp, get_client
@@ -70,7 +69,7 @@ async def upload_attachment(input: UploadAttachmentInput) -> str:
             content_type=input.content_type,
         )
         att_id = attachment.get("id", "N/A")
-        result = format_success(f"Attachment uploaded successfully.")
+        result = format_success("Attachment uploaded successfully.")
         result += f"\n\n**ID**: {att_id}"
         result += f"\n**Filename**: {attachment.get('fileName', input.filename)}"
         size = attachment.get("fileSize")
