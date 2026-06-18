@@ -82,8 +82,9 @@ try:
     from src.tools import groups            # 2 tools: list_groups, get_group
     from src.tools import notifications     # 3 tools: list_notifications, mark_notification_read, mark_all_notifications_read
     from src.tools import attachments       # 4 tools: upload_attachment, list_attachments, get_attachment, delete_attachment
+    from src.tools import costs             # 5 tools: list_cost_types, list_cost_entries, create_cost_entry, update_cost_entry, delete_cost_entry
 
-    logger.info("✅ All 62 tool modules loaded successfully")
+    logger.info("✅ All 67 tool modules loaded successfully")
 except ImportError as e:
     logger.warning(f"⚠️  Some tool modules failed to import: {e}")
     raise
