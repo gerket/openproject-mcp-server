@@ -1575,3 +1575,36 @@ class OpenProjectClient:
         await self._request("DELETE", f"/news/{news_id}")
         return True
 
+    async def get_wiki_pages(self, project_id: int) -> Dict:
+        """List all wiki pages for a project."""
+        return await self._request("GET", f"/projects/{project_id}/wiki_pages")
+
+    async def get_wiki_page(self, project_id: int, slug: str) -> Dict:
+        """Get a single wiki page by slug (title-derived identifier)."""
+        return await self._request("GET", f"/projects/{project_id}/wiki_pages/{slug}")
+
+    async def upsert_wiki_page(self, project_id: int, slug: str, data: Dict) -> Dict:
+        """Create or update a wiki page (idempotent PUT).
+
+        Args:
+            project_id: Project ID
+            slug: Page slug (URL-safe title, e.g. 'getting-started')
+            data: Dict with keys: title (str), content (str, raw Markdown),
+                  optionally parent_slug (str)
+        """
+        payload: Dict = {}
+        if "title" in data:
+            payload["title"] = data["title"]
+        if "content" in data:
+            payload["content"] = {"raw": data["content"]}
+        if "parent_slug" in data:
+            payload["_links"] = {
+                "parent": {"href": f"/api/v3/projects/{project_id}/wiki_pages/{data['parent_slug']}"}
+            }
+        return await self._request("PUT", f"/projects/{project_id}/wiki_pages/{slug}", payload)
+
+    async def delete_wiki_page(self, project_id: int, slug: str) -> bool:
+        """Delete a wiki page."""
+        await self._request("DELETE", f"/projects/{project_id}/wiki_pages/{slug}")
+        return True
+
