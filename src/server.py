@@ -80,8 +80,9 @@ try:
     from src.tools import news             # 5 tools: list_news, create_news, get_news, update_news, delete_news
     from src.tools import wiki             # 4 tools: list_wiki_pages, get_wiki_page, upsert_wiki_page, delete_wiki_page
     from src.tools import groups            # 2 tools: list_groups, get_group
+    from src.tools import notifications     # 3 tools: list_notifications, mark_notification_read, mark_all_notifications_read
 
-    logger.info("✅ All 55 tool modules loaded successfully")
+    logger.info("✅ All 58 tool modules loaded successfully")
 except ImportError as e:
     logger.warning(f"⚠️  Some tool modules failed to import: {e}")
     raise

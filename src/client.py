@@ -1616,3 +1616,25 @@ class OpenProjectClient:
         """Get a specific group by ID."""
         return await self._request("GET", f"/groups/{group_id}")
 
+    async def get_notifications(
+        self,
+        filters: Optional[str] = None,
+        page_size: int = 20,
+    ) -> Dict:
+        """List notifications for the current API user."""
+        query_params = [f"pageSize={page_size}"]
+        if filters:
+            query_params.append(f"filters={quote(filters)}")
+        endpoint = "/notifications?" + "&".join(query_params)
+        return await self._request("GET", endpoint)
+
+    async def mark_notification_read(self, notification_id: int) -> bool:
+        """Mark a single notification as read."""
+        await self._request("POST", f"/notifications/{notification_id}/read_ian")
+        return True
+
+    async def mark_all_notifications_read(self) -> bool:
+        """Mark all notifications as read for the current user."""
+        await self._request("POST", "/notifications/read_all_ian")
+        return True
+
