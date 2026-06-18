@@ -417,6 +417,42 @@ def format_news_detail(news_item: Dict) -> str:
         text += f"- [View in OpenProject]({links['self'].get('href', '#')})\n"
     if 'project' in links:
         text += f"- [Project]({links['project'].get('href', '#')})\n"
-    
+
     return text
 
+
+def format_wiki_page_list(pages: List[Dict]) -> str:
+    """Format a list of wiki pages."""
+    if not pages:
+        return "No wiki pages found."
+    text = f"✅ **Found {len(pages)} wiki page(s):**\n\n"
+    for page in pages:
+        slug = page.get("slug", page.get("id", "N/A"))
+        title = page.get("title", "Untitled")
+        updated = page.get("updatedAt", "")
+        text += f"- **{title}** (`{slug}`)"
+        if updated:
+            text += f"  — updated {updated[:10]}"
+        text += "\n"
+    return text
+
+
+def format_wiki_page_detail(page: Dict) -> str:
+    """Format a single wiki page with full content."""
+    title = page.get("title", "Untitled")
+    slug = page.get("slug", page.get("id", "N/A"))
+    updated = page.get("updatedAt", "")
+    content_raw = page.get("content", {}).get("raw", "") if isinstance(page.get("content"), dict) else ""
+
+    text = f"✅ **Wiki Page: {title}**\n\n"
+    text += f"**Slug**: `{slug}`\n"
+    if updated:
+        text += f"**Updated**: {updated[:10]}\n"
+
+    parent_links = page.get("_links", {}).get("parent", {})
+    if parent_links and parent_links.get("href"):
+        text += f"**Parent**: {parent_links.get('title', parent_links['href'])}\n"
+
+    if content_raw:
+        text += f"\n---\n{content_raw}\n"
+    return text
