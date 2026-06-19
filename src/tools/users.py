@@ -5,7 +5,7 @@ from src.server import mcp, get_client
 from src.utils.formatting import format_success, format_error
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_users(name: Optional[str] = None, status: Optional[str] = None) -> str:
     """List users in OpenProject.
 
@@ -50,7 +50,7 @@ async def list_users(name: Optional[str] = None, status: Optional[str] = None) -
         return format_error(f"Failed to list users: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def get_user(user_id: int) -> str:
     """Get detailed information about a specific user.
 
@@ -82,7 +82,7 @@ async def get_user(user_id: int) -> str:
         return format_error(f"Failed to get user: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_roles() -> str:
     """List available user roles in OpenProject.
 
@@ -108,7 +108,7 @@ async def list_roles() -> str:
         return format_error(f"Failed to list roles: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def get_role(role_id: int) -> str:
     """Get detailed information about a specific role.
 
@@ -141,7 +141,7 @@ async def get_role(role_id: int) -> str:
         return format_error(f"Failed to get role: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_project_members(project_id: int) -> str:
     """List all members of a specific project.
 
@@ -187,7 +187,7 @@ async def list_project_members(project_id: int) -> str:
         return format_error(f"Failed to list project members: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_user_projects(user_id: int) -> str:
     """List all projects a user is a member of.
 
