@@ -69,6 +69,7 @@ try:
         news,  # 5 tools
         notifications,  # 3 tools
         projects,  # 7 tools (list, get, create, add_subproject, get_subprojects, update, delete)
+        queries,  # 8 tools: list_queries, get_query, get_default_query, create_query, update_query, delete_query, star_query, unstar_query
         relations,  # 5 tools
         reminders,  # 2 tools: list_reminders, create_reminder
         time_entries,  # 5 tools
