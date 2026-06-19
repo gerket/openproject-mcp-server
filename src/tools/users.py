@@ -1,6 +1,5 @@
 """User and role management tools."""
 
-
 from src.server import get_client, mcp
 from src.utils.formatting import format_error
 
@@ -26,6 +25,7 @@ async def list_users(name: str | None = None, status: str | None = None) -> str:
             filters.append({"status": {"operator": "=", "values": [status]}})
 
         import json
+
         filters_json = json.dumps(filters) if filters else None
 
         result = await client.get_users(filters_json)
@@ -36,7 +36,9 @@ async def list_users(name: str | None = None, status: str | None = None) -> str:
 
         text = f"✅ **Found {len(users)} user(s):**\n\n"
         for user in users:
-            text += f"- **{user.get('name', 'Unknown')}** (ID: {user.get('id', 'N/A')})\n"
+            text += (
+                f"- **{user.get('name', 'Unknown')}** (ID: {user.get('id', 'N/A')})\n"
+            )
             text += f"  Email: {user.get('email', 'N/A')}\n"
             text += f"  Login: {user.get('login', 'N/A')}\n"
             text += f"  Status: {user.get('status', 'N/A')}\n"
@@ -71,9 +73,9 @@ async def get_user(user_id: int) -> str:
         text += f"**Status**: {user.get('status', 'N/A')}\n"
         text += f"**Admin**: {'Yes' if user.get('admin') else 'No'}\n"
 
-        if user.get('createdAt'):
+        if user.get("createdAt"):
             text += f"**Created**: {user['createdAt']}\n"
-        if user.get('updatedAt'):
+        if user.get("updatedAt"):
             text += f"**Updated**: {user['updatedAt']}\n"
 
         return text
@@ -100,7 +102,9 @@ async def list_roles() -> str:
 
         text = "✅ **Available Roles:**\n\n"
         for role in roles:
-            text += f"- **{role.get('name', 'Unnamed')}** (ID: {role.get('id', 'N/A')})\n"
+            text += (
+                f"- **{role.get('name', 'Unnamed')}** (ID: {role.get('id', 'N/A')})\n"
+            )
 
         return text
 
@@ -201,7 +205,10 @@ async def list_user_projects(user_id: int) -> str:
         client = get_client()
 
         import json
-        filters = json.dumps([{"principal": {"operator": "=", "values": [str(user_id)]}}])
+
+        filters = json.dumps(
+            [{"principal": {"operator": "=", "values": [str(user_id)]}}]
+        )
 
         result = await client.get_memberships(filters)
         memberships = result.get("_embedded", {}).get("elements", [])

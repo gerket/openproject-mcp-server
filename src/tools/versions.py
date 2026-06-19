@@ -1,6 +1,5 @@
 """Version/milestone management tools."""
 
-
 from pydantic import BaseModel, Field
 
 from src.server import get_client, mcp
@@ -9,6 +8,7 @@ from src.utils.formatting import format_error, format_success
 
 class CreateVersionInput(BaseModel):
     """Input model for creating versions."""
+
     project_id: int = Field(..., description="Project ID", gt=0)
     name: str = Field(..., description="Version name", min_length=1, max_length=255)
     description: str | None = Field(None, description="Version description")
@@ -40,12 +40,12 @@ async def list_versions(project_id: int) -> str:
         for version in versions:
             text += f"**{version.get('name', 'Unnamed')}** (ID: {version.get('id', 'N/A')})\n"
 
-            if version.get('description', {}).get('raw'):
+            if version.get("description", {}).get("raw"):
                 text += f"  Description: {version['description']['raw']}\n"
 
-            if version.get('startDate'):
+            if version.get("startDate"):
                 text += f"  Start: {version['startDate']}\n"
-            if version.get('endDate'):
+            if version.get("endDate"):
                 text += f"  End: {version['endDate']}\n"
 
             text += f"  Status: {version.get('status', 'Unknown')}\n"
@@ -103,12 +103,12 @@ async def create_version(input: CreateVersionInput) -> str:
         text += f"**Name**: {result.get('name', 'N/A')}\n"
         text += f"**ID**: #{result.get('id', 'N/A')}\n"
 
-        if result.get('description', {}).get('raw'):
+        if result.get("description", {}).get("raw"):
             text += f"**Description**: {result['description']['raw']}\n"
 
-        if result.get('startDate'):
+        if result.get("startDate"):
             text += f"**Start Date**: {result['startDate']}\n"
-        if result.get('endDate'):
+        if result.get("endDate"):
             text += f"**End Date**: {result['endDate']}\n"
 
         text += f"**Status**: {result.get('status', 'Unknown')}\n"

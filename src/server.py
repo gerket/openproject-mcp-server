@@ -23,9 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize FastMCP server
-mcp = FastMCP(
-    name="openproject-mcp"
-)
+mcp = FastMCP(name="openproject-mcp")
 
 # Initialize OpenProject client as global variable
 _client = None
@@ -40,11 +38,7 @@ try:
             "Missing required environment variables: OPENPROJECT_URL and OPENPROJECT_API_KEY must be set"
         )
 
-    _client = OpenProjectClient(
-        base_url=base_url,
-        api_key=api_key,
-        proxy=proxy
-    )
+    _client = OpenProjectClient(base_url=base_url, api_key=api_key, proxy=proxy)
 
     logger.info("✅ OpenProject MCP Server initialized")
     logger.info(f"   Server: {base_url}")
@@ -97,4 +91,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

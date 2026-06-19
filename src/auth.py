@@ -41,7 +41,7 @@ def load_api_keys_from_env() -> dict[str, str]:
         Dict mapping API keys to user names
     """
     keys_env = os.getenv("MCP_API_KEYS", "")
-    valid_keys = {}
+    valid_keys: dict[str, str] = {}
 
     if not keys_env:
         print("[WARNING] No MCP_API_KEYS environment variable set. HTTP auth disabled.")

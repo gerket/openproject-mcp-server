@@ -15,6 +15,7 @@ from src.utils.report_formatter import (
 
 class GenerateWeeklyReportInput(BaseModel):
     """Input model for generating weekly reports."""
+
     project_id: int = Field(..., description="Project ID to generate report for", gt=0)
     from_date: str = Field(..., description="Report start date (YYYY-MM-DD)")
     to_date: str = Field(..., description="Report end date (YYYY-MM-DD)")
@@ -25,6 +26,7 @@ class GenerateWeeklyReportInput(BaseModel):
 
 class GetReportDataInput(BaseModel):
     """Input model for getting raw report data."""
+
     project_id: int = Field(..., description="Project ID", gt=0)
     from_date: str = Field(..., description="Start date (YYYY-MM-DD)")
     to_date: str = Field(..., description="End date (YYYY-MM-DD)")
@@ -62,7 +64,7 @@ async def _fetch_all_project_work_packages(client, project_id: int) -> list:
             project_id=project_id,
             filters=filters_json,
             offset=offset,
-            page_size=page_size
+            page_size=page_size,
         )
 
         elements = wp_result.get("_embedded", {}).get("elements", [])
@@ -79,7 +81,6 @@ async def _fetch_all_project_work_packages(client, project_id: int) -> list:
         offset += page_size
 
     return all_work_packages
-
 
 
 async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
@@ -112,10 +113,13 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
         #
         # Strategy: Fetch everything, then filter client-side for relevance
         import logging
+
         logger = logging.getLogger(__name__)
 
         logger.info(f"Fetching all work packages for project {input.project_id}")
-        all_work_packages = await _fetch_all_project_work_packages(client, input.project_id)
+        all_work_packages = await _fetch_all_project_work_packages(
+            client, input.project_id
+        )
         logger.info(f"Total work packages fetched: {len(all_work_packages)}")
 
         # Filter to keep only WPs relevant to the report week
@@ -126,26 +130,34 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
         #    This ensures we capture tasks completed in or near the report week
 
         work_packages = []
-        closed_status_keywords = ['closed', 'done', 'resolved', 'completed', 'finished']
+        closed_status_keywords = ["closed", "done", "resolved", "completed", "finished"]
 
         for wp in all_work_packages:
-            updated_at = wp.get('updatedAt', '')
-            created_at = wp.get('createdAt', '')
-            status_name = wp.get('_embedded', {}).get('status', {}).get('name', '').lower()
+            updated_at = wp.get("updatedAt", "")
+            created_at = wp.get("createdAt", "")
+            status_name = (
+                wp.get("_embedded", {}).get("status", {}).get("name", "").lower()
+            )
 
-            is_closed_status = any(keyword in status_name for keyword in closed_status_keywords)
+            is_closed_status = any(
+                keyword in status_name for keyword in closed_status_keywords
+            )
 
             try:
                 # Check if updated in report week
                 if updated_at:
-                    updated_dt = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+                    updated_dt = datetime.fromisoformat(
+                        updated_at.replace("Z", "+00:00")
+                    )
                     if from_dt <= updated_dt.replace(tzinfo=None) <= to_dt:
                         work_packages.append(wp)
                         continue
 
                 # Check if created in report week
                 if created_at:
-                    created_dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    created_dt = datetime.fromisoformat(
+                        created_at.replace("Z", "+00:00")
+                    )
                     if from_dt <= created_dt.replace(tzinfo=None) <= to_dt:
                         work_packages.append(wp)
                         continue
@@ -155,7 +167,9 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
                 if is_closed_status:
                     # Check updatedAt to see if it was recently closed
                     if updated_at:
-                        updated_dt = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+                        updated_dt = datetime.fromisoformat(
+                            updated_at.replace("Z", "+00:00")
+                        )
                         # Include if updated within 30 days before report end
                         cutoff_date = to_dt - timedelta(days=30)
                         if cutoff_date <= updated_dt.replace(tzinfo=None) <= to_dt:
@@ -164,9 +178,11 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
 
                     # Also include if closed date fields exist and are in range
                     # Some statuses might have specific date fields
-                    closed_on = wp.get('closedOn', '') or wp.get('closedAt', '')
+                    closed_on = wp.get("closedOn", "") or wp.get("closedAt", "")
                     if closed_on:
-                        closed_dt = datetime.fromisoformat(closed_on.replace('Z', '+00:00'))
+                        closed_dt = datetime.fromisoformat(
+                            closed_on.replace("Z", "+00:00")
+                        )
                         if from_dt <= closed_dt.replace(tzinfo=None) <= to_dt:
                             work_packages.append(wp)
                             continue
@@ -180,33 +196,29 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
 
         logger.info(f"Relevant work packages after filtering: {len(work_packages)}")
         logger.info("  - Breakdown by status:")
-        status_counts = {}
+        status_counts: dict[str, int] = {}
         for wp in work_packages:
-            status = wp.get('_embedded', {}).get('status', {}).get('name', 'Unknown')
+            status = wp.get("_embedded", {}).get("status", {}).get("name", "Unknown")
             status_counts[status] = status_counts.get(status, 0) + 1
         for status, count in status_counts.items():
             logger.info(f"    {status}: {count}")
-
 
         # 3. Get project members
         members_result = await client.get_memberships(project_id=input.project_id)
         members = members_result.get("_embedded", {}).get("elements", [])
 
         # 4. Get time entries within date range
-        time_filters = json.dumps([
-            {
-                "spentOn": {
-                    "operator": "<>d",
-                    "values": [input.from_date, input.to_date]
-                }
-            },
-            {
-                "project": {
-                    "operator": "=",
-                    "values": [str(input.project_id)]
-                }
-            }
-        ])
+        time_filters = json.dumps(
+            [
+                {
+                    "spentOn": {
+                        "operator": "<>d",
+                        "values": [input.from_date, input.to_date],
+                    }
+                },
+                {"project": {"operator": "=", "values": [str(input.project_id)]}},
+            ]
+        )
 
         te_result = await client.get_time_entries(filters=time_filters)
         time_entries = te_result.get("_embedded", {}).get("elements", [])
@@ -218,7 +230,7 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
             # For now, we'll collect relations from the first few WPs only
             for wp in work_packages[:10]:  # Limit to avoid too many API calls
                 try:
-                    rel_result = await client.get_relations(work_package_id=wp['id'])
+                    rel_result = await client.get_relations(work_package_id=wp["id"])
                     wp_relations = rel_result.get("_embedded", {}).get("elements", [])
                     relations.extend(wp_relations)
                 except Exception:
@@ -227,14 +239,14 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
             pass  # Relations are optional
 
         # Generate report based on format
-        if input.format.lower() == 'json':
+        if input.format.lower() == "json":
             # Return structured JSON data
             data = format_report_data_json(
                 project=project,
                 work_packages=work_packages,
                 time_entries=time_entries,
                 members=members,
-                relations=relations
+                relations=relations,
             )
             return json.dumps(data, indent=2, ensure_ascii=False)
         else:
@@ -248,7 +260,7 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
                 to_date=input.to_date,
                 sprint_goal=input.sprint_goal,
                 team_name=input.team_name,
-                relations=relations
+                relations=relations,
             )
 
             return report
@@ -348,76 +360,95 @@ async def get_report_data(input: GetReportDataInput) -> str:
 
         # Use same improved filtering logic as main report function
         import logging
+
         logger = logging.getLogger(__name__)
 
-        logger.info(f"[get_report_data] Fetching all work packages for project {input.project_id}")
-        all_work_packages = await _fetch_all_project_work_packages(client, input.project_id)
-        logger.info(f"[get_report_data] Total work packages fetched: {len(all_work_packages)}")
+        logger.info(
+            f"[get_report_data] Fetching all work packages for project {input.project_id}"
+        )
+        all_work_packages = await _fetch_all_project_work_packages(
+            client, input.project_id
+        )
+        logger.info(
+            f"[get_report_data] Total work packages fetched: {len(all_work_packages)}"
+        )
 
         # Filter for relevant WPs (same logic as main function)
         work_packages = []
-        closed_status_keywords = ['closed', 'done', 'resolved', 'completed', 'finished']
+        closed_status_keywords = ["closed", "done", "resolved", "completed", "finished"]
 
         for wp in all_work_packages:
-            updated_at = wp.get('updatedAt', '')
-            created_at = wp.get('createdAt', '')
-            status_name = wp.get('_embedded', {}).get('status', {}).get('name', '').lower()
+            updated_at = wp.get("updatedAt", "")
+            created_at = wp.get("createdAt", "")
+            status_name = (
+                wp.get("_embedded", {}).get("status", {}).get("name", "").lower()
+            )
 
-            is_closed_status = any(keyword in status_name for keyword in closed_status_keywords)
+            is_closed_status = any(
+                keyword in status_name for keyword in closed_status_keywords
+            )
 
             try:
                 if updated_at:
-                    updated_dt = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+                    updated_dt = datetime.fromisoformat(
+                        updated_at.replace("Z", "+00:00")
+                    )
                     if from_dt <= updated_dt.replace(tzinfo=None) <= to_dt:
                         work_packages.append(wp)
                         continue
 
                 if created_at:
-                    created_dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    created_dt = datetime.fromisoformat(
+                        created_at.replace("Z", "+00:00")
+                    )
                     if from_dt <= created_dt.replace(tzinfo=None) <= to_dt:
                         work_packages.append(wp)
                         continue
 
                 if is_closed_status:
                     if updated_at:
-                        updated_dt = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+                        updated_dt = datetime.fromisoformat(
+                            updated_at.replace("Z", "+00:00")
+                        )
                         cutoff_date = to_dt - timedelta(days=30)
                         if cutoff_date <= updated_dt.replace(tzinfo=None) <= to_dt:
                             work_packages.append(wp)
                             continue
 
-                    closed_on = wp.get('closedOn', '') or wp.get('closedAt', '')
+                    closed_on = wp.get("closedOn", "") or wp.get("closedAt", "")
                     if closed_on:
-                        closed_dt = datetime.fromisoformat(closed_on.replace('Z', '+00:00'))
+                        closed_dt = datetime.fromisoformat(
+                            closed_on.replace("Z", "+00:00")
+                        )
                         if from_dt <= closed_dt.replace(tzinfo=None) <= to_dt:
                             work_packages.append(wp)
                             continue
 
             except Exception as e:
-                logger.warning(f"[get_report_data] Failed to parse dates for WP #{wp.get('id')}: {e}")
+                logger.warning(
+                    f"[get_report_data] Failed to parse dates for WP #{wp.get('id')}: {e}"
+                )
                 if is_closed_status:
                     work_packages.append(wp)
 
-        logger.info(f"[get_report_data] Relevant work packages after filtering: {len(work_packages)}")
-
+        logger.info(
+            f"[get_report_data] Relevant work packages after filtering: {len(work_packages)}"
+        )
 
         members_result = await client.get_memberships(project_id=input.project_id)
         members = members_result.get("_embedded", {}).get("elements", [])
 
-        time_filters = json.dumps([
-            {
-                "spentOn": {
-                    "operator": "<>d",
-                    "values": [input.from_date, input.to_date]
-                }
-            },
-            {
-                "project": {
-                    "operator": "=",
-                    "values": [str(input.project_id)]
-                }
-            }
-        ])
+        time_filters = json.dumps(
+            [
+                {
+                    "spentOn": {
+                        "operator": "<>d",
+                        "values": [input.from_date, input.to_date],
+                    }
+                },
+                {"project": {"operator": "=", "values": [str(input.project_id)]}},
+            ]
+        )
 
         te_result = await client.get_time_entries(filters=time_filters)
         time_entries = te_result.get("_embedded", {}).get("elements", [])
@@ -427,7 +458,7 @@ async def get_report_data(input: GetReportDataInput) -> str:
             project=project,
             work_packages=work_packages,
             time_entries=time_entries,
-            members=members
+            members=members,
         )
 
         # Add metadata
@@ -439,9 +470,9 @@ async def get_report_data(input: GetReportDataInput) -> str:
                 "generated_at": datetime.now().isoformat(),
                 "work_packages_count": len(work_packages),
                 "time_entries_count": len(time_entries),
-                "members_count": len(members)
+                "members_count": len(members),
             },
-            "data": data
+            "data": data,
         }
 
         return json.dumps(result, indent=2, ensure_ascii=False)
@@ -451,7 +482,9 @@ async def get_report_data(input: GetReportDataInput) -> str:
 
 
 @mcp.tool(tags={"read"})
-async def generate_this_week_report(project_id: int, team_name: str | None = None) -> str:
+async def generate_this_week_report(
+    project_id: int, team_name: str | None = None
+) -> str:
     """Quick shortcut to generate weekly report for the current week (Monday-Sunday).
 
     This is a convenience tool that automatically calculates the current week's
@@ -489,7 +522,7 @@ async def generate_this_week_report(project_id: int, team_name: str | None = Non
             to_date=to_date,
             team_name=team_name,
             sprint_goal=None,
-            format="markdown"
+            format="markdown",
         )
 
         return await _generate_weekly_report_impl(input_data)
@@ -499,7 +532,9 @@ async def generate_this_week_report(project_id: int, team_name: str | None = Non
 
 
 @mcp.tool(tags={"read"})
-async def generate_last_week_report(project_id: int, team_name: str | None = None) -> str:
+async def generate_last_week_report(
+    project_id: int, team_name: str | None = None
+) -> str:
     """Quick shortcut to generate weekly report for last week (Monday-Sunday).
 
     This is a convenience tool that automatically calculates last week's
@@ -537,7 +572,7 @@ async def generate_last_week_report(project_id: int, team_name: str | None = Non
             to_date=to_date,
             team_name=team_name,
             sprint_goal=None,
-            format="markdown"
+            format="markdown",
         )
 
         return await _generate_weekly_report_impl(input_data)

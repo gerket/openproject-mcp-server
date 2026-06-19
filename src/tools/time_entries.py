@@ -1,5 +1,6 @@
 """Time entry management tools for time tracking."""
 
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -9,15 +10,21 @@ from src.utils.formatting import format_error, format_success
 
 class CreateTimeEntryInput(BaseModel):
     """Input model for creating time entries."""
+
     work_package_id: int = Field(..., description="Work package ID", gt=0)
     hours: float = Field(..., description="Hours spent", gt=0)
     spent_on: str = Field(..., description="Date spent (YYYY-MM-DD)")
-    activity_id: int = Field(..., description="Activity ID (1=Management, 2=Specification, 3=Development, 4=Testing)", gt=0)
+    activity_id: int = Field(
+        ...,
+        description="Activity ID (1=Management, 2=Specification, 3=Development, 4=Testing)",
+        gt=0,
+    )
     comment: str | None = Field(None, description="Optional comment")
 
 
 class UpdateTimeEntryInput(BaseModel):
     """Input model for updating time entries."""
+
     time_entry_id: int = Field(..., description="Time entry ID to update", gt=0)
     hours: float | None = Field(None, description="New hours spent", gt=0)
     spent_on: str | None = Field(None, description="New date (YYYY-MM-DD)")
@@ -30,7 +37,7 @@ async def list_time_entries(
     work_package_id: int | None = None,
     user_id: int | None = None,
     from_date: str | None = None,
-    to_date: str | None = None
+    to_date: str | None = None,
 ) -> str:
     """List time entries with optional filters.
 
@@ -47,9 +54,12 @@ async def list_time_entries(
         client = get_client()
 
         import json
+
         filters = []
         if work_package_id:
-            filters.append({"work_package": {"operator": "=", "values": [str(work_package_id)]}})
+            filters.append(
+                {"work_package": {"operator": "=", "values": [str(work_package_id)]}}
+            )
         if user_id:
             filters.append({"user": {"operator": "=", "values": [str(user_id)]}})
         if from_date:
@@ -81,10 +91,10 @@ async def list_time_entries(
             if "activity" in embedded:
                 text += f"  Activity: {embedded['activity'].get('name', 'Unknown')}\n"
 
-            if entry.get('comment', {}).get('raw'):
+            if entry.get("comment", {}).get("raw"):
                 text += f"  Comment: {entry['comment']['raw']}\n"
 
-            total_hours += entry.get('hours', 0)
+            total_hours += entry.get("hours", 0)
             text += "\n"
 
         text += f"**Total Hours**: {total_hours}\n"
@@ -146,7 +156,7 @@ async def create_time_entry(input: CreateTimeEntryInput) -> str:
         if "activity" in embedded:
             text += f"**Activity**: {embedded['activity'].get('name', 'Unknown')}\n"
 
-        if result.get('comment', {}).get('raw'):
+        if result.get("comment", {}).get("raw"):
             text += f"**Comment**: {result['comment']['raw']}\n"
 
         return text
@@ -168,7 +178,7 @@ async def update_time_entry(input: UpdateTimeEntryInput) -> str:
     try:
         client = get_client()
 
-        update_data = {}
+        update_data: dict[str, Any] = {}
 
         if input.hours is not None:
             update_data["hours"] = str(input.hours)
@@ -184,7 +194,9 @@ async def update_time_entry(input: UpdateTimeEntryInput) -> str:
 
         result = await client.update_time_entry(input.time_entry_id, update_data)
 
-        text = format_success(f"Time entry #{input.time_entry_id} updated successfully!\n\n")
+        text = format_success(
+            f"Time entry #{input.time_entry_id} updated successfully!\n\n"
+        )
         text += f"**Hours**: {result.get('hours', 0)}\n"
         text += f"**Date**: {result.get('spentOn', 'N/A')}\n"
 
@@ -192,7 +204,7 @@ async def update_time_entry(input: UpdateTimeEntryInput) -> str:
         if "activity" in embedded:
             text += f"**Activity**: {embedded['activity'].get('name', 'Unknown')}\n"
 
-        if result.get('comment', {}).get('raw'):
+        if result.get("comment", {}).get("raw"):
             text += f"**Comment**: {result['comment']['raw']}\n"
 
         return text

@@ -21,9 +21,7 @@ class CreateNewsInput(BaseModel):
     """Input model for creating news."""
 
     project_id: int = Field(..., description="Project ID", gt=0)
-    title: str = Field(
-        ..., description="News headline", min_length=1, max_length=255
-    )
+    title: str = Field(..., description="News headline", min_length=1, max_length=255)
     summary: str = Field(..., description="Short summary", min_length=1)
     description: str = Field(..., description="Main content (supports Markdown)")
 
@@ -36,9 +34,7 @@ class UpdateNewsInput(BaseModel):
         None, description="New headline", min_length=1, max_length=255
     )
     summary: str | None = Field(None, description="New summary", min_length=1)
-    description: str | None = Field(
-        None, description="New content (supports Markdown)"
-    )
+    description: str | None = Field(None, description="New content (supports Markdown)")
 
 
 # ============================================================
@@ -272,9 +268,7 @@ async def delete_news(news_id: int) -> str:
         # Delete news
         await client.delete_news(news_id)
 
-        return format_success(
-            f"News entry #{news_id} has been permanently deleted."
-        )
+        return format_success(f"News entry #{news_id} has been permanently deleted.")
 
     except Exception as e:
         return format_error(f"Failed to delete news: {e!s}")

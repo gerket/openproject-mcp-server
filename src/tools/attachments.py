@@ -16,10 +16,10 @@ class UploadAttachmentInput(BaseModel):
         description="Resource type: 'work_packages', 'wiki_pages', or 'projects'",
     )
     container_id: int = Field(..., description="ID of the resource to attach to", gt=0)
-    file_content_base64: str = Field(
-        ..., description="Base64-encoded file content"
+    file_content_base64: str = Field(..., description="Base64-encoded file content")
+    filename: str = Field(
+        ..., description="Original filename including extension", min_length=1
     )
-    filename: str = Field(..., description="Original filename including extension", min_length=1)
     content_type: str = Field(
         "application/octet-stream",
         description="MIME type (e.g. 'image/png', 'text/plain')",
@@ -59,7 +59,9 @@ async def upload_attachment(input: UploadAttachmentInput) -> str:
         try:
             file_bytes = base64.b64decode(input.file_content_base64)
         except Exception:
-            return format_error("Invalid base64 in file_content_base64 — could not decode.")
+            return format_error(
+                "Invalid base64 in file_content_base64 — could not decode."
+            )
 
         client = get_client()
         attachment = await client.upload_attachment(

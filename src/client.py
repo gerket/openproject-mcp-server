@@ -111,7 +111,8 @@ def _verify_custom_fields(
             logger.warning(
                 "custom field %s not present in %s response; "
                 "it may not be enabled for this work-package type/project.",
-                cf_name, operation,
+                cf_name,
+                operation,
             )
             continue
         # Determine the intended non-empty value for comparison.
@@ -135,8 +136,7 @@ def _verify_custom_fields(
             )
     if dropped:
         raise ValueError(
-            f"custom field {operation} verification failed — "
-            + "; ".join(dropped)
+            f"custom field {operation} verification failed — " + "; ".join(dropped)
         )
 
 
@@ -145,9 +145,9 @@ class OpenProjectClient:
 
     # Total attempts for a single request before giving up (includes the first
     # try). Retries apply only to transient failures (429 / 5xx / network).
-    _MAX_RETRIES = 4
+    _MAX_RETRIES: ClassVar[int] = 4
     # Base for exponential backoff (seconds): 1, 2, 4, ... per attempt.
-    _BACKOFF_BASE = 1.0
+    _BACKOFF_BASE: ClassVar[float] = 1.0
 
     def __init__(
         self,
@@ -214,7 +214,8 @@ class OpenProjectClient:
                     return float(retry_after)
                 except (TypeError, ValueError):
                     pass  # Non-numeric (HTTP-date form) — fall back to backoff.
-        return cls._BACKOFF_BASE * (2**attempt)
+        backoff: float = cls._BACKOFF_BASE * (2**attempt)
+        return backoff
 
     async def _request(
         self, method: str, endpoint: str, data: dict | None = None
@@ -251,7 +252,7 @@ class OpenProjectClient:
             last_error: str | None = None
             for attempt in range(self._MAX_RETRIES):
                 try:
-                    request_params = {
+                    request_params: dict[str, Any] = {
                         "method": method,
                         "url": url,
                         "headers": self.headers,
@@ -280,7 +281,7 @@ class OpenProjectClient:
                             raise Exception(last_error)
 
                         try:
-                            response_json = (
+                            response_json: dict[str, Any] = (
                                 json.loads(response_text) if response_text else {}
                             )
                         except json.JSONDecodeError:
@@ -305,7 +306,11 @@ class OpenProjectClient:
                     # ClientError subclass), so it must be caught explicitly —
                     # a request timeout is exactly the transient failure retry is
                     # meant to cover. (3.11+: asyncio.TimeoutError == TimeoutError.)
-                    err_label = "Timeout" if isinstance(e, asyncio.TimeoutError) else "Network error"
+                    err_label = (
+                        "Timeout"
+                        if isinstance(e, asyncio.TimeoutError)
+                        else "Network error"
+                    )
                     last_error = f"{err_label} accessing {url}: {e!s}"
                     if attempt < self._MAX_RETRIES - 1:
                         delay = self._retry_delay(attempt, None)
@@ -428,7 +433,7 @@ class OpenProjectClient:
             Dict: Created work package data
         """
         # Prepare initial payload for form
-        form_payload = {"_links": {}}
+        form_payload: dict[str, Any] = {"_links": {}}
 
         # Set required links
         if "project" in data:
@@ -658,11 +663,11 @@ class OpenProjectClient:
             lock_version = current.get("lockVersion", 0)
 
         form = await self._request(
-            "POST", f"/work_packages/{work_package_id}/form", {"lockVersion": lock_version}
+            "POST",
+            f"/work_packages/{work_package_id}/form",
+            {"lockVersion": lock_version},
         )
-        status_schema = (
-            form.get("_embedded", {}).get("schema", {}).get("status", {})
-        )
+        status_schema = form.get("_embedded", {}).get("schema", {}).get("status", {})
         allowed = status_schema.get("_embedded", {}).get("allowedValues", [])
         return [
             {"id": v.get("id"), "name": v.get("name")}
@@ -709,9 +714,7 @@ class OpenProjectClient:
                 )
                 allowed_ids = {s["id"] for s in allowed}
                 if target_status_id not in allowed_ids:
-                    options = ", ".join(
-                        f"{s['name']} (id {s['id']})" for s in allowed
-                    )
+                    options = ", ".join(f"{s['name']} (id {s['id']})" for s in allowed)
                     raise Exception(
                         f"Status transition to id {target_status_id} is not allowed "
                         f"from the current status by the workflow. "
@@ -813,12 +816,7 @@ class OpenProjectClient:
         Returns:
             Dict: API response containing the created activity
         """
-        payload = {
-            "comment": {
-                "format": "markdown",
-                "raw": comment
-            }
-        }
+        payload: dict[str, Any] = {"comment": {"format": "markdown", "raw": comment}}
 
         if internal:
             payload["internal"] = internal
@@ -885,7 +883,7 @@ class OpenProjectClient:
             Dict: Created time entry data
         """
         # Prepare payload
-        payload = {}
+        payload: dict[str, Any] = {}
 
         # Set required fields
         if "work_package_id" in data:
@@ -1151,12 +1149,14 @@ class OpenProjectClient:
             Dict: API response containing direct child projects
         """
         # Use parent_id filter for direct children only
-        filters = json.dumps([{
-            "parent_id": {"operator": "=", "values": [str(parent_id)]}
-        }])
+        filters = json.dumps(
+            [{"parent_id": {"operator": "=", "values": [str(parent_id)]}}]
+        )
         return await self.get_projects(filters)
 
-    async def validate_parent_project(self, parent_id: int, child_id: int | None = None) -> bool:
+    async def validate_parent_project(
+        self, parent_id: int, child_id: int | None = None
+    ) -> bool:
         """
         Validate if a project can be a parent.
         Uses the available_parent_projects endpoint.
@@ -1217,7 +1217,7 @@ class OpenProjectClient:
             Dict: Created membership data
         """
         # Prepare payload
-        payload = {"_links": {}}
+        payload: dict[str, Any] = {"_links": {}}
 
         # Set required fields
         if "project_id" in data:
@@ -1435,13 +1435,11 @@ class OpenProjectClient:
             raise ValueError("from_id is required")
 
         # Prepare payload according to OpenProject API v3 spec
-        payload = {"_links": {}}
+        payload: dict[str, Any] = {"_links": {}}
 
         # Set required fields
         if "to_id" in data:
-            payload["_links"]["to"] = {
-                "href": f"/api/v3/work_packages/{data['to_id']}"
-            }
+            payload["_links"]["to"] = {"href": f"/api/v3/work_packages/{data['to_id']}"}
         if "type" in data:
             payload["type"] = data["type"]
         if "lag" in data:
@@ -1735,7 +1733,9 @@ class OpenProjectClient:
         timeout = _aiohttp.ClientTimeout(total=60)
 
         last_error: str | None = None
-        async with _aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+        async with _aiohttp.ClientSession(
+            connector=connector, timeout=timeout
+        ) as session:
             for attempt in range(self._MAX_RETRIES):
                 try:
                     form = _aiohttp.FormData()
@@ -1752,7 +1752,9 @@ class OpenProjectClient:
                     )
                     # Strip Content-Type from headers so aiohttp sets multipart boundary
                     upload_headers = {
-                        k: v for k, v in self.headers.items() if k.lower() != "content-type"
+                        k: v
+                        for k, v in self.headers.items()
+                        if k.lower() != "content-type"
                     }
                     request_params: dict = {
                         "method": "POST",
@@ -1766,21 +1768,33 @@ class OpenProjectClient:
                     async with session.request(**request_params) as response:
                         response_text = await response.text()
                         if response.status == 429 or response.status >= 500:
-                            last_error = self._format_error_message(response.status, response_text)
+                            last_error = self._format_error_message(
+                                response.status, response_text
+                            )
                             if attempt < self._MAX_RETRIES - 1:
                                 delay = self._retry_delay(attempt, response.headers)
                                 await asyncio.sleep(delay)
                                 continue
                             raise Exception(last_error)
                         try:
-                            response_json = json.loads(response_text) if response_text else {}
+                            response_json: dict[str, Any] = (
+                                json.loads(response_text) if response_text else {}
+                            )
                         except json.JSONDecodeError:
                             response_json = {}
                         if response.status >= 400:
-                            raise Exception(self._format_error_message(response.status, response_text))
+                            raise Exception(
+                                self._format_error_message(
+                                    response.status, response_text
+                                )
+                            )
                         return response_json
                 except (_aiohttp.ClientError, asyncio.TimeoutError) as e:
-                    err_label = "Timeout" if isinstance(e, asyncio.TimeoutError) else "Network error"
+                    err_label = (
+                        "Timeout"
+                        if isinstance(e, asyncio.TimeoutError)
+                        else "Network error"
+                    )
                     last_error = f"{err_label} during upload to {url}: {e!s}"
                     if attempt < self._MAX_RETRIES - 1:
                         delay = self._retry_delay(attempt, None)
@@ -1789,7 +1803,9 @@ class OpenProjectClient:
                     raise Exception(last_error) from None
         raise Exception(last_error or f"Upload to {url} failed after retries")
 
-    _ATTACHMENT_CONTAINERS: ClassVar[frozenset[str]] = frozenset({"work_packages", "wiki_pages", "projects"})
+    _ATTACHMENT_CONTAINERS: ClassVar[frozenset[str]] = frozenset(
+        {"work_packages", "wiki_pages", "projects"}
+    )
 
     async def upload_attachment(
         self,
@@ -1826,7 +1842,9 @@ class OpenProjectClient:
 
     async def list_attachments(self, container_type: str, container_id: int) -> dict:
         """List attachments for a work package, wiki page, or project."""
-        return await self._request("GET", f"/{container_type}/{container_id}/attachments")
+        return await self._request(
+            "GET", f"/{container_type}/{container_id}/attachments"
+        )
 
     async def get_cost_types(self) -> dict:
         """List all defined cost types (admin-level reference data)."""
@@ -1840,9 +1858,13 @@ class OpenProjectClient:
         """List cost entries, optionally filtered by work package or project."""
         filters_list = []
         if work_package_id is not None:
-            filters_list.append({"work_package_id": {"operator": "=", "values": [str(work_package_id)]}})
+            filters_list.append(
+                {"work_package_id": {"operator": "=", "values": [str(work_package_id)]}}
+            )
         if project_id is not None:
-            filters_list.append({"project_id": {"operator": "=", "values": [str(project_id)]}})
+            filters_list.append(
+                {"project_id": {"operator": "=", "values": [str(project_id)]}}
+            )
         if filters_list:
             encoded = quote(json.dumps(filters_list))
             return await self._request("GET", f"/cost_entries?filters={encoded}")
@@ -1860,7 +1882,9 @@ class OpenProjectClient:
         payload: dict = {
             "_links": {
                 "project": {"href": f"/api/v3/projects/{data['project_id']}"},
-                "workPackage": {"href": f"/api/v3/work_packages/{data['work_package_id']}"},
+                "workPackage": {
+                    "href": f"/api/v3/work_packages/{data['work_package_id']}"
+                },
                 "costType": {"href": f"/api/v3/cost_types/{data['cost_type_id']}"},
             },
             "units": str(data["units"]),
@@ -1887,4 +1911,3 @@ class OpenProjectClient:
         """Delete a cost entry by ID."""
         await self._request("DELETE", f"/cost_entries/{cost_entry_id}")
         return True
-

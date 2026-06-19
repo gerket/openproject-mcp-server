@@ -20,6 +20,7 @@ async def list_notifications(
     """
     try:
         import json
+
         client = get_client()
 
         filters = None
@@ -31,7 +32,9 @@ async def list_notifications(
         total = result.get("total", len(items))
 
         if not items:
-            return "✅ No unread notifications." if unread_only else "✅ No notifications."
+            return (
+                "✅ No unread notifications." if unread_only else "✅ No notifications."
+            )
 
         text = f"🔔 **Notifications** ({total} total):\n\n"
         for n in items:

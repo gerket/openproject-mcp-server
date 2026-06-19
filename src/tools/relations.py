@@ -1,5 +1,6 @@
 """Work package relation management tools (follows, blocks, relates, etc.)."""
 
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -9,15 +10,22 @@ from src.utils.formatting import format_error, format_success
 
 class CreateRelationInput(BaseModel):
     """Input model for creating work package relations."""
+
     from_id: int = Field(..., description="Source work package ID", gt=0)
     to_id: int = Field(..., description="Target work package ID", gt=0)
-    type: str = Field(..., description="Relation type (relates, duplicates, blocks, precedes, follows, includes, requires, partof)")
-    lag: int | None = Field(None, description="Lag in working days (for precedes/follows)")
+    type: str = Field(
+        ...,
+        description="Relation type (relates, duplicates, blocks, precedes, follows, includes, requires, partof)",
+    )
+    lag: int | None = Field(
+        None, description="Lag in working days (for precedes/follows)"
+    )
     description: str | None = Field(None, description="Relation description")
 
 
 class UpdateRelationInput(BaseModel):
     """Input model for updating work package relations."""
+
     relation_id: int = Field(..., description="Relation ID to update", gt=0)
     lag: int | None = Field(None, description="New lag in working days")
     description: str | None = Field(None, description="New description")
@@ -76,11 +84,13 @@ async def create_work_package_relation(input: CreateRelationInput) -> str:
         if "from" in embedded:
             text += f"**From**: {embedded['from'].get('subject', 'Unknown')} (#{input.from_id})\n"
         if "to" in embedded:
-            text += f"**To**: {embedded['to'].get('subject', 'Unknown')} (#{input.to_id})\n"
+            text += (
+                f"**To**: {embedded['to'].get('subject', 'Unknown')} (#{input.to_id})\n"
+            )
 
-        if result.get('lag'):
+        if result.get("lag"):
             text += f"**Lag**: {result['lag']} days\n"
-        if result.get('description'):
+        if result.get("description"):
             text += f"**Description**: {result['description']}\n"
 
         return text
@@ -104,7 +114,10 @@ async def list_work_package_relations(work_package_id: int) -> str:
 
         # Get relations for a specific work package
         import json
-        filters = json.dumps([{"involved": {"operator": "=", "values": [str(work_package_id)]}}])
+
+        filters = json.dumps(
+            [{"involved": {"operator": "=", "values": [str(work_package_id)]}}]
+        )
         result = await client.list_work_package_relations(filters)
         relations = result.get("_embedded", {}).get("elements", [])
 
@@ -122,9 +135,9 @@ async def list_work_package_relations(work_package_id: int) -> str:
             if "to" in embedded:
                 text += f"  To: {embedded['to'].get('subject', 'Unknown')} (#{embedded['to'].get('id', 'N/A')})\n"
 
-            if rel.get('lag'):
+            if rel.get("lag"):
                 text += f"  Lag: {rel['lag']} days\n"
-            if rel.get('description'):
+            if rel.get("description"):
                 text += f"  Description: {rel['description']}\n"
 
             text += "\n"
@@ -158,9 +171,9 @@ async def get_work_package_relation(relation_id: int) -> str:
         if "to" in embedded:
             text += f"**To**: {embedded['to'].get('subject', 'Unknown')} (#{embedded['to'].get('id', 'N/A')})\n"
 
-        if rel.get('lag'):
+        if rel.get("lag"):
             text += f"**Lag**: {rel['lag']} days\n"
-        if rel.get('description'):
+        if rel.get("description"):
             text += f"**Description**: {rel['description']}\n"
 
         return text
@@ -182,7 +195,7 @@ async def update_work_package_relation(input: UpdateRelationInput) -> str:
     try:
         client = get_client()
 
-        update_data = {}
+        update_data: dict[str, Any] = {}
 
         if input.lag is not None:
             update_data["lag"] = input.lag
@@ -192,14 +205,18 @@ async def update_work_package_relation(input: UpdateRelationInput) -> str:
         if not update_data:
             return format_error("No fields provided to update")
 
-        result = await client.update_work_package_relation(input.relation_id, update_data)
+        result = await client.update_work_package_relation(
+            input.relation_id, update_data
+        )
 
-        text = format_success(f"Relation #{input.relation_id} updated successfully!\n\n")
+        text = format_success(
+            f"Relation #{input.relation_id} updated successfully!\n\n"
+        )
         text += f"**Type**: {result.get('type', 'Unknown')}\n"
 
-        if result.get('lag'):
+        if result.get("lag"):
             text += f"**Lag**: {result['lag']} days\n"
-        if result.get('description'):
+        if result.get("description"):
             text += f"**Description**: {result['description']}\n"
 
         return text

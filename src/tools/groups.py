@@ -21,7 +21,9 @@ async def list_groups() -> str:
 
         text = f"✅ **Found {len(groups)} group(s):**\n\n"
         for group in groups:
-            text += f"- **{group.get('name', 'Unnamed')}** (ID: {group.get('id', 'N/A')})\n"
+            text += (
+                f"- **{group.get('name', 'Unnamed')}** (ID: {group.get('id', 'N/A')})\n"
+            )
         return text
     except Exception as e:
         return format_error(f"Failed to list groups: {e!s}")

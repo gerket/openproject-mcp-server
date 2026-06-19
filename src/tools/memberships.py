@@ -1,5 +1,6 @@
 """Membership management tools."""
 
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -9,26 +10,39 @@ from src.utils.formatting import format_error, format_success
 
 class CreateMembershipInput(BaseModel):
     """Input model for creating memberships."""
+
     project_id: int = Field(..., description="Project ID", gt=0)
-    user_id: int | None = Field(None, description="User ID (required if group_id not provided)", gt=0)
-    group_id: int | None = Field(None, description="Group ID (required if user_id not provided)", gt=0)
+    user_id: int | None = Field(
+        None, description="User ID (required if group_id not provided)", gt=0
+    )
+    group_id: int | None = Field(
+        None, description="Group ID (required if user_id not provided)", gt=0
+    )
     role_ids: list[int] | None = Field(None, description="List of role IDs")
-    role_id: int | None = Field(None, description="Single role ID (alternative to role_ids)", gt=0)
-    notification_message: str | None = Field(None, description="Optional notification message")
+    role_id: int | None = Field(
+        None, description="Single role ID (alternative to role_ids)", gt=0
+    )
+    notification_message: str | None = Field(
+        None, description="Optional notification message"
+    )
 
 
 class UpdateMembershipInput(BaseModel):
     """Input model for updating memberships."""
+
     membership_id: int = Field(..., description="Membership ID to update", gt=0)
     role_ids: list[int] | None = Field(None, description="New list of role IDs")
-    role_id: int | None = Field(None, description="Single role ID (alternative to role_ids)", gt=0)
-    notification_message: str | None = Field(None, description="Optional notification message")
+    role_id: int | None = Field(
+        None, description="Single role ID (alternative to role_ids)", gt=0
+    )
+    notification_message: str | None = Field(
+        None, description="Optional notification message"
+    )
 
 
 @mcp.tool(tags={"read"})
 async def list_memberships(
-    project_id: int | None = None,
-    user_id: int | None = None
+    project_id: int | None = None, user_id: int | None = None
 ) -> str:
     """List memberships (project members).
 
@@ -115,9 +129,9 @@ async def get_membership(membership_id: int) -> str:
             role_names = [r.get("title", "Unknown") for r in role_links]
             text += f"**Roles**: {', '.join(role_names)}\n"
 
-        if member.get('createdAt'):
+        if member.get("createdAt"):
             text += f"**Created**: {member['createdAt']}\n"
-        if member.get('updatedAt'):
+        if member.get("updatedAt"):
             text += f"**Updated**: {member['updatedAt']}\n"
 
         return text
@@ -146,7 +160,7 @@ async def create_membership(input: CreateMembershipInput) -> str:
     try:
         client = get_client()
 
-        data = {"project_id": input.project_id}
+        data: dict[str, Any] = {"project_id": input.project_id}
 
         # Add user or group
         if input.user_id:
@@ -200,7 +214,7 @@ async def update_membership(input: UpdateMembershipInput) -> str:
     try:
         client = get_client()
 
-        update_data = {}
+        update_data: dict[str, Any] = {}
 
         if input.role_ids:
             update_data["role_ids"] = input.role_ids
@@ -215,7 +229,9 @@ async def update_membership(input: UpdateMembershipInput) -> str:
 
         result = await client.update_membership(input.membership_id, update_data)
 
-        text = format_success(f"Membership #{input.membership_id} updated successfully!\n\n")
+        text = format_success(
+            f"Membership #{input.membership_id} updated successfully!\n\n"
+        )
 
         embedded = result.get("_embedded", {})
         if "roles" in embedded:

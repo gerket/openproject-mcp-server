@@ -22,7 +22,9 @@ async def set_work_package_parent(child_id: int, parent_id: int) -> str:
         data = {"parent_id": parent_id}
         result = await client.update_work_package(child_id, data)
 
-        text = format_success(f"Work package #{child_id} is now child of #{parent_id}\n\n")
+        text = format_success(
+            f"Work package #{child_id} is now child of #{parent_id}\n\n"
+        )
         text += f"**Child**: {result.get('subject', 'Unknown')}\n"
 
         embedded = result.get("_embedded", {})
@@ -60,9 +62,7 @@ async def remove_work_package_parent(work_package_id: int) -> str:
 
 @mcp.tool(tags={"read"})
 async def list_work_package_children(
-    work_package_id: int,
-    offset: int = 0,
-    page_size: int = 20
+    work_package_id: int, offset: int = 0, page_size: int = 20
 ) -> str:
     """List all children of a work package.
 
@@ -78,9 +78,7 @@ async def list_work_package_children(
         client = get_client()
 
         result = await client.get_work_package_children(
-            parent_id=work_package_id,
-            offset=offset,
-            page_size=page_size
+            parent_id=work_package_id, offset=offset, page_size=page_size
         )
 
         children = result.get("_embedded", {}).get("elements", [])
