@@ -10,7 +10,7 @@ from src.server import mcp, get_client
 from src.utils.formatting import format_wiki_page_detail, format_error
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def get_wiki_page(wiki_page_id: int) -> str:
     """Get a wiki page by its integer ID, including full Markdown content.
 

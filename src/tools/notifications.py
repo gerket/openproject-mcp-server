@@ -4,7 +4,7 @@ from src.server import mcp, get_client
 from src.utils.formatting import format_error
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_notifications(
     unread_only: bool = True,
     page_size: int = 20,
@@ -58,7 +58,7 @@ async def list_notifications(
         return format_error(f"Failed to list notifications: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def mark_notification_read(notification_id: int) -> str:
     """Mark a single notification as read.
 
@@ -76,7 +76,7 @@ async def mark_notification_read(notification_id: int) -> str:
         return format_error(f"Failed to mark notification read: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def mark_all_notifications_read() -> str:
     """Mark all notifications as read for the current API user.
 

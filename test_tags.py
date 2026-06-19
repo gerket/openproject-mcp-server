@@ -130,6 +130,46 @@ async def test_reports_news_tags():
     print("✅ weekly_reports + news tags correct")
 
 
+async def test_new_modules_tags():
+    tools = await get_tools()
+    # wiki
+    await assert_tag("get_wiki_page", "read", tools)
+    # groups
+    for name in ["list_groups", "get_group"]:
+        await assert_tag(name, "read", tools)
+    # notifications
+    await assert_tag("list_notifications", "read", tools)
+    for name in ["mark_notification_read", "mark_all_notifications_read"]:
+        await assert_tag(name, "write", tools)
+    # attachments
+    for name in ["list_attachments", "get_attachment"]:
+        await assert_tag(name, "read", tools)
+    for name in ["upload_attachment", "delete_attachment"]:
+        await assert_tag(name, "write", tools)
+    # costs
+    for name in ["list_cost_types", "list_cost_entries"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_cost_entry", "update_cost_entry", "delete_cost_entry"]:
+        await assert_tag(name, "write", tools)
+    print("✅ new module tags correct (wiki/groups/notifications/attachments/costs)")
+
+
+async def test_full_sweep():
+    """Every single registered tool must have exactly one of: read, write."""
+    tools = await get_tools()
+    missing = [name for name, t in tools.items() if not getattr(t, "tags", None)]
+    bad_values = [
+        f"{name}:{t.tags}"
+        for name, t in tools.items()
+        if getattr(t, "tags", None) and t.tags - {"read", "write"}
+    ]
+    assert not missing, f"Tools without tags: {sorted(missing)}"
+    assert not bad_values, f"Tools with unexpected tag values: {bad_values}"
+    read_count = sum(1 for t in tools.values() if "read" in (t.tags or set()))
+    write_count = sum(1 for t in tools.values() if "write" in (t.tags or set()))
+    print(f"✅ Full sweep: {len(tools)} tools, {read_count} read, {write_count} write")
+
+
 if __name__ == "__main__":
     asyncio.run(test_connection_tags())
     asyncio.run(test_work_packages_tags())
@@ -139,4 +179,6 @@ if __name__ == "__main__":
     asyncio.run(test_hierarchy_relations_tags())
     asyncio.run(test_time_entries_versions_tags())
     asyncio.run(test_reports_news_tags())
-    print("\n(Full tag sweep will pass once all modules are tagged)")
+    asyncio.run(test_new_modules_tags())
+    asyncio.run(test_full_sweep())
+    print("\n✅ All tag tests passed")

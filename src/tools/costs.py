@@ -23,7 +23,7 @@ class UpdateCostEntryInput(BaseModel):
     comment: Optional[str] = Field(None, description="New comment")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_cost_types() -> str:
     """List all defined cost types in the OpenProject instance.
 
@@ -58,7 +58,7 @@ async def list_cost_types() -> str:
         return format_error(f"Failed to list cost types: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_cost_entries(
     work_package_id: Optional[int] = None,
     project_id: Optional[int] = None,
@@ -100,7 +100,7 @@ async def list_cost_entries(
         return format_error(f"Failed to list cost entries: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def create_cost_entry(input: CreateCostEntryInput) -> str:
     """Log a cost entry against a work package.
 
@@ -147,7 +147,7 @@ async def create_cost_entry(input: CreateCostEntryInput) -> str:
         return format_error(f"Failed to create cost entry: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def update_cost_entry(input: UpdateCostEntryInput) -> str:
     """Update an existing cost entry (units, date, or comment).
 
@@ -178,7 +178,7 @@ async def update_cost_entry(input: UpdateCostEntryInput) -> str:
         return format_error(f"Failed to update cost entry: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def delete_cost_entry(cost_entry_id: int) -> str:
     """Delete a cost entry permanently.
 

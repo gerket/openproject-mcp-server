@@ -4,7 +4,7 @@ from src.server import mcp, get_client
 from src.utils.formatting import format_error
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_groups() -> str:
     """List all groups in the OpenProject instance.
 
@@ -27,7 +27,7 @@ async def list_groups() -> str:
         return format_error(f"Failed to list groups: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def get_group(group_id: int) -> str:
     """Get detailed information about a specific group.
 

@@ -25,7 +25,7 @@ class UploadAttachmentInput(BaseModel):
     )
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def upload_attachment(input: UploadAttachmentInput) -> str:
     """Upload a file attachment to a work package, wiki page, or project.
 
@@ -80,7 +80,7 @@ async def upload_attachment(input: UploadAttachmentInput) -> str:
         return format_error(f"Failed to upload attachment: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_attachments(container_type: str, container_id: int) -> str:
     """List all attachments on a work package, wiki page, or project.
 
@@ -120,7 +120,7 @@ async def list_attachments(container_type: str, container_id: int) -> str:
         return format_error(f"Failed to list attachments: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def get_attachment(attachment_id: int) -> str:
     """Get metadata for a specific attachment.
 
@@ -151,7 +151,7 @@ async def get_attachment(attachment_id: int) -> str:
         return format_error(f"Failed to get attachment: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def delete_attachment(attachment_id: int) -> str:
     """Delete an attachment permanently.
 
