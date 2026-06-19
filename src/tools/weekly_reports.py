@@ -269,7 +269,7 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
         return format_error(f"Failed to generate weekly report: {e!s}")
 
 
-@mcp.tool(tags={"read"})
+@mcp.tool(tags={"read", "reports"})
 async def generate_weekly_report(input: GenerateWeeklyReportInput) -> str:
     """Generate comprehensive weekly Agile/Scrum report automatically.
 
@@ -310,7 +310,7 @@ async def generate_weekly_report(input: GenerateWeeklyReportInput) -> str:
     return await _generate_weekly_report_impl(input)
 
 
-@mcp.tool(tags={"read"})
+@mcp.tool(tags={"read", "reports"})
 async def get_report_data(input: GetReportDataInput) -> str:
     """Get raw data for weekly report in JSON format for custom processing.
 
@@ -481,7 +481,7 @@ async def get_report_data(input: GetReportDataInput) -> str:
         return format_error(f"Failed to get report data: {e!s}")
 
 
-@mcp.tool(tags={"read"})
+@mcp.tool(tags={"read", "reports"})
 async def generate_this_week_report(
     project_id: int, team_name: str | None = None
 ) -> str:
@@ -531,7 +531,7 @@ async def generate_this_week_report(
         return format_error(f"Failed to generate this week's report: {e!s}")
 
 
-@mcp.tool(tags={"read"})
+@mcp.tool(tags={"read", "reports"})
 async def generate_last_week_report(
     project_id: int, team_name: str | None = None
 ) -> str:

@@ -100,3 +100,19 @@ async def test_list_available_assignees():
 
         result = await list_available_assignees.fn(work_package_id=42)
         assert "Tom Gerke" in result
+
+
+async def test_get_activity_author_fallback():
+    activity = {
+        "id": 8,
+        "comment": {"raw": "Fallback test.", "html": "<p>Fallback test.</p>"},
+        "createdAt": "2026-06-19T11:00:00Z",
+        "_links": {"author": {"title": "Admin User"}},
+    }
+    mock = _mock_client({"get_activity": activity})
+    with patch("src.tools.watchers.get_client", return_value=mock):
+        from src.tools.watchers import get_activity
+
+        result = await get_activity.fn(activity_id=8)
+        assert "Admin User" in result
+        assert "Fallback test" in result

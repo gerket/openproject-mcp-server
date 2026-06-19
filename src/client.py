@@ -1976,7 +1976,7 @@ class OpenProjectClient:
             note: Optional reminder note
         """
         payload: dict = {"remindAt": remind_at}
-        if note:
+        if note is not None:
             payload["note"] = note
         return await self._request(
             "POST", f"/work_packages/{work_package_id}/reminders", payload

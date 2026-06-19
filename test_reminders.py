@@ -16,7 +16,7 @@ async def test_list_reminders_empty():
         from src.tools.reminders import list_reminders
 
         result = await list_reminders.fn(work_package_id=42)
-        assert "no reminders" in result.lower() or "0" in result
+        assert "no reminders" in result.lower()
 
 
 async def test_list_reminders_results():
