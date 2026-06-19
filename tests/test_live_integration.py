@@ -652,6 +652,109 @@ async def run_tests(base_url: str, api_key: str) -> None:
     )
 
     # ------------------------------------------------------------------ #
+    # CUSTOM ACTIONS
+    # Requires at least one custom action configured in OpenProject admin.
+    # See docs/integration-test-setup.md — "Custom action setup".
+    # ------------------------------------------------------------------ #
+    section("Custom Actions")
+
+    action_id = None
+
+    try:
+        result = await client.list_custom_actions()
+        actions = result.get("_embedded", {}).get("elements", [])
+        if actions:
+            action_id = actions[0].get("id")
+        record(
+            "custom_actions/list",
+            len(actions) >= 1,
+            f"count={len(actions)}"
+            if actions
+            else "SKIP: no actions found — see docs/integration-test-setup.md",
+        )
+    except Exception as e:
+        record("custom_actions/list", False, str(e)[:120])
+
+    if action_id:
+        try:
+            result = await client.get_custom_action(action_id)
+            assert result.get("id") == action_id
+            record(
+                "custom_actions/get", True, f"id={action_id}, name={result.get('name')}"
+            )
+        except Exception as e:
+            record("custom_actions/get", False, str(e)[:120])
+
+        try:
+            # Create a fresh WP in "New" status to execute the action against.
+            # The "Start work" action (New → In Progress) is the documented test action.
+            result = await client.create_work_package(
+                {"project": 4, "subject": "integration-test-custom-action", "type": 1}
+            )
+            test_wp_id = result.get("id")
+            assert test_wp_id
+            record("custom_actions/create_test_wp", True, f"id={test_wp_id}")
+
+            result = await client.execute_custom_action(action_id, test_wp_id)
+            wp_after = result.get("_embedded", {}).get("workPackage", result)
+            status_title = (
+                wp_after.get("_links", {}).get("status", {}).get("title", "unknown")
+            )
+            record(
+                "custom_actions/execute",
+                True,
+                f"action_id={action_id}, wp={test_wp_id}, status_after={status_title}",
+            )
+
+            # Cleanup
+            await client.delete_work_package(test_wp_id)
+        except Exception as e:
+            record("custom_actions/execute", False, str(e)[:120])
+    else:
+        record("custom_actions/get", False, "skipped: no action found")
+        record("custom_actions/execute", False, "skipped: no action found")
+
+    # ------------------------------------------------------------------ #
+    # VERSION LIFECYCLE (update + delete, extends existing create test)
+    # ------------------------------------------------------------------ #
+    section("Version lifecycle (update + delete)")
+
+    v_id = None
+    try:
+        result = await client.create_version(
+            4, {"name": "integration-test-version-lifecycle"}
+        )
+        v_id = result.get("id")
+        assert v_id
+        record("versions/lifecycle_create", True, f"id={v_id}")
+    except Exception as e:
+        record("versions/lifecycle_create", False, str(e)[:120])
+
+    if v_id:
+        try:
+            result = await client.update_version(
+                v_id, {"name": "integration-test-version-updated", "status": "locked"}
+            )
+            assert result.get("name") == "integration-test-version-updated"
+            record(
+                "versions/lifecycle_update",
+                True,
+                f"name={result.get('name')}, status={result.get('status')}",
+            )
+        except Exception as e:
+            record("versions/lifecycle_update", False, str(e)[:120])
+
+        try:
+            ok = await client.delete_version(v_id)
+            assert ok
+            record("versions/lifecycle_delete", True, f"id={v_id} deleted")
+        except Exception as e:
+            record("versions/lifecycle_delete", False, str(e)[:120])
+    else:
+        record("versions/lifecycle_update", False, "skipped: create failed")
+        record("versions/lifecycle_delete", False, "skipped: create failed")
+
+    # ------------------------------------------------------------------ #
     # SUMMARY
     # ------------------------------------------------------------------ #
     print(f"\n{'=' * 60}")
