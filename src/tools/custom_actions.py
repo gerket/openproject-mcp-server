@@ -34,7 +34,15 @@ async def list_custom_actions() -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list custom actions: {e!s}")
+        err = str(e)
+        if "404" in err:
+            return (
+                "⚠️ The `GET /custom_actions` collection endpoint is not available on this "
+                "OpenProject instance (Community Edition returns 404 for this endpoint). "
+                "Use `get_custom_action(action_id)` with a known ID instead, or check "
+                "Administration → Work packages → Custom actions in the web UI to find IDs."
+            )
+        return format_error(f"Failed to list custom actions: {err}")
 
 
 @mcp.tool(tags={"read", "work_packages", "get_custom_action"})
@@ -51,7 +59,8 @@ async def get_custom_action(action_id: int) -> str:
         client = get_client()
         action = await client.get_custom_action(action_id)
 
-        text = f"✅ **Custom Action #{action.get('id', 'N/A')}:**\n\n"
+        # The API response has no top-level "id" — use the supplied action_id.
+        text = f"✅ **Custom Action #{action_id}:**\n\n"
         text += f"**Name**: {action.get('name', 'N/A')}\n"
         if action.get("description", {}).get("raw"):
             text += f"**Description**: {action['description']['raw']}\n"

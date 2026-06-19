@@ -9,6 +9,7 @@ import asyncio
 import json
 import os
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -435,7 +436,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     version_id = None
     try:
-        result = await client.create_version(4, {"name": "Integration Test Version"})
+        result = await client.create_version(
+            4, {"name": f"integration-test-version-{int(time.time())}"}
+        )
         version_id = result.get("id")
         assert version_id, "No ID in created version"
         record("versions/create", True, f"id={version_id}")
@@ -653,66 +656,54 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     # ------------------------------------------------------------------ #
     # CUSTOM ACTIONS
-    # Requires at least one custom action configured in OpenProject admin.
-    # See docs/integration-test-setup.md — "Custom action setup".
+    # Requires the "Start work" custom action created per
+    # docs/integration-test-setup.md Step 4.
+    #
+    # NOTE: GET /custom_actions (collection) is unavailable on CE —
+    # only individual GET /custom_actions/{id} and execute work.
     # ------------------------------------------------------------------ #
     section("Custom Actions")
 
-    action_id = None
+    # ID 1 is the action created per the setup guide.
+    CUSTOM_ACTION_ID = 1
 
     try:
-        result = await client.list_custom_actions()
-        actions = result.get("_embedded", {}).get("elements", [])
-        if actions:
-            action_id = actions[0].get("id")
+        result = await client.get_custom_action(CUSTOM_ACTION_ID)
+        # The API response has no top-level "id" field; confirm via self href.
+        self_href = result.get("_links", {}).get("self", {}).get("href", "")
+        assert str(CUSTOM_ACTION_ID) in self_href, f"ID not in self href: {self_href}"
         record(
-            "custom_actions/list",
-            len(actions) >= 1,
-            f"count={len(actions)}"
-            if actions
-            else "SKIP: no actions found — see docs/integration-test-setup.md",
+            "custom_actions/get",
+            True,
+            f"id={CUSTOM_ACTION_ID}, name={result.get('name')}",
         )
     except Exception as e:
-        record("custom_actions/list", False, str(e)[:120])
+        record("custom_actions/get", False, str(e)[:120])
 
-    if action_id:
-        try:
-            result = await client.get_custom_action(action_id)
-            assert result.get("id") == action_id
-            record(
-                "custom_actions/get", True, f"id={action_id}, name={result.get('name')}"
-            )
-        except Exception as e:
-            record("custom_actions/get", False, str(e)[:120])
+    try:
+        # Fresh WP starts in "New" — matching the "Start work" action condition.
+        result = await client.create_work_package(
+            {"project": 4, "subject": "integration-test-custom-action", "type": 1}
+        )
+        test_wp_id = result.get("id")
+        assert test_wp_id
+        record("custom_actions/create_test_wp", True, f"id={test_wp_id}")
 
-        try:
-            # Create a fresh WP in "New" status to execute the action against.
-            # The "Start work" action (New → In Progress) is the documented test action.
-            result = await client.create_work_package(
-                {"project": 4, "subject": "integration-test-custom-action", "type": 1}
-            )
-            test_wp_id = result.get("id")
-            assert test_wp_id
-            record("custom_actions/create_test_wp", True, f"id={test_wp_id}")
+        result = await client.execute_custom_action(CUSTOM_ACTION_ID, test_wp_id)
+        wp_after = result.get("_embedded", {}).get("workPackage", result)
+        status_title = (
+            wp_after.get("_links", {}).get("status", {}).get("title", "unknown")
+        )
+        record(
+            "custom_actions/execute",
+            True,
+            f"action_id={CUSTOM_ACTION_ID}, wp={test_wp_id}, status_after={status_title}",
+        )
 
-            result = await client.execute_custom_action(action_id, test_wp_id)
-            wp_after = result.get("_embedded", {}).get("workPackage", result)
-            status_title = (
-                wp_after.get("_links", {}).get("status", {}).get("title", "unknown")
-            )
-            record(
-                "custom_actions/execute",
-                True,
-                f"action_id={action_id}, wp={test_wp_id}, status_after={status_title}",
-            )
-
-            # Cleanup
-            await client.delete_work_package(test_wp_id)
-        except Exception as e:
-            record("custom_actions/execute", False, str(e)[:120])
-    else:
-        record("custom_actions/get", False, "skipped: no action found")
-        record("custom_actions/execute", False, "skipped: no action found")
+        # Cleanup
+        await client.delete_work_package(test_wp_id)
+    except Exception as e:
+        record("custom_actions/execute", False, str(e)[:120])
 
     # ------------------------------------------------------------------ #
     # VERSION LIFECYCLE (update + delete, extends existing create test)
@@ -722,7 +713,7 @@ async def run_tests(base_url: str, api_key: str) -> None:
     v_id = None
     try:
         result = await client.create_version(
-            4, {"name": "integration-test-version-lifecycle"}
+            4, {"name": f"integration-test-version-lifecycle-{int(time.time())}"}
         )
         v_id = result.get("id")
         assert v_id
