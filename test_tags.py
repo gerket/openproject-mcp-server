@@ -169,16 +169,3 @@ async def test_full_sweep():
     write_count = sum(1 for t in tools.values() if "write" in (t.tags or set()))
     print(f"✅ Full sweep: {len(tools)} tools, {read_count} read, {write_count} write")
 
-
-if __name__ == "__main__":
-    asyncio.run(test_connection_tags())
-    asyncio.run(test_work_packages_tags())
-    asyncio.run(test_projects_tags())
-    asyncio.run(test_users_tags())
-    asyncio.run(test_memberships_tags())
-    asyncio.run(test_hierarchy_relations_tags())
-    asyncio.run(test_time_entries_versions_tags())
-    asyncio.run(test_reports_news_tags())
-    asyncio.run(test_new_modules_tags())
-    asyncio.run(test_full_sweep())
-    print("\n✅ All tag tests passed")
