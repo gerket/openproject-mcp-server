@@ -107,6 +107,17 @@ async def test_hierarchy_relations_tags():
     print("✅ hierarchy + relations tags correct")
 
 
+async def test_time_entries_versions_tags():
+    tools = await get_tools()
+    for name in ["list_time_entries", "list_time_entry_activities"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_time_entry", "update_time_entry", "delete_time_entry"]:
+        await assert_tag(name, "write", tools)
+    await assert_tag("list_versions", "read", tools)
+    await assert_tag("create_version", "write", tools)
+    print("✅ time_entries + versions tags correct")
+
+
 if __name__ == "__main__":
     asyncio.run(test_connection_tags())
     asyncio.run(test_work_packages_tags())
@@ -114,4 +125,5 @@ if __name__ == "__main__":
     asyncio.run(test_users_tags())
     asyncio.run(test_memberships_tags())
     asyncio.run(test_hierarchy_relations_tags())
+    asyncio.run(test_time_entries_versions_tags())
     print("\n(Full tag sweep will pass once all modules are tagged)")
