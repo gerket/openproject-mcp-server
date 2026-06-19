@@ -4,7 +4,9 @@ from src.server import get_client, mcp
 from src.utils.formatting import format_error
 
 
-@mcp.tool(tags={"read", "work-packages"})
+@mcp.tool(
+    tags={"read", "work-packages", "situational", "situational-read", "list_watchers"}
+)
 async def list_watchers(work_package_id: int) -> str:
     """List all users watching a work package.
 
@@ -28,7 +30,15 @@ async def list_watchers(work_package_id: int) -> str:
         return format_error(f"Failed to list watchers: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages"})
+@mcp.tool(
+    tags={
+        "read",
+        "work-packages",
+        "situational",
+        "situational-read",
+        "list_available_watchers",
+    }
+)
 async def list_available_watchers(work_package_id: int) -> str:
     """List users eligible to watch a work package (project members with view access).
 
@@ -54,7 +64,9 @@ async def list_available_watchers(work_package_id: int) -> str:
         return format_error(f"Failed to list available watchers: {e!s}")
 
 
-@mcp.tool(tags={"write", "work-packages"})
+@mcp.tool(
+    tags={"write", "work-packages", "situational", "situational-write", "add_watcher"}
+)
 async def add_watcher(work_package_id: int, user_id: int) -> str:
     """Add a user as a watcher on a work package.
 
@@ -73,7 +85,15 @@ async def add_watcher(work_package_id: int, user_id: int) -> str:
         return format_error(f"Failed to add watcher: {e!s}")
 
 
-@mcp.tool(tags={"write", "work-packages"})
+@mcp.tool(
+    tags={
+        "write",
+        "work-packages",
+        "situational",
+        "situational-write",
+        "remove_watcher",
+    }
+)
 async def remove_watcher(work_package_id: int, user_id: int) -> str:
     """Remove a user from the watcher list of a work package.
 
@@ -92,7 +112,9 @@ async def remove_watcher(work_package_id: int, user_id: int) -> str:
         return format_error(f"Failed to remove watcher: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages"})
+@mcp.tool(
+    tags={"read", "work-packages", "situational", "situational-read", "get_activity"}
+)
 async def get_activity(activity_id: int) -> str:
     """Get a single activity (comment or field change) by ID.
 
@@ -125,7 +147,15 @@ async def get_activity(activity_id: int) -> str:
         return format_error(f"Failed to get activity: {e!s}")
 
 
-@mcp.tool(tags={"write", "work-packages"})
+@mcp.tool(
+    tags={
+        "write",
+        "work-packages",
+        "situational",
+        "situational-write",
+        "update_activity",
+    }
+)
 async def update_activity(
     activity_id: int,
     comment: str,
@@ -156,7 +186,15 @@ async def update_activity(
         return format_error(f"Failed to update activity: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages"})
+@mcp.tool(
+    tags={
+        "read",
+        "work-packages",
+        "situational",
+        "situational-read",
+        "list_available_assignees",
+    }
+)
 async def list_available_assignees(work_package_id: int) -> str:
     """List users eligible to be assigned to a work package.
 
