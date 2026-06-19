@@ -1,9 +1,9 @@
 """Connection and permission checking tools."""
 
-from src.server import mcp, get_client
+from src.server import get_client, mcp
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def test_connection() -> str:
     """Test the connection to the OpenProject API.
 
@@ -21,10 +21,10 @@ async def test_connection() -> str:
         return text
 
     except Exception as e:
-        return f"❌ Connection failed: {str(e)}"
+        return f"❌ Connection failed: {e!s}"
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def check_permissions() -> str:
     """Check current user permissions and capabilities.
 
@@ -48,4 +48,4 @@ async def check_permissions() -> str:
         return text
 
     except Exception as e:
-        return f"❌ Failed to check permissions: {str(e)}"
+        return f"❌ Failed to check permissions: {e!s}"

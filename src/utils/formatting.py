@@ -1,9 +1,7 @@
 """Response formatting utilities for consistent output across all tools."""
 
-from typing import List, Dict, Any, Optional
 
-
-def format_project_list(projects: List[Dict]) -> str:
+def format_project_list(projects: list[dict]) -> str:
     """Format project list with consistent styling.
 
     Args:
@@ -19,10 +17,10 @@ def format_project_list(projects: List[Dict]) -> str:
     for project in projects:
         text += f"- **{project.get('name', 'Unnamed')}** (ID: {project.get('id')})\n"
         text += f"  Status: {'Active' if project.get('active') else 'Inactive'}\n"
-        if project.get('description'):
-            desc = project.get('description', {})
+        if project.get("description"):
+            desc = project.get("description", {})
             if isinstance(desc, dict):
-                desc_text = desc.get('raw', '')[:100]
+                desc_text = desc.get("raw", "")[:100]
             else:
                 desc_text = str(desc)[:100]
             if desc_text:
@@ -32,9 +30,9 @@ def format_project_list(projects: List[Dict]) -> str:
 
 
 def format_work_package_list(
-    work_packages: List[Dict],
+    work_packages: list[dict],
     show_days_overdue: bool = False,
-    show_days_until: bool = False
+    show_days_until: bool = False,
 ) -> str:
     """Format work package list with embedded data and prominent status display.
 
@@ -51,8 +49,8 @@ def format_work_package_list(
 
     text = f"✅ Found {len(work_packages)} work package(s):\n\n"
     for wp in work_packages:
-        wp_id = wp.get('id', 'N/A')
-        subject = wp.get('subject', 'No title')
+        wp_id = wp.get("id", "N/A")
+        subject = wp.get("subject", "No title")
 
         # Extract data from both _embedded and _links (OpenProject uses both)
         embedded = wp.get("_embedded", {})
@@ -66,9 +64,9 @@ def format_work_package_list(
             status_name = status_link.get("title", "Unknown")
             is_closed = "closed" in status_name.lower() or "done" in status_name.lower()
         else:
-            status_name = status_data.get('name', 'Unknown')
-            is_closed = status_data.get('isClosed', False)
-        
+            status_name = status_data.get("name", "Unknown")
+            is_closed = status_data.get("isClosed", False)
+
         # Status emoji indicator
         if is_closed:
             status_emoji = "✅"
@@ -97,19 +95,22 @@ def format_work_package_list(
         elif "type" in links:
             type_name = links["type"].get("title", "Unknown")
             text += f"  Type: {type_name}\n"
-            
+
         # Priority - try _embedded first, then _links
         priority_data = embedded.get("priority", {})
         if priority_data and priority_data.get("name"):
-            priority_name = priority_data.get('name', 'Unknown')
+            priority_name = priority_data.get("name", "Unknown")
         elif "priority" in links:
             priority_name = links["priority"].get("title", "Unknown")
         else:
             priority_name = None
-            
+
         if priority_name:
             # Add priority emoji
-            if "immediate" in priority_name.lower() or "urgent" in priority_name.lower():
+            if (
+                "immediate" in priority_name.lower()
+                or "urgent" in priority_name.lower()
+            ):
                 priority_display = f"🔴 {priority_name}"
             elif "high" in priority_name.lower():
                 priority_display = f"🟠 {priority_name}"
@@ -125,24 +126,24 @@ def format_work_package_list(
             assignee_name = assignee_link.get("title", "Unknown")
             text += f"  Assignee: {assignee_name}\n"
         else:
-            text += f"  Assignee: Unassigned\n"
+            text += "  Assignee: Unassigned\n"
 
         # Date fields with enhanced display for overdue/due soon
-        if wp.get('startDate'):
+        if wp.get("startDate"):
             text += f"  Start: {wp['startDate']}\n"
-        if wp.get('dueDate'):
-            due_date = wp['dueDate']
-            
+        if wp.get("dueDate"):
+            due_date = wp["dueDate"]
+
             # Show days overdue if requested
-            if show_days_overdue and '_days_overdue' in wp:
-                days = wp['_days_overdue']
+            if show_days_overdue and "_days_overdue" in wp:
+                days = wp["_days_overdue"]
                 if days == 1:
                     text += f"  Due: {due_date} ⚠️ **{days} day overdue**\n"
                 else:
                     text += f"  Due: {due_date} ⚠️ **{days} days overdue**\n"
             # Show days until if requested
-            elif show_days_until and '_days_until' in wp:
-                days = wp['_days_until']
+            elif show_days_until and "_days_until" in wp:
+                days = wp["_days_until"]
                 if days == 0:
                     text += f"  Due: {due_date} 🔴 **Due today!**\n"
                 elif days == 1:
@@ -156,7 +157,7 @@ def format_work_package_list(
     return text
 
 
-def format_work_package_detail(wp: Dict) -> str:
+def format_work_package_detail(wp: dict) -> str:
     """Format single work package with full details.
 
     Args:
@@ -180,7 +181,7 @@ def format_work_package_detail(wp: Dict) -> str:
     if "priority" in embedded:
         text += f"**Priority**: {embedded['priority'].get('name', 'Unknown')}\n"
     if "project" in embedded:
-        project = embedded['project']
+        project = embedded["project"]
         text += f"**Project**: {project.get('name', 'Unknown')}\n"
 
     # Assignee is in _links
@@ -189,36 +190,36 @@ def format_work_package_detail(wp: Dict) -> str:
         assignee_name = assignee_link.get("title", "Unknown")
         text += f"**Assignee**: {assignee_name}\n"
     else:
-        text += f"**Assignee**: Unassigned\n"
+        text += "**Assignee**: Unassigned\n"
 
     # Dates
-    if wp.get('startDate'):
+    if wp.get("startDate"):
         text += f"**Start Date**: {wp['startDate']}\n"
-    if wp.get('dueDate'):
+    if wp.get("dueDate"):
         text += f"**Due Date**: {wp['dueDate']}\n"
-    if wp.get('createdAt'):
+    if wp.get("createdAt"):
         text += f"**Created**: {wp['createdAt']}\n"
-    if wp.get('updatedAt'):
+    if wp.get("updatedAt"):
         text += f"**Updated**: {wp['updatedAt']}\n"
 
     # Description
-    if wp.get('description'):
-        desc = wp['description']
+    if wp.get("description"):
+        desc = wp["description"]
         if isinstance(desc, dict):
-            desc_text = desc.get('raw', '')
+            desc_text = desc.get("raw", "")
         else:
             desc_text = str(desc)
         if desc_text:
             text += f"\n**Description**:\n{desc_text}\n"
 
     # Progress
-    if 'percentageDone' in wp:
+    if "percentageDone" in wp:
         text += f"\n**Progress**: {wp['percentageDone']}%\n"
 
     return text
 
 
-def format_user_list(users: List[Dict]) -> str:
+def format_user_list(users: list[dict]) -> str:
     """Format user list.
 
     Args:
@@ -233,16 +234,18 @@ def format_user_list(users: List[Dict]) -> str:
     text = f"✅ Found {len(users)} user(s):\n\n"
     for user in users:
         text += f"- **{user.get('name', 'Unknown')}** (ID: {user.get('id')})\n"
-        if user.get('email'):
+        if user.get("email"):
             text += f"  Email: {user['email']}\n"
-        if user.get('login'):
+        if user.get("login"):
             text += f"  Login: {user['login']}\n"
-        text += f"  Status: {'Active' if user.get('status') == 'active' else 'Inactive'}\n"
+        text += (
+            f"  Status: {'Active' if user.get('status') == 'active' else 'Inactive'}\n"
+        )
         text += "\n"
     return text
 
 
-def format_time_entry_list(time_entries: List[Dict]) -> str:
+def format_time_entry_list(time_entries: list[dict]) -> str:
     """Format time entry list.
 
     Args:
@@ -261,20 +264,22 @@ def format_time_entry_list(time_entries: List[Dict]) -> str:
         # Extract embedded data
         embedded = entry.get("_embedded", {})
         if "workPackage" in embedded:
-            wp = embedded['workPackage']
-            text += f"  Work Package: {wp.get('subject', 'Unknown')} (#{wp.get('id')})\n"
+            wp = embedded["workPackage"]
+            text += (
+                f"  Work Package: {wp.get('subject', 'Unknown')} (#{wp.get('id')})\n"
+            )
         if "activity" in embedded:
-            activity = embedded['activity']
+            activity = embedded["activity"]
             text += f"  Activity: {activity.get('name', 'Unknown')}\n"
         if "user" in embedded:
-            user = embedded['user']
+            user = embedded["user"]
             text += f"  User: {user.get('name', 'Unknown')}\n"
 
         # Comment
-        if entry.get('comment'):
-            comment = entry['comment']
+        if entry.get("comment"):
+            comment = entry["comment"]
             if isinstance(comment, dict):
-                comment_text = comment.get('raw', '')[:100]
+                comment_text = comment.get("raw", "")[:100]
             else:
                 comment_text = str(comment)[:100]
             if comment_text:
@@ -308,7 +313,7 @@ def format_success(message: str) -> str:
     return f"✅ {message}"
 
 
-def format_news_list(news_items: List[Dict]) -> str:
+def format_news_list(news_items: list[dict]) -> str:
     """Format news list with project, author, and dates.
 
     Args:
@@ -321,44 +326,44 @@ def format_news_list(news_items: List[Dict]) -> str:
         return "No news entries found."
 
     text = f"📰 News List ({len(news_items)} item{'s' if len(news_items) != 1 else ''}):\n\n"
-    
+
     for news in news_items:
-        news_id = news.get('id', 'N/A')
-        title = news.get('title', 'No title')
-        summary = news.get('summary', '')
-        created_at = news.get('createdAt', 'Unknown')
-        
+        news_id = news.get("id", "N/A")
+        title = news.get("title", "No title")
+        summary = news.get("summary", "")
+        created_at = news.get("createdAt", "Unknown")
+
         # Format date to be more readable (YYYY-MM-DD)
-        if created_at and created_at != 'Unknown':
+        if created_at and created_at != "Unknown":
             try:
-                created_date = created_at.split('T')[0]
-            except:
+                created_date = created_at.split("T")[0]
+            except Exception:
                 created_date = created_at
         else:
             created_date = created_at
-        
+
         # Extract project and author from _links
-        links = news.get('_links', {})
-        project_name = links.get('project', {}).get('title', 'Unknown Project')
-        author_name = links.get('author', {}).get('title', 'Unknown Author')
-        
+        links = news.get("_links", {})
+        project_name = links.get("project", {}).get("title", "Unknown Project")
+        author_name = links.get("author", {}).get("title", "Unknown Author")
+
         # Build formatted entry
         text += f"**{news_id}. {title}**\n"
         text += f"   📁 Project: {project_name}\n"
         text += f"   👤 Author: {author_name}\n"
         text += f"   📅 Created: {created_date}\n"
-        
+
         if summary:
             # Truncate summary if too long
-            summary_preview = summary[:150] + '...' if len(summary) > 150 else summary
+            summary_preview = summary[:150] + "..." if len(summary) > 150 else summary
             text += f"   📝 {summary_preview}\n"
-        
+
         text += "\n"
-    
+
     return text
 
 
-def format_news_detail(news_item: Dict) -> str:
+def format_news_detail(news_item: dict) -> str:
     """Format detailed news entry with full content.
 
     Args:
@@ -368,55 +373,81 @@ def format_news_detail(news_item: Dict) -> str:
         Formatted markdown string
     """
     text = f"📰 News Entry #{news_item.get('id')}\n\n"
-    
+
     # Title
-    title = news_item.get('title', 'No title')
+    title = news_item.get("title", "No title")
     text += f"# {title}\n\n"
-    
+
     # Metadata
-    links = news_item.get('_links', {})
-    project_name = links.get('project', {}).get('title', 'Unknown Project')
-    author_name = links.get('author', {}).get('title', 'Unknown Author')
-    created_at = news_item.get('createdAt', 'Unknown')
-    
+    links = news_item.get("_links", {})
+    project_name = links.get("project", {}).get("title", "Unknown Project")
+    author_name = links.get("author", {}).get("title", "Unknown Author")
+    created_at = news_item.get("createdAt", "Unknown")
+
     # Format date
-    if created_at and created_at != 'Unknown':
+    if created_at and created_at != "Unknown":
         try:
-            created_date = created_at.split('T')[0]
-            created_time = created_at.split('T')[1].split('.')[0] if 'T' in created_at else ''
+            created_date = created_at.split("T")[0]
+            created_time = (
+                created_at.split("T")[1].split(".")[0] if "T" in created_at else ""
+            )
             created_display = f"{created_date} {created_time}"
-        except:
+        except Exception:
             created_display = created_at
     else:
         created_display = created_at
-    
+
     text += f"**Project**: {project_name}\n"
     text += f"**Author**: {author_name}\n"
     text += f"**Created**: {created_display}\n\n"
-    
+
     # Summary
-    summary = news_item.get('summary', '')
+    summary = news_item.get("summary", "")
     if summary:
         text += f"## Summary\n\n{summary}\n\n"
-    
+
     # Description (full content with markdown)
-    description = news_item.get('description', {})
+    description = news_item.get("description", {})
     if description:
         if isinstance(description, dict):
-            desc_text = description.get('raw', '')
+            desc_text = description.get("raw", "")
         else:
             desc_text = str(description)
-        
+
         if desc_text:
             text += f"## Description\n\n{desc_text}\n\n"
-    
+
     # Links section
-    text += f"---\n"
-    text += f"**Links**:\n"
-    if 'self' in links:
+    text += "---\n"
+    text += "**Links**:\n"
+    if "self" in links:
         text += f"- [View in OpenProject]({links['self'].get('href', '#')})\n"
-    if 'project' in links:
+    if "project" in links:
         text += f"- [Project]({links['project'].get('href', '#')})\n"
-    
+
     return text
 
+
+def format_wiki_page_detail(page: dict) -> str:
+    """Format a single wiki page with full content."""
+    title = page.get("title", "Untitled")
+    slug = page.get("slug", page.get("id", "N/A"))
+    updated = page.get("updatedAt", "")
+    content_raw = (
+        page.get("content", {}).get("raw", "")
+        if isinstance(page.get("content"), dict)
+        else ""
+    )
+
+    text = f"✅ **Wiki Page: {title}**\n\n"
+    text += f"**Slug**: `{slug}`\n"
+    if updated:
+        text += f"**Updated**: {updated[:10]}\n"
+
+    parent_links = page.get("_links", {}).get("parent", {})
+    if parent_links and parent_links.get("href"):
+        text += f"**Parent**: {parent_links.get('title', parent_links['href'])}\n"
+
+    if content_raw:
+        text += f"\n---\n{content_raw}\n"
+    return text

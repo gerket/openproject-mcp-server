@@ -1,33 +1,48 @@
 """Membership management tools."""
 
-from typing import Optional, List
+from typing import Any
+
 from pydantic import BaseModel, Field
-from src.server import mcp, get_client
-from src.utils.formatting import format_success, format_error
+
+from src.server import get_client, mcp
+from src.utils.formatting import format_error, format_success
 
 
 class CreateMembershipInput(BaseModel):
     """Input model for creating memberships."""
+
     project_id: int = Field(..., description="Project ID", gt=0)
-    user_id: Optional[int] = Field(None, description="User ID (required if group_id not provided)", gt=0)
-    group_id: Optional[int] = Field(None, description="Group ID (required if user_id not provided)", gt=0)
-    role_ids: Optional[List[int]] = Field(None, description="List of role IDs")
-    role_id: Optional[int] = Field(None, description="Single role ID (alternative to role_ids)", gt=0)
-    notification_message: Optional[str] = Field(None, description="Optional notification message")
+    user_id: int | None = Field(
+        None, description="User ID (required if group_id not provided)", gt=0
+    )
+    group_id: int | None = Field(
+        None, description="Group ID (required if user_id not provided)", gt=0
+    )
+    role_ids: list[int] | None = Field(None, description="List of role IDs")
+    role_id: int | None = Field(
+        None, description="Single role ID (alternative to role_ids)", gt=0
+    )
+    notification_message: str | None = Field(
+        None, description="Optional notification message"
+    )
 
 
 class UpdateMembershipInput(BaseModel):
     """Input model for updating memberships."""
+
     membership_id: int = Field(..., description="Membership ID to update", gt=0)
-    role_ids: Optional[List[int]] = Field(None, description="New list of role IDs")
-    role_id: Optional[int] = Field(None, description="Single role ID (alternative to role_ids)", gt=0)
-    notification_message: Optional[str] = Field(None, description="Optional notification message")
+    role_ids: list[int] | None = Field(None, description="New list of role IDs")
+    role_id: int | None = Field(
+        None, description="Single role ID (alternative to role_ids)", gt=0
+    )
+    notification_message: str | None = Field(
+        None, description="Optional notification message"
+    )
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_memberships(
-    project_id: Optional[int] = None,
-    user_id: Optional[int] = None
+    project_id: int | None = None, user_id: int | None = None
 ) -> str:
     """List memberships (project members).
 
@@ -77,10 +92,10 @@ async def list_memberships(
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list memberships: {str(e)}")
+        return format_error(f"Failed to list memberships: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def get_membership(membership_id: int) -> str:
     """Get detailed information about a specific membership.
 
@@ -114,18 +129,18 @@ async def get_membership(membership_id: int) -> str:
             role_names = [r.get("title", "Unknown") for r in role_links]
             text += f"**Roles**: {', '.join(role_names)}\n"
 
-        if member.get('createdAt'):
+        if member.get("createdAt"):
             text += f"**Created**: {member['createdAt']}\n"
-        if member.get('updatedAt'):
+        if member.get("updatedAt"):
             text += f"**Updated**: {member['updatedAt']}\n"
 
         return text
 
     except Exception as e:
-        return format_error(f"Failed to get membership: {str(e)}")
+        return format_error(f"Failed to get membership: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def create_membership(input: CreateMembershipInput) -> str:
     """Create a new membership (add user/group to project).
 
@@ -145,7 +160,7 @@ async def create_membership(input: CreateMembershipInput) -> str:
     try:
         client = get_client()
 
-        data = {"project_id": input.project_id}
+        data: dict[str, Any] = {"project_id": input.project_id}
 
         # Add user or group
         if input.user_id:
@@ -183,10 +198,10 @@ async def create_membership(input: CreateMembershipInput) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to create membership: {str(e)}")
+        return format_error(f"Failed to create membership: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def update_membership(input: UpdateMembershipInput) -> str:
     """Update an existing membership (change roles).
 
@@ -199,7 +214,7 @@ async def update_membership(input: UpdateMembershipInput) -> str:
     try:
         client = get_client()
 
-        update_data = {}
+        update_data: dict[str, Any] = {}
 
         if input.role_ids:
             update_data["role_ids"] = input.role_ids
@@ -214,7 +229,9 @@ async def update_membership(input: UpdateMembershipInput) -> str:
 
         result = await client.update_membership(input.membership_id, update_data)
 
-        text = format_success(f"Membership #{input.membership_id} updated successfully!\n\n")
+        text = format_success(
+            f"Membership #{input.membership_id} updated successfully!\n\n"
+        )
 
         embedded = result.get("_embedded", {})
         if "roles" in embedded:
@@ -224,10 +241,10 @@ async def update_membership(input: UpdateMembershipInput) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to update membership: {str(e)}")
+        return format_error(f"Failed to update membership: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def delete_membership(membership_id: int) -> str:
     """Delete a membership (remove user/group from project).
 
@@ -248,4 +265,4 @@ async def delete_membership(membership_id: int) -> str:
             return format_error(f"Failed to delete membership #{membership_id}")
 
     except Exception as e:
-        return format_error(f"Failed to delete membership: {str(e)}")
+        return format_error(f"Failed to delete membership: {e!s}")
