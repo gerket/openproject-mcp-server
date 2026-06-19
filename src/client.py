@@ -96,8 +96,11 @@ def _verify_custom_fields(
         operation: Label for the error message ("create" or "update").
 
     Raises:
-        ValueError: If any supplied field is absent from or empty in the
-            response when a non-empty value was supplied.
+        ValueError: If a supplied field is present in the response but empty,
+            indicating the write was silently dropped by OpenProject.
+            Fields absent from the response entirely emit a warning instead
+            of raising, since absence may reflect a schema/type mismatch
+            rather than a write failure.
     """
     if not custom_fields:
         return

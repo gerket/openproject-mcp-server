@@ -2,13 +2,12 @@
 """Live integration tests against a real OpenProject instance.
 
 Run with:
-    OPENPROJECT_URL=https://openproject.thomasgerke.com uv run python test_live_integration.py
+    OPENPROJECT_URL=https://your-instance OPENPROJECT_API_KEY=your-token uv run python test_live_integration.py
 """
 
 import asyncio
 import json
 import os
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -25,11 +24,12 @@ def record(name: str, passed: bool, detail: str = "") -> None:
 def section(title: str) -> None:
     print(f"\n{'=' * 60}")
     print(f"  {title}")
-    print('=' * 60)
+    print("=" * 60)
 
 
 async def run_tests(base_url: str, api_key: str) -> None:
     from src.client import OpenProjectClient
+
     client = OpenProjectClient(base_url=base_url, api_key=api_key)
 
     # ------------------------------------------------------------------ #
@@ -39,15 +39,23 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     try:
         result = await client.test_connection()
-        assert "instanceVersion" in result or "_type" in result or "coreVersion" in result
-        record("connection/test_connection", True, f"version={result.get('instanceVersion', 'N/A')}")
+        assert (
+            "instanceVersion" in result or "_type" in result or "coreVersion" in result
+        )
+        record(
+            "connection/test_connection",
+            True,
+            f"version={result.get('instanceVersion', 'N/A')}",
+        )
     except Exception as e:
         record("connection/test_connection", False, str(e)[:120])
 
     try:
         result = await client.check_permissions()
         assert result  # non-empty
-        record("connection/check_permissions", True, f"user={result.get('name', 'N/A')}")
+        record(
+            "connection/check_permissions", True, f"user={result.get('name', 'N/A')}"
+        )
     except Exception as e:
         record("connection/check_permissions", False, str(e)[:120])
 
@@ -84,16 +92,18 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     try:
         result = await client.get_work_package(46)
-        assert result.get("subject") == "test", f"Expected subject='test', got '{result.get('subject')}'"
+        assert (
+            result.get("subject") == "test"
+        ), f"Expected subject='test', got '{result.get('subject')}'"
         record("work_packages/get_wp_46", True, f"subject={result['subject']}")
     except Exception as e:
         record("work_packages/get_wp_46", False, str(e)[:120])
 
     temp_wp_id = None
     try:
-        result = await client.create_work_package({
-            "project": 4, "subject": "integration-test-temp", "type": 1
-        })
+        result = await client.create_work_package(
+            {"project": 4, "subject": "integration-test-temp", "type": 1}
+        )
         temp_wp_id = result.get("id")
         assert temp_wp_id, "No ID in created WP"
         record("work_packages/create_temp", True, f"id={temp_wp_id}")
@@ -102,7 +112,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     if temp_wp_id:
         try:
-            result = await client.update_work_package(temp_wp_id, {"description": "integration test description"})
+            result = await client.update_work_package(
+                temp_wp_id, {"description": "integration test description"}
+            )
             record("work_packages/update_temp", True)
         except Exception as e:
             record("work_packages/update_temp", False, str(e)[:120])
@@ -133,7 +145,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     # CF2: String
     try:
-        await client.update_work_package(46, {"custom_fields": {"customField2": "cf2-test-string"}})
+        await client.update_work_package(
+            46, {"custom_fields": {"customField2": "cf2-test-string"}}
+        )
         result = await client.get_work_package(46)
         val = result.get("customField2")
         assert val == "cf2-test-string", f"Expected 'cf2-test-string', got {val!r}"
@@ -143,7 +157,14 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     # CF3: Formattable
     try:
-        await client.update_work_package(46, {"custom_fields": {"customField3": {"format": "markdown", "raw": "cf3 test text"}}})
+        await client.update_work_package(
+            46,
+            {
+                "custom_fields": {
+                    "customField3": {"format": "markdown", "raw": "cf3 test text"}
+                }
+            },
+        )
         result = await client.get_work_package(46)
         val = result.get("customField3")
         raw = val.get("raw", "") if isinstance(val, dict) else str(val)
@@ -164,7 +185,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     # CF5: Date
     try:
-        await client.update_work_package(46, {"custom_fields": {"customField5": "2026-06-19"}})
+        await client.update_work_package(
+            46, {"custom_fields": {"customField5": "2026-06-19"}}
+        )
         result = await client.get_work_package(46)
         val = result.get("customField5")
         assert val == "2026-06-19", f"Expected date, got {val!r}"
@@ -177,7 +200,7 @@ async def run_tests(base_url: str, api_key: str) -> None:
         await client.update_work_package(46, {"custom_fields": {"customField6": 3.14}})
         result = await client.get_work_package(46)
         val = result.get("customField6")
-        assert val is not None, f"Expected float value, got None"
+        assert val is not None, "Expected float value, got None"
         record("custom_fields/cf6_float", True, f"val={val}")
     except Exception as e:
         record("custom_fields/cf6_float", False, str(e)[:120])
@@ -190,17 +213,19 @@ async def run_tests(base_url: str, api_key: str) -> None:
         await client.update_work_package(46, {"custom_fields": {"customField8": 42}})
         result = await client.get_work_package(46)
         val = result.get("customField8")
-        assert val is not None, f"Expected integer value, got None"
+        assert val is not None, "Expected integer value, got None"
         record("custom_fields/cf8_integer", True, f"val={val}")
     except Exception as e:
         record("custom_fields/cf8_integer", False, str(e)[:120])
 
     # CF9: Link (URL string)
     try:
-        await client.update_work_package(46, {"custom_fields": {"customField9": "https://example.com"}})
+        await client.update_work_package(
+            46, {"custom_fields": {"customField9": "https://example.com"}}
+        )
         result = await client.get_work_package(46)
         val = result.get("customField9")
-        assert val is not None, f"Expected URL value, got None"
+        assert val is not None, "Expected URL value, got None"
         record("custom_fields/cf9_link", True, f"val={val}")
     except Exception as e:
         record("custom_fields/cf9_link", False, str(e)[:120])
@@ -210,7 +235,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     # CF11: String
     try:
-        await client.update_work_package(46, {"custom_fields": {"customField11": "cf11-test"}})
+        await client.update_work_package(
+            46, {"custom_fields": {"customField11": "cf11-test"}}
+        )
         result = await client.get_work_package(46)
         val = result.get("customField11")
         assert val == "cf11-test", f"Expected 'cf11-test', got {val!r}"
@@ -226,7 +253,14 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     # CF15: Formattable
     try:
-        await client.update_work_package(46, {"custom_fields": {"customField15": {"format": "markdown", "raw": "cf15 test text"}}})
+        await client.update_work_package(
+            46,
+            {
+                "custom_fields": {
+                    "customField15": {"format": "markdown", "raw": "cf15 test text"}
+                }
+            },
+        )
         result = await client.get_work_package(46)
         val = result.get("customField15")
         raw = val.get("raw", "") if isinstance(val, dict) else str(val)
@@ -237,15 +271,20 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     # Cleanup: reset all CFs on WP #46
     try:
-        await client.update_work_package(46, {"custom_fields": {
-            "customField2": None,
-            "customField4": None,
-            "customField5": None,
-            "customField6": None,
-            "customField8": None,
-            "customField9": None,
-            "customField11": None,
-        }})
+        await client.update_work_package(
+            46,
+            {
+                "custom_fields": {
+                    "customField2": None,
+                    "customField4": None,
+                    "customField5": None,
+                    "customField6": None,
+                    "customField8": None,
+                    "customField9": None,
+                    "customField11": None,
+                }
+            },
+        )
         record("custom_fields/cleanup", True)
     except Exception as e:
         record("custom_fields/cleanup", False, str(e)[:120])
@@ -257,7 +296,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     try:
         result = await client.get_groups()
-        elements = result.get("_embedded", {}).get("elements", result.get("elements", []))
+        elements = result.get("_embedded", {}).get(
+            "elements", result.get("elements", [])
+        )
         record("groups/list_groups", True, f"count={len(elements)}")
     except Exception as e:
         record("groups/list_groups", False, str(e)[:120])
@@ -292,7 +333,7 @@ async def run_tests(base_url: str, api_key: str) -> None:
             container_id=46,
             file_bytes=file_bytes,
             filename="test-attachment.txt",
-            content_type="text/plain"
+            content_type="text/plain",
         )
         attachment_id = result.get("id")
         assert attachment_id, "No attachment ID returned"
@@ -344,12 +385,14 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     entry_id = None
     try:
-        result = await client.create_time_entry({
-            "work_package_id": 46,
-            "hours": 0.5,
-            "spent_on": "2026-06-19",
-            "activity_id": 1,
-        })
+        result = await client.create_time_entry(
+            {
+                "work_package_id": 46,
+                "hours": 0.5,
+                "spent_on": "2026-06-19",
+                "activity_id": 1,
+            }
+        )
         entry_id = result.get("id")
         assert entry_id, "No ID in created time entry"
         record("time_entries/create", True, f"id={entry_id}")
@@ -361,7 +404,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
             filters = json.dumps([{"project": {"operator": "=", "values": ["4"]}}])
             result = await client.get_time_entries(filters=filters)
             elements = result.get("_embedded", {}).get("elements", [])
-            assert len(elements) > before_count, f"Expected count > {before_count}, got {len(elements)}"
+            assert (
+                len(elements) > before_count
+            ), f"Expected count > {before_count}, got {len(elements)}"
             record("time_entries/list_after_create", True, f"count={len(elements)}")
         except Exception as e:
             record("time_entries/list_after_create", False, str(e)[:120])
@@ -408,10 +453,12 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
         # Try to delete; if not supported, close it
         try:
-            if hasattr(client, 'delete_version'):
+            if hasattr(client, "delete_version"):
                 await client.delete_version(version_id)
             else:
-                await client._request("PATCH", f"/versions/{version_id}", {"status": "closed"})
+                await client._request(
+                    "PATCH", f"/versions/{version_id}", {"status": "closed"}
+                )
             record("versions/delete_or_close", True)
         except Exception as e:
             record("versions/delete_or_close", False, str(e)[:120])
@@ -481,12 +528,14 @@ async def run_tests(base_url: str, api_key: str) -> None:
 
     news_id = None
     try:
-        result = await client.create_news({
-            "project": 4,
-            "title": "Integration Test News",
-            "summary": "Created by integration test",
-            "description": "This is a test news entry."
-        })
+        result = await client.create_news(
+            {
+                "project": 4,
+                "title": "Integration Test News",
+                "summary": "Created by integration test",
+                "description": "This is a test news entry.",
+            }
+        )
         news_id = result.get("id")
         assert news_id, "No ID in created news"
         record("news/create", True, f"id={news_id}")
@@ -502,7 +551,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
             record("news/get", False, str(e)[:120])
 
         try:
-            result = await client.update_news(news_id, {"title": "Integration Test News (Updated)"})
+            result = await client.update_news(
+                news_id, {"title": "Integration Test News (Updated)"}
+            )
             # success if no exception
             record("news/update", True)
         except Exception as e:
@@ -528,9 +579,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
     wp_b_id = None
 
     try:
-        result = await client.create_work_package({
-            "project": 4, "subject": "integration-test-relation-A", "type": 1
-        })
+        result = await client.create_work_package(
+            {"project": 4, "subject": "integration-test-relation-A", "type": 1}
+        )
         wp_a_id = result.get("id")
         assert wp_a_id
         record("relations/create_wp_a", True, f"id={wp_a_id}")
@@ -538,9 +589,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
         record("relations/create_wp_a", False, str(e)[:120])
 
     try:
-        result = await client.create_work_package({
-            "project": 4, "subject": "integration-test-relation-B", "type": 1
-        })
+        result = await client.create_work_package(
+            {"project": 4, "subject": "integration-test-relation-B", "type": 1}
+        )
         wp_b_id = result.get("id")
         assert wp_b_id
         record("relations/create_wp_b", True, f"id={wp_b_id}")
@@ -550,9 +601,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
     relation_id = None
     if wp_a_id and wp_b_id:
         try:
-            result = await client.create_work_package_relation({
-                "from_id": wp_a_id, "to_id": wp_b_id, "type": "relates"
-            })
+            result = await client.create_work_package_relation(
+                {"from_id": wp_a_id, "to_id": wp_b_id, "type": "relates"}
+            )
             relation_id = result.get("id")
             assert relation_id
             record("relations/create_relation", True, f"id={relation_id}")
@@ -560,7 +611,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
             record("relations/create_relation", False, str(e)[:120])
 
         try:
-            filters = json.dumps([{"involved": {"operator": "=", "values": [str(wp_a_id)]}}])
+            filters = json.dumps(
+                [{"involved": {"operator": "=", "values": [str(wp_a_id)]}}]
+            )
             result = await client.list_work_package_relations(filters)
             elements = result.get("_embedded", {}).get("elements", [])
             assert len(elements) >= 1, f"Expected >= 1 relation, got {len(elements)}"
@@ -576,7 +629,9 @@ async def run_tests(base_url: str, api_key: str) -> None:
             except Exception as e:
                 record("relations/delete_relation", False, str(e)[:120])
         else:
-            record("relations/delete_relation", False, "skipped: create_relation failed")
+            record(
+                "relations/delete_relation", False, "skipped: create_relation failed"
+            )
     else:
         record("relations/create_relation", False, "skipped: WP creation failed")
         record("relations/list_relations", False, "skipped: WP creation failed")
@@ -590,7 +645,11 @@ async def run_tests(base_url: str, api_key: str) -> None:
                 await client.delete_work_package(wp_id)
             except Exception:
                 cleanup_ok = False
-    record("relations/cleanup_wps", cleanup_ok, "" if cleanup_ok else "some WP deletions failed")
+    record(
+        "relations/cleanup_wps",
+        cleanup_ok,
+        "" if cleanup_ok else "some WP deletions failed",
+    )
 
     # ------------------------------------------------------------------ #
     # SUMMARY
@@ -610,24 +669,27 @@ async def run_tests(base_url: str, api_key: str) -> None:
         print("All tests passed!")
 
 
-def main() -> None:
-    base_url = os.environ.get("OPENPROJECT_URL", "")
+def load_credentials() -> tuple[str, str]:
+    """Return (base_url, api_key). Both must be set as environment variables."""
+    base_url = os.environ.get("OPENPROJECT_URL", "").rstrip("/")
+    api_key = os.environ.get("OPENPROJECT_API_KEY", "")
     if not base_url:
-        print("Error: OPENPROJECT_URL environment variable not set")
-        sys.exit(1)
-
-    api_key = subprocess.run(
-        ["infisical", "secrets", "get", "openproject-api-token-tom",
-         "--projectId", "62dc8b3e-db71-4cb3-aa1f-aa457d665edb", "--env", "prod", "--plain"],
-        capture_output=True, text=True
-    ).stdout.strip()
-
+        raise RuntimeError(
+            "Set OPENPROJECT_URL env var (e.g. https://openproject.yourdomain.com)"
+        )
     if not api_key:
-        print("Error: Failed to retrieve API key from Infisical")
-        sys.exit(1)
+        raise RuntimeError(
+            "Set OPENPROJECT_API_KEY env var (your OpenProject API token)"
+        )
+    return base_url, api_key
 
-    os.environ["OPENPROJECT_URL"] = base_url
-    os.environ["OPENPROJECT_API_KEY"] = api_key
+
+def main() -> None:
+    try:
+        base_url, api_key = load_credentials()
+    except RuntimeError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
     asyncio.run(run_tests(base_url, api_key))
 
