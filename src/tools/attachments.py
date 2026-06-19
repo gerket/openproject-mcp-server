@@ -26,7 +26,9 @@ class UploadAttachmentInput(BaseModel):
     )
 
 
-@mcp.tool(tags={"write", "content", "situational", "situational-write", "all"})
+@mcp.tool(
+    tags={"write", "content", "situational", "situational-write", "upload_attachment"}
+)
 async def upload_attachment(input: UploadAttachmentInput) -> str:
     """Upload a file attachment to a work package, wiki page, or project.
 
@@ -83,7 +85,9 @@ async def upload_attachment(input: UploadAttachmentInput) -> str:
         return format_error(f"Failed to upload attachment: {e!s}")
 
 
-@mcp.tool(tags={"read", "content", "situational", "situational-read", "all"})
+@mcp.tool(
+    tags={"read", "content", "situational", "situational-read", "list_attachments"}
+)
 async def list_attachments(container_type: str, container_id: int) -> str:
     """List all attachments on a work package, wiki page, or project.
 
@@ -123,7 +127,7 @@ async def list_attachments(container_type: str, container_id: int) -> str:
         return format_error(f"Failed to list attachments: {e!s}")
 
 
-@mcp.tool(tags={"read", "content", "situational", "situational-read", "all"})
+@mcp.tool(tags={"read", "content", "situational", "situational-read", "get_attachment"})
 async def get_attachment(attachment_id: int) -> str:
     """Get metadata for a specific attachment.
 
@@ -154,7 +158,9 @@ async def get_attachment(attachment_id: int) -> str:
         return format_error(f"Failed to get attachment: {e!s}")
 
 
-@mcp.tool(tags={"write", "content", "situational", "situational-write", "all"})
+@mcp.tool(
+    tags={"write", "content", "situational", "situational-write", "delete_attachment"}
+)
 async def delete_attachment(attachment_id: int) -> str:
     """Delete an attachment permanently.
 

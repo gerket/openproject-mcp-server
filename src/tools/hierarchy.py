@@ -4,7 +4,15 @@ from src.server import get_client, mcp
 from src.utils.formatting import format_error, format_success, format_work_package_list
 
 
-@mcp.tool(tags={"write", "work-packages", "situational", "situational-write", "all"})
+@mcp.tool(
+    tags={
+        "write",
+        "work-packages",
+        "situational",
+        "situational-write",
+        "set_work_package_parent",
+    }
+)
 async def set_work_package_parent(child_id: int, parent_id: int) -> str:
     """Set a work package as child of another (create parent-child relationship).
 
@@ -37,7 +45,15 @@ async def set_work_package_parent(child_id: int, parent_id: int) -> str:
         return format_error(f"Failed to set parent: {e!s}")
 
 
-@mcp.tool(tags={"write", "work-packages", "situational", "situational-write", "all"})
+@mcp.tool(
+    tags={
+        "write",
+        "work-packages",
+        "situational",
+        "situational-write",
+        "remove_work_package_parent",
+    }
+)
 async def remove_work_package_parent(work_package_id: int) -> str:
     """Remove parent from a work package (break parent-child relationship).
 
@@ -60,7 +76,15 @@ async def remove_work_package_parent(work_package_id: int) -> str:
         return format_error(f"Failed to remove parent: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages", "situational", "situational-read", "all"})
+@mcp.tool(
+    tags={
+        "read",
+        "work-packages",
+        "situational",
+        "situational-read",
+        "list_work_package_children",
+    }
+)
 async def list_work_package_children(
     work_package_id: int, offset: int = 0, page_size: int = 20
 ) -> str:

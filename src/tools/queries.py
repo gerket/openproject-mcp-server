@@ -51,7 +51,7 @@ def _build_query_payload(
     }
 
 
-@mcp.tool(tags={"read", "queries", "core", "core-read", "all"})
+@mcp.tool(tags={"read", "queries", "core", "core-read", "list_queries"})
 async def list_queries(
     project_id: int | None = None,
 ) -> str:
@@ -79,7 +79,7 @@ async def list_queries(
         return format_error(f"Failed to list queries: {e!s}")
 
 
-@mcp.tool(tags={"read", "queries", "core", "core-read", "all"})
+@mcp.tool(tags={"read", "queries", "core", "core-read", "get_query"})
 async def get_query(query_id: int) -> str:
     """Get a saved query by ID, including its filters, columns, and sort order.
 
@@ -129,7 +129,7 @@ async def get_query(query_id: int) -> str:
         return format_error(f"Failed to get query: {e!s}")
 
 
-@mcp.tool(tags={"read", "queries", "all"})
+@mcp.tool(tags={"read", "queries", "get_default_query"})
 async def get_default_query(project_id: int | None = None) -> str:
     """Get the default query configuration.
 
@@ -155,7 +155,7 @@ async def get_default_query(project_id: int | None = None) -> str:
         return format_error(f"Failed to get default query: {e!s}")
 
 
-@mcp.tool(tags={"write", "queries", "core", "core-write", "all"})
+@mcp.tool(tags={"write", "queries", "core", "core-write", "create_query"})
 async def create_query(
     name: str,
     project_id: int | None = None,
@@ -210,7 +210,7 @@ async def create_query(
         return format_error(f"Failed to create query: {e!s}")
 
 
-@mcp.tool(tags={"write", "queries", "all"})
+@mcp.tool(tags={"write", "queries", "update_query"})
 async def update_query(
     query_id: int,
     name: str | None = None,
@@ -250,7 +250,7 @@ async def update_query(
         return format_error(f"Failed to update query: {e!s}")
 
 
-@mcp.tool(tags={"write", "queries", "all"})
+@mcp.tool(tags={"write", "queries", "delete_query"})
 async def delete_query(query_id: int) -> str:
     """Delete a saved query permanently.
 
@@ -270,7 +270,7 @@ async def delete_query(query_id: int) -> str:
         return format_error(f"Failed to delete query: {e!s}")
 
 
-@mcp.tool(tags={"write", "queries", "all"})
+@mcp.tool(tags={"write", "queries", "star_query"})
 async def star_query(query_id: int) -> str:
     """Star a query to pin it at the top of the query list.
 
@@ -288,7 +288,7 @@ async def star_query(query_id: int) -> str:
         return format_error(f"Failed to star query: {e!s}")
 
 
-@mcp.tool(tags={"write", "queries", "all"})
+@mcp.tool(tags={"write", "queries", "unstar_query"})
 async def unstar_query(query_id: int) -> str:
     """Unstar a query.
 

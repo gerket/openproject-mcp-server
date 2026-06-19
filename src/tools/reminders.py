@@ -4,7 +4,9 @@ from src.server import get_client, mcp
 from src.utils.formatting import format_error
 
 
-@mcp.tool(tags={"read", "work-packages", "situational", "situational-read", "all"})
+@mcp.tool(
+    tags={"read", "work-packages", "situational", "situational-read", "list_reminders"}
+)
 async def list_reminders(work_package_id: int) -> str:
     """List reminders set on a work package for the current API user.
 
@@ -34,7 +36,15 @@ async def list_reminders(work_package_id: int) -> str:
         return format_error(f"Failed to list reminders: {e!s}")
 
 
-@mcp.tool(tags={"write", "work-packages", "situational", "situational-write", "all"})
+@mcp.tool(
+    tags={
+        "write",
+        "work-packages",
+        "situational",
+        "situational-write",
+        "create_reminder",
+    }
+)
 async def create_reminder(
     work_package_id: int,
     remind_at: str,
