@@ -1985,11 +1985,8 @@ class OpenProjectClient:
     async def get_queries(self, project_id: int | None = None) -> dict:
         """List saved queries, optionally scoped to a project."""
         if project_id is not None:
-            import json as _json
-            from urllib.parse import quote as _quote
-
-            filters = _quote(
-                _json.dumps(
+            filters = quote(
+                json.dumps(
                     [{"project_id": {"operator": "=", "values": [str(project_id)]}}]
                 )
             )

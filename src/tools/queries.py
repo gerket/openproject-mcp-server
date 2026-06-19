@@ -6,6 +6,24 @@ from src.server import get_client, mcp
 from src.utils.formatting import format_error
 
 
+def _build_query_links(
+    column_names: list[str] | None = None,
+    sort_by: str | None = None,
+    project_id: int | None = None,
+) -> dict[str, Any]:
+    """Build the HAL _links dict for a query payload."""
+    links: dict[str, Any] = {}
+    if project_id is not None:
+        links["project"] = {"href": f"/api/v3/projects/{project_id}"}
+    if column_names:
+        links["columns"] = [
+            {"href": f"/api/v3/queries/columns/{col}"} for col in column_names
+        ]
+    if sort_by:
+        links["sortBy"] = [{"href": f"/api/v3/queries/sort_bys/{sort_by}"}]
+    return links
+
+
 def _build_query_payload(
     name: str,
     project_id: int | None = None,
@@ -13,7 +31,7 @@ def _build_query_payload(
     sort_by: str | None = None,
     public: bool = False,
 ) -> dict[str, Any]:
-    """Build a HAL query payload from simplified inputs.
+    """Build a full HAL query payload for create.
 
     Args:
         name: Query name
@@ -24,16 +42,13 @@ def _build_query_payload(
             (e.g. "updatedAt-desc", "dueDate-asc")
         public: Whether the query is visible to all project members
     """
-    links: dict[str, Any] = {}
-    if project_id is not None:
-        links["project"] = {"href": f"/api/v3/projects/{project_id}"}
-    if column_names:
-        links["columns"] = [
-            {"href": f"/api/v3/queries/columns/{col}"} for col in column_names
-        ]
-    if sort_by:
-        links["sortBy"] = [{"href": f"/api/v3/queries/sort_bys/{sort_by}"}]
-    return {"name": name, "public": public, "_links": links}
+    return {
+        "name": name,
+        "public": public,
+        "_links": _build_query_links(
+            column_names=column_names, sort_by=sort_by, project_id=project_id
+        ),
+    }
 
 
 @mcp.tool(tags={"read", "queries"})
@@ -220,17 +235,11 @@ async def update_query(
     try:
         client = get_client()
         data: dict[str, Any] = {}
-        links: dict[str, Any] = {}
         if name is not None:
             data["name"] = name
         if public is not None:
             data["public"] = public
-        if column_names is not None:
-            links["columns"] = [
-                {"href": f"/api/v3/queries/columns/{col}"} for col in column_names
-            ]
-        if sort_by is not None:
-            links["sortBy"] = [{"href": f"/api/v3/queries/sort_bys/{sort_by}"}]
+        links = _build_query_links(column_names=column_names, sort_by=sort_by)
         if links:
             data["_links"] = links
         if not data:
