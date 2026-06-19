@@ -47,7 +47,7 @@ class UpdateNewsInput(BaseModel):
 # ============================================================
 
 
-@mcp.tool()
+@mcp.tool(tags={"read"})
 async def list_news(
     project_id: Optional[int] = None,
     sort_by_created: bool = True,
@@ -109,7 +109,7 @@ async def list_news(
         return format_error(f"Failed to list news: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(tags={"write"})
 async def create_news(input: CreateNewsInput) -> str:
     """Create a new news entry for a project.
 
@@ -162,7 +162,7 @@ async def create_news(input: CreateNewsInput) -> str:
         return format_error(f"Failed to create news: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(tags={"read"})
 async def get_news(news_id: int) -> str:
     """Get detailed information about a specific news entry.
 
@@ -191,7 +191,7 @@ async def get_news(news_id: int) -> str:
         return format_error(f"Failed to get news entry: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(tags={"write"})
 async def update_news(input: UpdateNewsInput) -> str:
     """Update an existing news entry.
 
@@ -246,7 +246,7 @@ async def update_news(input: UpdateNewsInput) -> str:
         return format_error(f"Failed to update news: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(tags={"write"})
 async def delete_news(news_id: int) -> str:
     """Delete a news entry permanently.
 

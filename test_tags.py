@@ -118,6 +118,18 @@ async def test_time_entries_versions_tags():
     print("✅ time_entries + versions tags correct")
 
 
+async def test_reports_news_tags():
+    tools = await get_tools()
+    for name in ["generate_weekly_report", "generate_this_week_report",
+                 "generate_last_week_report", "get_report_data"]:
+        await assert_tag(name, "read", tools)
+    for name in ["list_news", "get_news"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_news", "update_news", "delete_news"]:
+        await assert_tag(name, "write", tools)
+    print("✅ weekly_reports + news tags correct")
+
+
 if __name__ == "__main__":
     asyncio.run(test_connection_tags())
     asyncio.run(test_work_packages_tags())
@@ -126,4 +138,5 @@ if __name__ == "__main__":
     asyncio.run(test_memberships_tags())
     asyncio.run(test_hierarchy_relations_tags())
     asyncio.run(test_time_entries_versions_tags())
+    asyncio.run(test_reports_news_tags())
     print("\n(Full tag sweep will pass once all modules are tagged)")
