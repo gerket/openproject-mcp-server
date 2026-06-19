@@ -32,15 +32,15 @@ Every tool carries **up to 5 tags**: access + category + profile + composite + `
 
 ```python
 # Core read tool — 5 tags
-@mcp.tool(tags={"read", "work-packages", "core", "core-read", "all"})
+@mcp.tool(tags={"read", "work-packages", "core", "core-read", "list_work_packages"})
 async def list_work_packages(...) -> str: ...
 
 # Situational write tool — 5 tags
-@mcp.tool(tags={"write", "work-packages", "situational", "situational-write", "all"})
+@mcp.tool(tags={"write", "work-packages", "situational", "situational-write", "create_time_entry"})
 async def create_time_entry(...) -> str: ...
 
 # No-profile tool (admin/niche) — 3 tags
-@mcp.tool(tags={"read", "users", "all"})
+@mcp.tool(tags={"read", "users", "list_memberships"})
 async def list_memberships(...) -> str: ...
 ```
 
