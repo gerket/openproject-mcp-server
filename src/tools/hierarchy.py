@@ -1,8 +1,7 @@
 """Work package hierarchy management tools (parent-child relationships)."""
 
-from typing import Optional
-from src.server import mcp, get_client
-from src.utils.formatting import format_success, format_error, format_work_package_list
+from src.server import get_client, mcp
+from src.utils.formatting import format_error, format_success, format_work_package_list
 
 
 @mcp.tool(tags={"write"})
@@ -33,7 +32,7 @@ async def set_work_package_parent(child_id: int, parent_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to set parent: {str(e)}")
+        return format_error(f"Failed to set parent: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -51,12 +50,12 @@ async def remove_work_package_parent(work_package_id: int) -> str:
 
         # Update to remove parent (set to null)
         data = {"parent_id": None}
-        result = await client.update_work_package(work_package_id, data)
+        await client.update_work_package(work_package_id, data)
 
         return format_success(f"Removed parent from work package #{work_package_id}")
 
     except Exception as e:
-        return format_error(f"Failed to remove parent: {str(e)}")
+        return format_error(f"Failed to remove parent: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -101,4 +100,4 @@ async def list_work_package_children(
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list children: {str(e)}")
+        return format_error(f"Failed to list children: {e!s}")

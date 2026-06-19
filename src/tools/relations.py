@@ -1,9 +1,10 @@
 """Work package relation management tools (follows, blocks, relates, etc.)."""
 
-from typing import Optional
+
 from pydantic import BaseModel, Field
-from src.server import mcp, get_client
-from src.utils.formatting import format_success, format_error
+
+from src.server import get_client, mcp
+from src.utils.formatting import format_error, format_success
 
 
 class CreateRelationInput(BaseModel):
@@ -11,15 +12,15 @@ class CreateRelationInput(BaseModel):
     from_id: int = Field(..., description="Source work package ID", gt=0)
     to_id: int = Field(..., description="Target work package ID", gt=0)
     type: str = Field(..., description="Relation type (relates, duplicates, blocks, precedes, follows, includes, requires, partof)")
-    lag: Optional[int] = Field(None, description="Lag in working days (for precedes/follows)")
-    description: Optional[str] = Field(None, description="Relation description")
+    lag: int | None = Field(None, description="Lag in working days (for precedes/follows)")
+    description: str | None = Field(None, description="Relation description")
 
 
 class UpdateRelationInput(BaseModel):
     """Input model for updating work package relations."""
     relation_id: int = Field(..., description="Relation ID to update", gt=0)
-    lag: Optional[int] = Field(None, description="New lag in working days")
-    description: Optional[str] = Field(None, description="New description")
+    lag: int | None = Field(None, description="New lag in working days")
+    description: str | None = Field(None, description="New description")
 
 
 @mcp.tool(tags={"write"})
@@ -67,7 +68,7 @@ async def create_work_package_relation(input: CreateRelationInput) -> str:
 
         result = await client.create_work_package_relation(data)
 
-        text = format_success(f"Relation created successfully!\n\n")
+        text = format_success("Relation created successfully!\n\n")
         text += f"**ID**: #{result.get('id', 'N/A')}\n"
         text += f"**Type**: {result.get('type', 'Unknown')}\n"
 
@@ -85,7 +86,7 @@ async def create_work_package_relation(input: CreateRelationInput) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to create relation: {str(e)}")
+        return format_error(f"Failed to create relation: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -131,7 +132,7 @@ async def list_work_package_relations(work_package_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list relations: {str(e)}")
+        return format_error(f"Failed to list relations: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -165,7 +166,7 @@ async def get_work_package_relation(relation_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to get relation: {str(e)}")
+        return format_error(f"Failed to get relation: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -204,7 +205,7 @@ async def update_work_package_relation(input: UpdateRelationInput) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to update relation: {str(e)}")
+        return format_error(f"Failed to update relation: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -228,4 +229,4 @@ async def delete_work_package_relation(relation_id: int) -> str:
             return format_error(f"Failed to delete relation #{relation_id}")
 
     except Exception as e:
-        return format_error(f"Failed to delete relation: {str(e)}")
+        return format_error(f"Failed to delete relation: {e!s}")

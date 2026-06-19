@@ -1,10 +1,11 @@
 """Attachment tools for OpenProject — upload, list, get, delete."""
 
 import base64
+
 from pydantic import BaseModel, Field
 
-from src.server import mcp, get_client
-from src.utils.formatting import format_success, format_error
+from src.server import get_client, mcp
+from src.utils.formatting import format_error, format_success
 
 _VALID_CONTAINERS = {"work_packages", "wiki_pages", "projects"}
 
@@ -77,7 +78,7 @@ async def upload_attachment(input: UploadAttachmentInput) -> str:
             result += f"\n**Size**: {size:,} bytes"
         return result
     except Exception as e:
-        return format_error(f"Failed to upload attachment: {str(e)}")
+        return format_error(f"Failed to upload attachment: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -117,7 +118,7 @@ async def list_attachments(container_type: str, container_id: int) -> str:
             text += "\n"
         return text
     except Exception as e:
-        return format_error(f"Failed to list attachments: {str(e)}")
+        return format_error(f"Failed to list attachments: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -148,7 +149,7 @@ async def get_attachment(attachment_id: int) -> str:
             text += f"**Download URL**: {download}\n"
         return text
     except Exception as e:
-        return format_error(f"Failed to get attachment: {str(e)}")
+        return format_error(f"Failed to get attachment: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -168,4 +169,4 @@ async def delete_attachment(attachment_id: int) -> str:
         await client.delete_attachment(attachment_id)
         return format_success(f"Attachment #{attachment_id} deleted.")
     except Exception as e:
-        return format_error(f"Failed to delete attachment: {str(e)}")
+        return format_error(f"Failed to delete attachment: {e!s}")

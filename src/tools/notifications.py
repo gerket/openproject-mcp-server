@@ -1,6 +1,6 @@
 """Notification management tools for OpenProject."""
 
-from src.server import mcp, get_client
+from src.server import get_client, mcp
 from src.utils.formatting import format_error
 
 
@@ -55,7 +55,7 @@ async def list_notifications(
 
         return text
     except Exception as e:
-        return format_error(f"Failed to list notifications: {str(e)}")
+        return format_error(f"Failed to list notifications: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -73,7 +73,7 @@ async def mark_notification_read(notification_id: int) -> str:
         await client.mark_notification_read(notification_id)
         return f"✅ Notification #{notification_id} marked as read."
     except Exception as e:
-        return format_error(f"Failed to mark notification read: {str(e)}")
+        return format_error(f"Failed to mark notification read: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -88,4 +88,4 @@ async def mark_all_notifications_read() -> str:
         await client.mark_all_notifications_read()
         return "✅ All notifications marked as read."
     except Exception as e:
-        return format_error(f"Failed to mark all notifications read: {str(e)}")
+        return format_error(f"Failed to mark all notifications read: {e!s}")

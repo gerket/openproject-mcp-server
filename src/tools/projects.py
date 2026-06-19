@@ -1,11 +1,11 @@
 """Project management tools."""
 
 import json
-from typing import Optional
-from src.server import mcp, get_client
+
 from pydantic import BaseModel, Field
-from src.utils.formatting import format_success, format_error
-from src.utils.formatting import format_project_list
+
+from src.server import get_client, mcp
+from src.utils.formatting import format_error, format_project_list, format_success
 
 
 @mcp.tool(tags={"read"})
@@ -37,7 +37,7 @@ async def list_projects(active_only: bool = True, show_hierarchy: bool = False) 
         return _format_project_hierarchy(projects)
 
     except Exception as e:
-        return f"❌ Failed to list projects: {str(e)}"
+        return f"❌ Failed to list projects: {e!s}"
 
 
 def _format_project_hierarchy(projects: list) -> str:
@@ -53,7 +53,6 @@ def _format_project_hierarchy(projects: list) -> str:
         return "No projects found."
 
     # Build parent-child mapping
-    project_dict = {p.get('id'): p for p in projects}
     parent_map = {}
     root_projects = []
 
@@ -137,17 +136,17 @@ async def get_project(project_id: int) -> str:
         return text
 
     except Exception as e:
-        return f"❌ Failed to get project: {str(e)}"
+        return f"❌ Failed to get project: {e!s}"
 
 
 class CreateProjectInput(BaseModel):
     """Input model for creating projects."""
     name: str = Field(..., description="Project name", min_length=1, max_length=255)
     identifier: str = Field(..., description="Project identifier (lowercase, no spaces)", min_length=1, max_length=100)
-    description: Optional[str] = Field(None, description="Project description")
-    public: Optional[bool] = Field(None, description="Whether project is public")
-    status: Optional[str] = Field(None, description="Project status")
-    parent_id: Optional[int] = Field(None, description="Parent project ID for sub-projects", gt=0)
+    description: str | None = Field(None, description="Project description")
+    public: bool | None = Field(None, description="Whether project is public")
+    status: str | None = Field(None, description="Project status")
+    parent_id: int | None = Field(None, description="Parent project ID for sub-projects", gt=0)
 
 
 class AddSubprojectInput(BaseModel):
@@ -155,19 +154,19 @@ class AddSubprojectInput(BaseModel):
     parent_id: int = Field(..., description="Parent project ID", gt=0)
     name: str = Field(..., description="Subproject name", min_length=1, max_length=255)
     identifier: str = Field(..., description="Subproject identifier (lowercase, no spaces)", min_length=1, max_length=100)
-    description: Optional[str] = Field(None, description="Subproject description")
-    public: Optional[bool] = Field(None, description="Whether subproject is public")
+    description: str | None = Field(None, description="Subproject description")
+    public: bool | None = Field(None, description="Whether subproject is public")
 
 
 class UpdateProjectInput(BaseModel):
     """Input model for updating projects."""
     project_id: int = Field(..., description="Project ID to update", gt=0)
-    name: Optional[str] = Field(None, description="New project name", min_length=1, max_length=255)
-    identifier: Optional[str] = Field(None, description="New project identifier", min_length=1, max_length=100)
-    description: Optional[str] = Field(None, description="New project description")
-    public: Optional[bool] = Field(None, description="Whether project is public")
-    status: Optional[str] = Field(None, description="New project status")
-    parent_id: Optional[int] = Field(None, description="New parent project ID", gt=0)
+    name: str | None = Field(None, description="New project name", min_length=1, max_length=255)
+    identifier: str | None = Field(None, description="New project identifier", min_length=1, max_length=100)
+    description: str | None = Field(None, description="New project description")
+    public: bool | None = Field(None, description="Whether project is public")
+    status: str | None = Field(None, description="New project status")
+    parent_id: int | None = Field(None, description="New parent project ID", gt=0)
 
 
 @mcp.tool(tags={"write"})
@@ -217,7 +216,7 @@ async def create_project(input: CreateProjectInput) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to create project: {str(e)}")
+        return format_error(f"Failed to create project: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -251,7 +250,7 @@ async def add_subproject(input: AddSubprojectInput) -> str:
             if not parent_project.get('active', False):
                 return format_error(f"Parent project #{input.parent_id} is not active")
         except Exception as e:
-            return format_error(f"Parent project #{input.parent_id} not found or inaccessible: {str(e)}")
+            return format_error(f"Parent project #{input.parent_id} not found or inaccessible: {e!s}")
 
         # Create subproject with parent_id
         data = {
@@ -278,7 +277,7 @@ async def add_subproject(input: AddSubprojectInput) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to create subproject: {str(e)}")
+        return format_error(f"Failed to create subproject: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -301,7 +300,7 @@ async def get_subprojects(parent_id: int) -> str:
         try:
             parent_project = await client.get_project(parent_id)
         except Exception as e:
-            return format_error(f"Parent project #{parent_id} not found: {str(e)}")
+            return format_error(f"Parent project #{parent_id} not found: {e!s}")
 
         # Get subprojects
         result = await client.get_subprojects(parent_id)
@@ -325,7 +324,7 @@ async def get_subprojects(parent_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to get subprojects: {str(e)}")
+        return format_error(f"Failed to get subprojects: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -370,7 +369,7 @@ async def update_project(input: UpdateProjectInput) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to update project: {str(e)}")
+        return format_error(f"Failed to update project: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -394,4 +393,4 @@ async def delete_project(project_id: int) -> str:
             return format_error(f"Failed to delete project #{project_id}")
 
     except Exception as e:
-        return format_error(f"Failed to delete project: {str(e)}")
+        return format_error(f"Failed to delete project: {e!s}")

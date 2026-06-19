@@ -4,17 +4,17 @@ OpenProject API Client
 A comprehensive async client for OpenProject API v3 with proxy support.
 """
 
-import os
-import re
+import asyncio
+import base64
 import json
 import logging
-from typing import Dict, List, Optional, Any
-from datetime import datetime
-import asyncio
-import aiohttp
-from urllib.parse import quote
-import base64
+import os
+import re
 import ssl
+from typing import Any, ClassVar
+from urllib.parse import quote
+
+import aiohttp
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -30,9 +30,9 @@ _CUSTOM_FIELD_KEY = re.compile(r"^customField\d+$")
 
 
 def _merge_custom_fields(
-    payload: Dict,
-    custom_fields: Optional[Dict],
-    reference: Optional[Dict] = None,
+    payload: dict,
+    custom_fields: dict | None,
+    reference: dict | None = None,
 ) -> None:
     """Merge validated custom-field values into a work-package payload in place.
 
@@ -81,8 +81,8 @@ def _merge_custom_fields(
 
 
 def _verify_custom_fields(
-    response: Dict,
-    custom_fields: Optional[Dict],
+    response: dict,
+    custom_fields: dict | None,
     operation: str = "write",
 ) -> None:
     """Raise if a custom field value was silently dropped by OpenProject.
@@ -153,8 +153,8 @@ class OpenProjectClient:
         self,
         base_url: str,
         api_key: str,
-        proxy: Optional[str] = None,
-        ca_bundle: Optional[str] = None,
+        proxy: str | None = None,
+        ca_bundle: str | None = None,
     ):
         """
         Initialize the OpenProject client.
@@ -200,7 +200,7 @@ class OpenProjectClient:
         return base64.b64encode(credentials.encode()).decode()
 
     @classmethod
-    def _retry_delay(cls, attempt: int, headers: Optional[Any]) -> float:
+    def _retry_delay(cls, attempt: int, headers: Any | None) -> float:
         """Compute the backoff delay for a retry attempt (0-indexed).
 
         Honors a ``Retry-After`` header (seconds form) when present — the server's
@@ -217,8 +217,8 @@ class OpenProjectClient:
         return cls._BACKOFF_BASE * (2**attempt)
 
     async def _request(
-        self, method: str, endpoint: str, data: Optional[Dict] = None
-    ) -> Dict:
+        self, method: str, endpoint: str, data: dict | None = None
+    ) -> dict:
         """
         Execute an API request.
 
@@ -248,7 +248,7 @@ class OpenProjectClient:
             # Bounded retry on transient failures: 429 (rate limit, honoring
             # Retry-After) and 5xx (server). 4xx other than 429 are caller
             # errors and are NOT retried. Exponential backoff between attempts.
-            last_error: Optional[str] = None
+            last_error: str | None = None
             for attempt in range(self._MAX_RETRIES):
                 try:
                     request_params = {
@@ -306,7 +306,7 @@ class OpenProjectClient:
                     # a request timeout is exactly the transient failure retry is
                     # meant to cover. (3.11+: asyncio.TimeoutError == TimeoutError.)
                     err_label = "Timeout" if isinstance(e, asyncio.TimeoutError) else "Network error"
-                    last_error = f"{err_label} accessing {url}: {str(e)}"
+                    last_error = f"{err_label} accessing {url}: {e!s}"
                     if attempt < self._MAX_RETRIES - 1:
                         delay = self._retry_delay(attempt, None)
                         logger.warning(
@@ -315,8 +315,8 @@ class OpenProjectClient:
                         )
                         await asyncio.sleep(delay)
                         continue
-                    logger.error(f"{err_label}: {str(e)}")
-                    raise Exception(last_error)
+                    logger.error(f"{err_label}: {e!s}")
+                    raise Exception(last_error) from None
 
             # Loop exhausted without returning (all attempts were retryable failures).
             raise Exception(last_error or f"Request to {url} failed after retries")
@@ -340,12 +340,12 @@ class OpenProjectClient:
 
         return base_msg
 
-    async def test_connection(self) -> Dict:
+    async def test_connection(self) -> dict:
         """Test the API connection and authentication"""
         logger.info("Testing API connection...")
         return await self._request("GET", "")
 
-    async def get_projects(self, filters: Optional[str] = None) -> Dict:
+    async def get_projects(self, filters: str | None = None) -> dict:
         """
         Retrieve all projects.
 
@@ -372,11 +372,11 @@ class OpenProjectClient:
 
     async def get_work_packages(
         self,
-        project_id: Optional[int] = None,
-        filters: Optional[str] = None,
-        offset: Optional[int] = None,
-        page_size: Optional[int] = None,
-    ) -> Dict:
+        project_id: int | None = None,
+        filters: str | None = None,
+        offset: int | None = None,
+        page_size: int | None = None,
+    ) -> dict:
         """
         Retrieve work packages.
 
@@ -417,7 +417,7 @@ class OpenProjectClient:
 
         return result
 
-    async def create_work_package(self, data: Dict) -> Dict:
+    async def create_work_package(self, data: dict) -> dict:
         """
         Create a new work package.
 
@@ -489,7 +489,7 @@ class OpenProjectClient:
         _verify_custom_fields(result, data.get("custom_fields"), "create")
         return result
 
-    async def get_types(self, project_id: Optional[int] = None) -> Dict:
+    async def get_types(self, project_id: int | None = None) -> dict:
         """
         Retrieve available work package types.
 
@@ -514,7 +514,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_users(self, filters: Optional[str] = None) -> Dict:
+    async def get_users(self, filters: str | None = None) -> dict:
         """
         Retrieve users.
 
@@ -539,7 +539,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_user(self, user_id: int) -> Dict:
+    async def get_user(self, user_id: int) -> dict:
         """
         Retrieve a specific user by ID.
 
@@ -552,8 +552,8 @@ class OpenProjectClient:
         return await self._request("GET", f"/users/{user_id}")
 
     async def get_memberships(
-        self, project_id: Optional[int] = None, user_id: Optional[int] = None
-    ) -> Dict:
+        self, project_id: int | None = None, user_id: int | None = None
+    ) -> dict:
         """
         Retrieve memberships.
 
@@ -587,7 +587,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_statuses(self) -> Dict:
+    async def get_statuses(self) -> dict:
         """
         Retrieve available work package statuses.
 
@@ -604,7 +604,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_priorities(self) -> Dict:
+    async def get_priorities(self) -> dict:
         """
         Retrieve available work package priorities.
 
@@ -621,7 +621,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_work_package(self, work_package_id: int) -> Dict:
+    async def get_work_package(self, work_package_id: int) -> dict:
         """
         Retrieve a specific work package by ID.
 
@@ -634,8 +634,8 @@ class OpenProjectClient:
         return await self._request("GET", f"/work_packages/{work_package_id}")
 
     async def get_allowed_status_transitions(
-        self, work_package_id: int, lock_version: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        self, work_package_id: int, lock_version: int | None = None
+    ) -> list[dict[str, Any]]:
         """Return the statuses this work package may legally transition to NOW.
 
         OpenProject enforces a configurable workflow: from a given status, only
@@ -670,7 +670,7 @@ class OpenProjectClient:
             if v.get("id") is not None
         ]
 
-    async def update_work_package(self, work_package_id: int, data: Dict) -> Dict:
+    async def update_work_package(self, work_package_id: int, data: dict) -> dict:
         """
         Update an existing work package.
 
@@ -801,7 +801,7 @@ class OpenProjectClient:
 
     async def add_work_package_comment(
         self, work_package_id: int, comment: str, internal: bool = False
-    ) -> Dict:
+    ) -> dict:
         """
         Add a comment/activity to a work package.
 
@@ -827,7 +827,7 @@ class OpenProjectClient:
             "POST", f"/work_packages/{work_package_id}/activities", payload
         )
 
-    async def get_work_package_activities(self, work_package_id: int) -> Dict:
+    async def get_work_package_activities(self, work_package_id: int) -> dict:
         """
         Retrieve activities (comments, changes) for a work package.
 
@@ -849,7 +849,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_time_entries(self, filters: Optional[str] = None) -> Dict:
+    async def get_time_entries(self, filters: str | None = None) -> dict:
         """
         Retrieve time entries.
 
@@ -874,7 +874,7 @@ class OpenProjectClient:
 
         return result
 
-    async def create_time_entry(self, data: Dict) -> Dict:
+    async def create_time_entry(self, data: dict) -> dict:
         """
         Create a new time entry.
 
@@ -909,7 +909,7 @@ class OpenProjectClient:
 
         return await self._request("POST", "/time_entries", payload)
 
-    async def update_time_entry(self, time_entry_id: int, data: Dict) -> Dict:
+    async def update_time_entry(self, time_entry_id: int, data: dict) -> dict:
         """
         Update an existing time entry.
 
@@ -955,7 +955,7 @@ class OpenProjectClient:
         await self._request("DELETE", f"/time_entries/{time_entry_id}")
         return True
 
-    async def get_time_entry_activities(self) -> Dict:
+    async def get_time_entry_activities(self) -> dict:
         """
         Retrieve available time entry activities.
 
@@ -972,7 +972,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_versions(self, project_id: Optional[int] = None) -> Dict:
+    async def get_versions(self, project_id: int | None = None) -> dict:
         """
         Retrieve project versions.
 
@@ -997,7 +997,7 @@ class OpenProjectClient:
 
         return result
 
-    async def create_version(self, project_id: int, data: Dict) -> Dict:
+    async def create_version(self, project_id: int, data: dict) -> dict:
         """
         Create a new project version.
 
@@ -1027,7 +1027,7 @@ class OpenProjectClient:
 
         return await self._request("POST", "/versions", payload)
 
-    async def check_permissions(self) -> Dict:
+    async def check_permissions(self) -> dict:
         """
         Check user permissions and capabilities.
 
@@ -1041,7 +1041,7 @@ class OpenProjectClient:
             logger.error(f"Failed to check permissions: {e}")
             return {}
 
-    async def create_project(self, data: Dict) -> Dict:
+    async def create_project(self, data: dict) -> dict:
         """
         Create a new project.
 
@@ -1074,7 +1074,7 @@ class OpenProjectClient:
 
         return await self._request("POST", "/projects", payload)
 
-    async def update_project(self, project_id: int, data: Dict) -> Dict:
+    async def update_project(self, project_id: int, data: dict) -> dict:
         """
         Update an existing project.
 
@@ -1089,7 +1089,7 @@ class OpenProjectClient:
         try:
             current_project = await self.get_project(project_id)
             lock_version = current_project.get("lockVersion", 0)
-        except:
+        except Exception:
             lock_version = 0
 
         # Prepare payload with lock version
@@ -1128,7 +1128,7 @@ class OpenProjectClient:
         await self._request("DELETE", f"/projects/{project_id}")
         return True
 
-    async def get_project(self, project_id: int) -> Dict:
+    async def get_project(self, project_id: int) -> dict:
         """
         Retrieve a specific project by ID.
 
@@ -1140,7 +1140,7 @@ class OpenProjectClient:
         """
         return await self._request("GET", f"/projects/{project_id}")
 
-    async def get_subprojects(self, parent_id: int) -> Dict:
+    async def get_subprojects(self, parent_id: int) -> dict:
         """
         Retrieve direct subprojects of a parent project.
 
@@ -1156,7 +1156,7 @@ class OpenProjectClient:
         }])
         return await self.get_projects(filters)
 
-    async def validate_parent_project(self, parent_id: int, child_id: Optional[int] = None) -> bool:
+    async def validate_parent_project(self, parent_id: int, child_id: int | None = None) -> bool:
         """
         Validate if a project can be a parent.
         Uses the available_parent_projects endpoint.
@@ -1177,7 +1177,7 @@ class OpenProjectClient:
 
         return any(p.get("id") == parent_id for p in candidates)
 
-    async def get_roles(self) -> Dict:
+    async def get_roles(self) -> dict:
         """
         Retrieve available roles.
 
@@ -1194,7 +1194,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_role(self, role_id: int) -> Dict:
+    async def get_role(self, role_id: int) -> dict:
         """
         Retrieve a specific role by ID.
 
@@ -1206,7 +1206,7 @@ class OpenProjectClient:
         """
         return await self._request("GET", f"/roles/{role_id}")
 
-    async def create_membership(self, data: Dict) -> Dict:
+    async def create_membership(self, data: dict) -> dict:
         """
         Create a new membership.
 
@@ -1243,7 +1243,7 @@ class OpenProjectClient:
 
         return await self._request("POST", "/memberships", payload)
 
-    async def update_membership(self, membership_id: int, data: Dict) -> Dict:
+    async def update_membership(self, membership_id: int, data: dict) -> dict:
         """
         Update an existing membership.
 
@@ -1258,7 +1258,7 @@ class OpenProjectClient:
         try:
             current_membership = await self.get_membership(membership_id)
             lock_version = current_membership.get("lockVersion", 0)
-        except:
+        except Exception:
             lock_version = 0
 
         # Prepare payload with lock version
@@ -1293,7 +1293,7 @@ class OpenProjectClient:
         await self._request("DELETE", f"/memberships/{membership_id}")
         return True
 
-    async def get_membership(self, membership_id: int) -> Dict:
+    async def get_membership(self, membership_id: int) -> dict:
         """
         Retrieve a specific membership by ID.
 
@@ -1307,7 +1307,7 @@ class OpenProjectClient:
 
     async def set_work_package_parent(
         self, work_package_id: int, parent_id: int
-    ) -> Dict:
+    ) -> dict:
         """
         Set a parent for a work package (create parent-child relationship).
 
@@ -1322,7 +1322,7 @@ class OpenProjectClient:
         try:
             current_wp = await self.get_work_package(work_package_id)
             lock_version = current_wp.get("lockVersion", 0)
-        except:
+        except Exception:
             lock_version = 0
 
         # Prepare payload with parent link
@@ -1335,7 +1335,7 @@ class OpenProjectClient:
             "PATCH", f"/work_packages/{work_package_id}", payload
         )
 
-    async def remove_work_package_parent(self, work_package_id: int) -> Dict:
+    async def remove_work_package_parent(self, work_package_id: int) -> dict:
         """
         Remove parent relationship from a work package (make it top-level).
 
@@ -1349,7 +1349,7 @@ class OpenProjectClient:
         try:
             current_wp = await self.get_work_package(work_package_id)
             lock_version = current_wp.get("lockVersion", 0)
-        except:
+        except Exception:
             lock_version = 0
 
         # Prepare payload with null parent link
@@ -1363,9 +1363,9 @@ class OpenProjectClient:
         self,
         parent_id: int,
         include_descendants: bool = False,
-        offset: Optional[int] = None,
-        page_size: Optional[int] = None,
-    ) -> Dict:
+        offset: int | None = None,
+        page_size: int | None = None,
+    ) -> dict:
         """
         List all child work packages of a parent.
 
@@ -1396,7 +1396,7 @@ class OpenProjectClient:
         if page_size is not None:
             query_params.append(f"pageSize={page_size}")
 
-        endpoint = f"/work_packages?" + "&".join(query_params)
+        endpoint = "/work_packages?" + "&".join(query_params)
         result = await self._request("GET", endpoint)
 
         # Ensure proper response structure
@@ -1412,15 +1412,15 @@ class OpenProjectClient:
         self,
         parent_id: int,
         include_descendants: bool = False,
-        offset: Optional[int] = None,
-        page_size: Optional[int] = None,
-    ) -> Dict:
+        offset: int | None = None,
+        page_size: int | None = None,
+    ) -> dict:
         """Alias for list_work_package_children."""
         return await self.list_work_package_children(
             parent_id, include_descendants, offset, page_size
         )
 
-    async def create_work_package_relation(self, data: Dict) -> Dict:
+    async def create_work_package_relation(self, data: dict) -> dict:
         """
         Create a relationship between work packages.
 
@@ -1454,7 +1454,7 @@ class OpenProjectClient:
             "POST", f"/work_packages/{from_id}/relations", payload
         )
 
-    async def list_work_package_relations(self, filters: Optional[str] = None) -> Dict:
+    async def list_work_package_relations(self, filters: str | None = None) -> dict:
         """
         List work package relations.
 
@@ -1479,7 +1479,7 @@ class OpenProjectClient:
 
         return result
 
-    async def update_work_package_relation(self, relation_id: int, data: Dict) -> Dict:
+    async def update_work_package_relation(self, relation_id: int, data: dict) -> dict:
         """
         Update an existing work package relation.
 
@@ -1494,7 +1494,7 @@ class OpenProjectClient:
         try:
             current_relation = await self.get_work_package_relation(relation_id)
             lock_version = current_relation.get("lockVersion", 0)
-        except:
+        except Exception:
             lock_version = 0
 
         # Prepare payload with lock version
@@ -1523,7 +1523,7 @@ class OpenProjectClient:
         await self._request("DELETE", f"/relations/{relation_id}")
         return True
 
-    async def get_work_package_relation(self, relation_id: int) -> Dict:
+    async def get_work_package_relation(self, relation_id: int) -> dict:
         """
         Retrieve a specific work package relation by ID.
 
@@ -1541,11 +1541,11 @@ class OpenProjectClient:
 
     async def get_news(
         self,
-        filters: Optional[str] = None,
-        sort_by: Optional[str] = None,
-        offset: Optional[int] = None,
-        page_size: Optional[int] = None,
-    ) -> Dict:
+        filters: str | None = None,
+        sort_by: str | None = None,
+        offset: int | None = None,
+        page_size: int | None = None,
+    ) -> dict:
         """
         Retrieve news entries with filtering and pagination.
 
@@ -1586,7 +1586,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_news_item(self, news_id: int) -> Dict:
+    async def get_news_item(self, news_id: int) -> dict:
         """
         Retrieve a specific news entry by ID.
 
@@ -1598,7 +1598,7 @@ class OpenProjectClient:
         """
         return await self._request("GET", f"/news/{news_id}")
 
-    async def create_news(self, data: Dict) -> Dict:
+    async def create_news(self, data: dict) -> dict:
         """
         Create a new news entry.
 
@@ -1631,7 +1631,7 @@ class OpenProjectClient:
 
         return await self._request("POST", "/news", payload)
 
-    async def update_news(self, news_id: int, data: Dict) -> Dict:
+    async def update_news(self, news_id: int, data: dict) -> dict:
         """
         Update an existing news entry.
 
@@ -1674,7 +1674,7 @@ class OpenProjectClient:
         await self._request("DELETE", f"/news/{news_id}")
         return True
 
-    async def get_wiki_page_by_id(self, wiki_page_id: int) -> Dict:
+    async def get_wiki_page_by_id(self, wiki_page_id: int) -> dict:
         """Get a wiki page by integer ID.
 
         The OpenProject v3 API wiki support is currently a stub: only this
@@ -1683,19 +1683,19 @@ class OpenProjectClient:
         """
         return await self._request("GET", f"/wiki_pages/{wiki_page_id}")
 
-    async def get_groups(self) -> Dict:
+    async def get_groups(self) -> dict:
         """List all groups in the OpenProject instance."""
         return await self._request("GET", "/groups")
 
-    async def get_group(self, group_id: int) -> Dict:
+    async def get_group(self, group_id: int) -> dict:
         """Get a specific group by ID."""
         return await self._request("GET", f"/groups/{group_id}")
 
     async def get_notifications(
         self,
-        filters: Optional[str] = None,
+        filters: str | None = None,
         page_size: int = 20,
-    ) -> Dict:
+    ) -> dict:
         """List notifications for the current API user."""
         query_params = [f"pageSize={page_size}"]
         if filters:
@@ -1719,7 +1719,7 @@ class OpenProjectClient:
         file_bytes: bytes,
         filename: str,
         content_type: str,
-    ) -> Dict:
+    ) -> dict:
         """Upload a file via multipart form-data POST.
 
         OpenProject v3 attachment upload requires a two-part multipart body:
@@ -1734,7 +1734,7 @@ class OpenProjectClient:
         connector = _aiohttp.TCPConnector(ssl=self.ssl_context)
         timeout = _aiohttp.ClientTimeout(total=60)
 
-        last_error: Optional[str] = None
+        last_error: str | None = None
         async with _aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
             for attempt in range(self._MAX_RETRIES):
                 try:
@@ -1754,7 +1754,7 @@ class OpenProjectClient:
                     upload_headers = {
                         k: v for k, v in self.headers.items() if k.lower() != "content-type"
                     }
-                    request_params: Dict = {
+                    request_params: dict = {
                         "method": "POST",
                         "url": url,
                         "headers": upload_headers,
@@ -1781,15 +1781,15 @@ class OpenProjectClient:
                         return response_json
                 except (_aiohttp.ClientError, asyncio.TimeoutError) as e:
                     err_label = "Timeout" if isinstance(e, asyncio.TimeoutError) else "Network error"
-                    last_error = f"{err_label} during upload to {url}: {str(e)}"
+                    last_error = f"{err_label} during upload to {url}: {e!s}"
                     if attempt < self._MAX_RETRIES - 1:
                         delay = self._retry_delay(attempt, None)
                         await asyncio.sleep(delay)
                         continue
-                    raise Exception(last_error)
+                    raise Exception(last_error) from None
         raise Exception(last_error or f"Upload to {url} failed after retries")
 
-    _ATTACHMENT_CONTAINERS = {"work_packages", "wiki_pages", "projects"}
+    _ATTACHMENT_CONTAINERS: ClassVar[frozenset[str]] = frozenset({"work_packages", "wiki_pages", "projects"})
 
     async def upload_attachment(
         self,
@@ -1798,7 +1798,7 @@ class OpenProjectClient:
         file_bytes: bytes,
         filename: str,
         content_type: str = "application/octet-stream",
-    ) -> Dict:
+    ) -> dict:
         """Upload a file attachment to a work package, wiki page, or project.
 
         Args:
@@ -1815,7 +1815,7 @@ class OpenProjectClient:
         endpoint = f"/{container_type}/{container_id}/attachments"
         return await self._upload_request(endpoint, file_bytes, filename, content_type)
 
-    async def get_attachment(self, attachment_id: int) -> Dict:
+    async def get_attachment(self, attachment_id: int) -> dict:
         """Get metadata for an attachment by ID."""
         return await self._request("GET", f"/attachments/{attachment_id}")
 
@@ -1824,19 +1824,19 @@ class OpenProjectClient:
         await self._request("DELETE", f"/attachments/{attachment_id}")
         return True
 
-    async def list_attachments(self, container_type: str, container_id: int) -> Dict:
+    async def list_attachments(self, container_type: str, container_id: int) -> dict:
         """List attachments for a work package, wiki page, or project."""
         return await self._request("GET", f"/{container_type}/{container_id}/attachments")
 
-    async def get_cost_types(self) -> Dict:
+    async def get_cost_types(self) -> dict:
         """List all defined cost types (admin-level reference data)."""
         return await self._request("GET", "/cost_types")
 
     async def get_cost_entries(
         self,
-        work_package_id: Optional[int] = None,
-        project_id: Optional[int] = None,
-    ) -> Dict:
+        work_package_id: int | None = None,
+        project_id: int | None = None,
+    ) -> dict:
         """List cost entries, optionally filtered by work package or project."""
         filters_list = []
         if work_package_id is not None:
@@ -1848,7 +1848,7 @@ class OpenProjectClient:
             return await self._request("GET", f"/cost_entries?filters={encoded}")
         return await self._request("GET", "/cost_entries")
 
-    async def create_cost_entry(self, data: Dict) -> Dict:
+    async def create_cost_entry(self, data: dict) -> dict:
         """Create a cost entry.
 
         Args:
@@ -1857,7 +1857,7 @@ class OpenProjectClient:
                 units (float), spent_on (str YYYY-MM-DD),
                 optionally comment (str)
         """
-        payload: Dict = {
+        payload: dict = {
             "_links": {
                 "project": {"href": f"/api/v3/projects/{data['project_id']}"},
                 "workPackage": {"href": f"/api/v3/work_packages/{data['work_package_id']}"},
@@ -1866,15 +1866,15 @@ class OpenProjectClient:
             "units": str(data["units"]),
             "spentOn": data["spent_on"],
         }
-        if "comment" in data and data["comment"]:
+        if data.get("comment"):
             payload["comment"] = {"raw": data["comment"]}
         return await self._request("POST", "/cost_entries", payload)
 
-    async def update_cost_entry(self, cost_entry_id: int, data: Dict) -> Dict:
+    async def update_cost_entry(self, cost_entry_id: int, data: dict) -> dict:
         """Update a cost entry (units, spent_on, comment)."""
         current = await self._request("GET", f"/cost_entries/{cost_entry_id}")
         lock_version = current.get("lockVersion", 0)
-        payload: Dict = {"lockVersion": lock_version}
+        payload: dict = {"lockVersion": lock_version}
         if "units" in data:
             payload["units"] = str(data["units"])
         if "spent_on" in data:

@@ -1,6 +1,6 @@
 """Group management tools for OpenProject (read-only)."""
 
-from src.server import mcp, get_client
+from src.server import get_client, mcp
 from src.utils.formatting import format_error
 
 
@@ -24,7 +24,7 @@ async def list_groups() -> str:
             text += f"- **{group.get('name', 'Unnamed')}** (ID: {group.get('id', 'N/A')})\n"
         return text
     except Exception as e:
-        return format_error(f"Failed to list groups: {str(e)}")
+        return format_error(f"Failed to list groups: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -54,4 +54,4 @@ async def get_group(group_id: int) -> str:
 
         return text
     except Exception as e:
-        return format_error(f"Failed to get group: {str(e)}")
+        return format_error(f"Failed to get group: {e!s}")

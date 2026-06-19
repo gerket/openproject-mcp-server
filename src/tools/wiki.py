@@ -6,8 +6,8 @@ ID. List, create, update, and delete operations are not available in the
 API. This module exposes the one real endpoint.
 """
 
-from src.server import mcp, get_client
-from src.utils.formatting import format_wiki_page_detail, format_error
+from src.server import get_client, mcp
+from src.utils.formatting import format_error, format_wiki_page_detail
 
 
 @mcp.tool(tags={"read"})
@@ -29,4 +29,4 @@ async def get_wiki_page(wiki_page_id: int) -> str:
         page = await client.get_wiki_page_by_id(wiki_page_id)
         return format_wiki_page_detail(page)
     except Exception as e:
-        return format_error(f"Failed to get wiki page: {str(e)}")
+        return format_error(f"Failed to get wiki page: {e!s}")

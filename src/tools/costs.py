@@ -1,10 +1,10 @@
 """Cost type and cost entry tools for OpenProject."""
 
-from typing import Optional
+
 from pydantic import BaseModel, Field
 
-from src.server import mcp, get_client
-from src.utils.formatting import format_success, format_error
+from src.server import get_client, mcp
+from src.utils.formatting import format_error, format_success
 
 
 class CreateCostEntryInput(BaseModel):
@@ -13,14 +13,14 @@ class CreateCostEntryInput(BaseModel):
     cost_type_id: int = Field(..., description="Cost type ID (from list_cost_types)", gt=0)
     units: float = Field(..., description="Quantity of units (e.g. token count)", ge=0)
     spent_on: str = Field(..., description="Date the cost was incurred (YYYY-MM-DD)")
-    comment: Optional[str] = Field(None, description="Optional comment/note")
+    comment: str | None = Field(None, description="Optional comment/note")
 
 
 class UpdateCostEntryInput(BaseModel):
     cost_entry_id: int = Field(..., description="Cost entry ID to update", gt=0)
-    units: Optional[float] = Field(None, description="New unit quantity", ge=0)
-    spent_on: Optional[str] = Field(None, description="New date (YYYY-MM-DD)")
-    comment: Optional[str] = Field(None, description="New comment")
+    units: float | None = Field(None, description="New unit quantity", ge=0)
+    spent_on: str | None = Field(None, description="New date (YYYY-MM-DD)")
+    comment: str | None = Field(None, description="New comment")
 
 
 @mcp.tool(tags={"read"})
@@ -55,13 +55,13 @@ async def list_cost_types() -> str:
                 text += "  (custom type)\n"
         return text
     except Exception as e:
-        return format_error(f"Failed to list cost types: {str(e)}")
+        return format_error(f"Failed to list cost types: {e!s}")
 
 
 @mcp.tool(tags={"read"})
 async def list_cost_entries(
-    work_package_id: Optional[int] = None,
-    project_id: Optional[int] = None,
+    work_package_id: int | None = None,
+    project_id: int | None = None,
 ) -> str:
     """List cost entries, optionally filtered by work package or project.
 
@@ -87,7 +87,7 @@ async def list_cost_entries(
             links = e.get("_links", {})
             ct_name = links.get("costType", {}).get("title", "Unknown type")
             wp_title = links.get("workPackage", {}).get("title", "")
-            text += f"- **ID {e.get('id', 'N/A')}**: {e.get('units', '?')} × {ct_name}\n"
+            text += f"- **ID {e.get('id', 'N/A')}**: {e.get('units', '?')} x {ct_name}\n"
             text += f"  Date: {e.get('spentOn', 'N/A')}\n"
             if wp_title:
                 text += f"  Work package: {wp_title}\n"
@@ -97,7 +97,7 @@ async def list_cost_entries(
             text += "\n"
         return text
     except Exception as e:
-        return format_error(f"Failed to list cost entries: {str(e)}")
+        return format_error(f"Failed to list cost entries: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -144,7 +144,7 @@ async def create_cost_entry(input: CreateCostEntryInput) -> str:
             result += f"\n**Cost type**: {ct}"
         return result
     except Exception as e:
-        return format_error(f"Failed to create cost entry: {str(e)}")
+        return format_error(f"Failed to create cost entry: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -175,7 +175,7 @@ async def update_cost_entry(input: UpdateCostEntryInput) -> str:
         result += f"\n**Date**: {entry.get('spentOn', '?')}"
         return result
     except Exception as e:
-        return format_error(f"Failed to update cost entry: {str(e)}")
+        return format_error(f"Failed to update cost entry: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -195,4 +195,4 @@ async def delete_cost_entry(cost_entry_id: int) -> str:
         await client.delete_cost_entry(cost_entry_id)
         return format_success(f"Cost entry #{cost_entry_id} deleted.")
     except Exception as e:
-        return format_error(f"Failed to delete cost entry: {str(e)}")
+        return format_error(f"Failed to delete cost entry: {e!s}")

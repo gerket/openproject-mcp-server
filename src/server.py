@@ -4,8 +4,9 @@ OpenProject MCP Server - FastMCP Implementation
 Main server file that initializes FastMCP and registers all tools.
 """
 
-import os
 import logging
+import os
+
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 
@@ -45,7 +46,7 @@ try:
         proxy=proxy
     )
 
-    logger.info(f"✅ OpenProject MCP Server initialized")
+    logger.info("✅ OpenProject MCP Server initialized")
     logger.info(f"   Server: {base_url}")
     logger.info(f"   Proxy: {proxy if proxy else 'None'}")
 
@@ -64,22 +65,24 @@ def get_client():
 logger.info("Loading tool modules...")
 
 try:
-    from src.tools import connection      # 2 tools
-    from src.tools import work_packages   # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
-    from src.tools import projects        # 7 tools (list, get, create, add_subproject, get_subprojects, update, delete)
-    from src.tools import users           # 6 tools
-    from src.tools import memberships     # 5 tools
-    from src.tools import hierarchy       # 3 tools
-    from src.tools import relations       # 5 tools
-    from src.tools import time_entries    # 5 tools
-    from src.tools import versions        # 2 tools
-    from src.tools import weekly_reports  # 4 tools
-    from src.tools import news            # 5 tools
-    from src.tools import wiki            # 1 tool (API v3 wiki is a stub — only GET by integer ID)
-    from src.tools import groups          # 2 tools
-    from src.tools import notifications   # 3 tools
-    from src.tools import attachments     # 4 tools
-    from src.tools import costs           # 5 tools
+    from src.tools import (  # noqa: F401
+        attachments,  # 4 tools
+        connection,  # 2 tools
+        costs,  # 5 tools
+        groups,  # 2 tools
+        hierarchy,  # 3 tools
+        memberships,  # 5 tools
+        news,  # 5 tools
+        notifications,  # 3 tools
+        projects,  # 7 tools (list, get, create, add_subproject, get_subprojects, update, delete)
+        relations,  # 5 tools
+        time_entries,  # 5 tools
+        users,  # 6 tools
+        versions,  # 2 tools
+        weekly_reports,  # 4 tools
+        wiki,  # 1 tool (API v3 wiki is a stub — only GET by integer ID)
+        work_packages,  # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
+    )
 
     logger.info("✅ All 77 tools loaded successfully (45 read, 32 write)")
 except ImportError as e:

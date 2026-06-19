@@ -1,12 +1,12 @@
 """User and role management tools."""
 
-from typing import Optional
-from src.server import mcp, get_client
-from src.utils.formatting import format_success, format_error
+
+from src.server import get_client, mcp
+from src.utils.formatting import format_error
 
 
 @mcp.tool(tags={"read"})
-async def list_users(name: Optional[str] = None, status: Optional[str] = None) -> str:
+async def list_users(name: str | None = None, status: str | None = None) -> str:
     """List users in OpenProject.
 
     Args:
@@ -47,7 +47,7 @@ async def list_users(name: Optional[str] = None, status: Optional[str] = None) -
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list users: {str(e)}")
+        return format_error(f"Failed to list users: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -79,7 +79,7 @@ async def get_user(user_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to get user: {str(e)}")
+        return format_error(f"Failed to get user: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -105,7 +105,7 @@ async def list_roles() -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list roles: {str(e)}")
+        return format_error(f"Failed to list roles: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -138,7 +138,7 @@ async def get_role(role_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to get role: {str(e)}")
+        return format_error(f"Failed to get role: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -184,7 +184,7 @@ async def list_project_members(project_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list project members: {str(e)}")
+        return format_error(f"Failed to list project members: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -226,4 +226,4 @@ async def list_user_projects(user_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list user projects: {str(e)}")
+        return format_error(f"Failed to list user projects: {e!s}")

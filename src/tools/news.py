@@ -1,17 +1,16 @@
 """News management tools for OpenProject."""
 
 import json
-from typing import Optional
+
 from pydantic import BaseModel, Field
 
-from src.server import mcp, get_client
+from src.server import get_client, mcp
 from src.utils.formatting import (
-    format_news_list,
-    format_news_detail,
-    format_success,
     format_error,
+    format_news_detail,
+    format_news_list,
+    format_success,
 )
-
 
 # ============================================================
 # Pydantic Models for Input Validation
@@ -33,11 +32,11 @@ class UpdateNewsInput(BaseModel):
     """Input model for updating news."""
 
     news_id: int = Field(..., description="News ID to update", gt=0)
-    title: Optional[str] = Field(
+    title: str | None = Field(
         None, description="New headline", min_length=1, max_length=255
     )
-    summary: Optional[str] = Field(None, description="New summary", min_length=1)
-    description: Optional[str] = Field(
+    summary: str | None = Field(None, description="New summary", min_length=1)
+    description: str | None = Field(
         None, description="New content (supports Markdown)"
     )
 
@@ -49,7 +48,7 @@ class UpdateNewsInput(BaseModel):
 
 @mcp.tool(tags={"read"})
 async def list_news(
-    project_id: Optional[int] = None,
+    project_id: int | None = None,
     sort_by_created: bool = True,
     offset: int = 0,
     page_size: int = 20,
@@ -106,7 +105,7 @@ async def list_news(
         return formatted
 
     except Exception as e:
-        return format_error(f"Failed to list news: {str(e)}")
+        return format_error(f"Failed to list news: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -151,7 +150,7 @@ async def create_news(input: CreateNewsInput) -> str:
         news_id = news.get("id")
         title = news.get("title")
 
-        result = format_success(f"News entry created successfully!")
+        result = format_success("News entry created successfully!")
         result += f"\n\n**ID**: {news_id}"
         result += f"\n**Title**: {title}"
         result += f"\n**Summary**: {input.summary[:100]}..."
@@ -159,7 +158,7 @@ async def create_news(input: CreateNewsInput) -> str:
         return result
 
     except Exception as e:
-        return format_error(f"Failed to create news: {str(e)}")
+        return format_error(f"Failed to create news: {e!s}")
 
 
 @mcp.tool(tags={"read"})
@@ -188,7 +187,7 @@ async def get_news(news_id: int) -> str:
         return format_news_detail(news)
 
     except Exception as e:
-        return format_error(f"Failed to get news entry: {str(e)}")
+        return format_error(f"Failed to get news entry: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -243,7 +242,7 @@ async def update_news(input: UpdateNewsInput) -> str:
         return result
 
     except Exception as e:
-        return format_error(f"Failed to update news: {str(e)}")
+        return format_error(f"Failed to update news: {e!s}")
 
 
 @mcp.tool(tags={"write"})
@@ -278,4 +277,4 @@ async def delete_news(news_id: int) -> str:
         )
 
     except Exception as e:
-        return format_error(f"Failed to delete news: {str(e)}")
+        return format_error(f"Failed to delete news: {e!s}")
