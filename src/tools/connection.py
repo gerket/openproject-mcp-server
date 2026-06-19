@@ -3,7 +3,7 @@
 from src.server import mcp, get_client
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def test_connection() -> str:
     """Test the connection to the OpenProject API.
 
@@ -24,7 +24,7 @@ async def test_connection() -> str:
         return f"❌ Connection failed: {str(e)}"
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def check_permissions() -> str:
     """Check current user permissions and capabilities.
 
