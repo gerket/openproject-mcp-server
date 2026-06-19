@@ -80,7 +80,15 @@ try:
         work_packages,  # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
     )
 
-    logger.info("✅ All 86 tools loaded successfully (50 read, 36 write)")
+    _tool_map: dict = getattr(getattr(mcp, "_tool_manager", None), "_tools", {})
+    _read = sum(1 for t in _tool_map.values() if "read" in (t.tags or set()))
+    _write = sum(1 for t in _tool_map.values() if "write" in (t.tags or set()))
+    logger.info(
+        "✅ All %d tools loaded successfully (%d read, %d write)",
+        len(_tool_map),
+        _read,
+        _write,
+    )
 except ImportError as e:
     logger.warning(f"⚠️  Some tool modules failed to import: {e}")
     raise

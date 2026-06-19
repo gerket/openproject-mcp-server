@@ -64,8 +64,9 @@ async def create_reminder(
         remind_str = reminder.get("remindAt", remind_at)[:16].replace("T", " ")
         text = f"✅ Reminder #{reminder_id} created for WP #{work_package_id}.\n\n"
         text += f"**Remind at**: {remind_str}\n"
-        if note:
-            text += f"**Note**: {note}\n"
+        response_note = reminder.get("note")
+        if response_note:
+            text += f"**Note**: {response_note}\n"
         return text
     except Exception as e:
         return format_error(f"Failed to create reminder: {e!s}")
