@@ -7,13 +7,13 @@ allowing quick validation during development.
 """
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.server import mcp, get_client
+from src.server import get_client, mcp
 
 
 async def test_all_tools():
@@ -30,7 +30,7 @@ async def test_all_tools():
     tools = await mcp.get_tools()
     print(f"\n> Registered Tools: {len(tools)}")
     for i, tool in enumerate(tools, 1):
-        print(f"   {i}. {str(tool)}")
+        print(f"   {i}. {tool!s}")
 
     print("\n" + "=" * 70)
     print("Running Tool Tests")
@@ -40,6 +40,7 @@ async def test_all_tools():
     print("\n[1] Test: test_connection")
     try:
         from src.tools.connection import test_connection
+
         result = await test_connection()
         print(result[:200] + "..." if len(result) > 200 else result)
         print("OK PASSED")
@@ -50,6 +51,7 @@ async def test_all_tools():
     print("\n[2] Test: check_permissions")
     try:
         from src.tools.connection import check_permissions
+
         result = await check_permissions()
         print(result[:200] + "..." if len(result) > 200 else result)
         print("OK PASSED")
@@ -60,6 +62,7 @@ async def test_all_tools():
     print("\n[3] Test: list_projects")
     try:
         from src.tools.projects import list_projects
+
         result = await list_projects(active_only=True)
         print(result[:300] + "..." if len(result) > 300 else result)
         print("OK PASSED")
@@ -70,6 +73,7 @@ async def test_all_tools():
     print("\n[4] Test: list_work_packages (CRITICAL)")
     try:
         from src.tools.work_packages import list_work_packages
+
         result = await list_work_packages(active_only=True, page_size=5)
         print(result[:400] + "..." if len(result) > 400 else result)
         print("OK PASSED")
@@ -80,14 +84,15 @@ async def test_all_tools():
     print("\n[5] Test: create_work_package validation (CRITICAL)")
     try:
         from src.tools.work_packages import CreateWorkPackageInput
+
         # Validate input model only (don't actually create)
         test_input = CreateWorkPackageInput(
             project_id=1,
             subject="Test Work Package",
             type_id=1,
-            description="This is a test"
+            description="This is a test",
         )
-        print(f"OK Input validation PASSED")
+        print("OK Input validation PASSED")
         print(f"   Model: {test_input.model_dump()}")
     except Exception as e:
         print(f"FAIL FAILED: {e}")
@@ -96,14 +101,12 @@ async def test_all_tools():
     print("\n[6] Test: update_work_package validation (CRITICAL)")
     try:
         from src.tools.work_packages import UpdateWorkPackageInput
+
         # Validate input model only (don't actually update)
         test_input = UpdateWorkPackageInput(
-            work_package_id=123,
-            status_id=5,
-            assignee_id=7,
-            percentage_done=50
+            work_package_id=123, status_id=5, assignee_id=7, percentage_done=50
         )
-        print(f"OK Input validation PASSED")
+        print("OK Input validation PASSED")
         print(f"   Model: {test_input.model_dump()}")
     except Exception as e:
         print(f"FAIL FAILED: {e}")
@@ -112,16 +115,16 @@ async def test_all_tools():
     print("\n[7] Test: Response formatting utilities")
     try:
         from src.utils.formatting import (
+            format_error,
             format_project_list,
-            format_work_package_list,
             format_success,
-            format_error
+            format_work_package_list,
         )
 
         # Test project formatting
         test_projects = [
             {"id": 1, "name": "Test Project", "active": True},
-            {"id": 2, "name": "Another Project", "active": False}
+            {"id": 2, "name": "Another Project", "active": False},
         ]
         result = format_project_list(test_projects)
         assert "Test Project" in result
@@ -134,8 +137,8 @@ async def test_all_tools():
                 "subject": "Test Task",
                 "_embedded": {
                     "type": {"name": "Bug"},
-                    "status": {"name": "In Progress"}
-                }
+                    "status": {"name": "In Progress"},
+                },
             }
         ]
         result = format_work_package_list(test_wps)

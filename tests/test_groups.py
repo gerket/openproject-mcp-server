@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 """Unit tests for groups client methods and tools."""
 
-import asyncio
-import sys
 import os
-from unittest.mock import AsyncMock, patch, MagicMock
+import sys
+from unittest.mock import AsyncMock, MagicMock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
 def _make_client():
-    with patch.dict(os.environ, {
-        "OPENPROJECT_URL": "http://test.example.com",
-        "OPENPROJECT_API_KEY": "test-key",
-    }):
+    with patch.dict(
+        os.environ,
+        {
+            "OPENPROJECT_URL": "http://test.example.com",
+            "OPENPROJECT_API_KEY": "test-key",
+        },
+    ):
         from src.client import OpenProjectClient
+
         return OpenProjectClient("http://test.example.com", "test-key")
 
 
@@ -28,7 +31,9 @@ def _mock_client(method_responses: dict):
 async def test_get_groups_client():
     client = _make_client()
     mock_response = {"_embedded": {"elements": [{"id": 1, "name": "Devs"}]}}
-    with patch.object(client, "_request", new=AsyncMock(return_value=mock_response)) as mock_req:
+    with patch.object(
+        client, "_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_req:
         result = await client.get_groups()
         mock_req.assert_called_once_with("GET", "/groups")
         assert result == mock_response
@@ -38,7 +43,9 @@ async def test_get_groups_client():
 async def test_get_group_client():
     client = _make_client()
     mock_response = {"id": 1, "name": "Devs"}
-    with patch.object(client, "_request", new=AsyncMock(return_value=mock_response)) as mock_req:
+    with patch.object(
+        client, "_request", new=AsyncMock(return_value=mock_response)
+    ) as mock_req:
         result = await client.get_group(1)
         mock_req.assert_called_once_with("GET", "/groups/1")
         assert result == mock_response
@@ -50,6 +57,7 @@ async def test_list_groups_tool():
     mock = _mock_client({"get_groups": {"_embedded": {"elements": groups}}})
     with patch("src.tools.groups.get_client", return_value=mock):
         from src.tools.groups import list_groups
+
         result = await list_groups.fn()
         assert "Devs" in result
         assert "QA" in result
@@ -61,7 +69,7 @@ async def test_get_group_tool():
     mock = _mock_client({"get_group": group})
     with patch("src.tools.groups.get_client", return_value=mock):
         from src.tools.groups import get_group
+
         result = await get_group.fn(group_id=1)
         assert "Devs" in result
         print("✅ PASSED: get_group tool")
-

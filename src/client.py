@@ -2023,3 +2023,51 @@ class OpenProjectClient:
     async def unstar_query(self, query_id: int) -> dict:
         """Unstar a query."""
         return await self._request("PATCH", f"/queries/{query_id}/unstar")
+
+    async def get_version(self, version_id: int) -> dict:
+        """Get a single version by ID."""
+        return await self._request("GET", f"/versions/{version_id}")
+
+    async def update_version(self, version_id: int, data: dict) -> dict:
+        """Update a version. Auto-fetches lockVersion."""
+        current = await self.get_version(version_id)
+        lock_version = current.get("lockVersion", 0)
+        payload: dict = {"lockVersion": lock_version}
+        if "name" in data:
+            payload["name"] = data["name"]
+        if "description" in data:
+            payload["description"] = {"raw": data["description"]}
+        if "start_date" in data:
+            payload["startDate"] = data["start_date"]
+        if "due_date" in data:
+            payload["endDate"] = data["due_date"]
+        if "status" in data:
+            payload["status"] = data["status"]
+        return await self._request("PATCH", f"/versions/{version_id}", payload)
+
+    async def delete_version(self, version_id: int) -> bool:
+        """Delete a version by ID. Fails if work packages are assigned."""
+        await self._request("DELETE", f"/versions/{version_id}")
+        return True
+
+    async def list_custom_actions(self) -> dict:
+        """List all custom actions defined in the OpenProject instance."""
+        return await self._request("GET", "/custom_actions")
+
+    async def get_custom_action(self, action_id: int) -> dict:
+        """Get a single custom action by ID."""
+        return await self._request("GET", f"/custom_actions/{action_id}")
+
+    async def execute_custom_action(self, action_id: int, work_package_id: int) -> dict:
+        """Execute a custom action against a work package. Auto-fetches lockVersion."""
+        current = await self.get_work_package(work_package_id)
+        lock_version = current.get("lockVersion", 0)
+        payload = {
+            "_links": {
+                "workPackage": {"href": f"/api/v3/work_packages/{work_package_id}"}
+            },
+            "lockVersion": lock_version,
+        }
+        return await self._request(
+            "POST", f"/custom_actions/{action_id}/execute", payload
+        )

@@ -60,7 +60,7 @@ def test_disallowed_transition_raises_with_options():
         asyncio.run(c.update_work_package(1, {"status_id": 99}))
     msg = str(exc.value)
     assert "not allowed" in msg
-    assert "S7" in msg                       # lists the valid options
+    assert "S7" in msg  # lists the valid options
     # never reached the PATCH
     assert not any(call[0] == "PATCH" for call in calls)
 
@@ -77,9 +77,7 @@ def test_validate_flag_false_skips_check():
     # opt-out: no /form lookup, PATCH proceeds even to an "unlisted" status
     c, calls = _client(current_status_id=1, allowed_status_ids=[1])
     asyncio.run(
-        c.update_work_package(
-            1, {"status_id": 99, "validate_status_transition": False}
-        )
+        c.update_work_package(1, {"status_id": 99, "validate_status_transition": False})
     )
     assert not any(call[1].endswith("/form") for call in calls)
     assert calls[-1][0] == "PATCH"

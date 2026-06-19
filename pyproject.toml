@@ -58,10 +58,10 @@ extend-ignore = ["E203", "W503"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["."]
+testpaths = ["tests"]
 python_files = "test_*.py"
 python_functions = "test_*"
-addopts = "--ignore=test_live_integration.py --ignore=test_tools.py"
+addopts = "--ignore=tests/test_live_integration.py --ignore=tests/test_tools.py"
 
 [dependency-groups]
 dev = [
@@ -78,7 +78,7 @@ select = ["E", "F", "W", "I", "UP", "B", "RUF"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-"test_*.py" = ["E402", "F841", "B017"]
+"tests/test_*.py" = ["E402", "F841", "B017"]
 "*.legacy.py" = ["E722", "B904", "B007"]
 
 [tool.mypy]
