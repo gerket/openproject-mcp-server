@@ -1914,3 +1914,70 @@ class OpenProjectClient:
         """Delete a cost entry by ID."""
         await self._request("DELETE", f"/cost_entries/{cost_entry_id}")
         return True
+
+    async def get_watchers(self, work_package_id: int) -> dict:
+        """List users watching a work package."""
+        return await self._request("GET", f"/work_packages/{work_package_id}/watchers")
+
+    async def get_available_watchers(self, work_package_id: int) -> dict:
+        """List users eligible to watch a work package (project members)."""
+        return await self._request(
+            "GET", f"/work_packages/{work_package_id}/available_watchers"
+        )
+
+    async def add_watcher(self, work_package_id: int, user_id: int) -> bool:
+        """Add a user as a watcher on a work package."""
+        await self._request(
+            "POST",
+            f"/work_packages/{work_package_id}/watchers",
+            {"_links": {"user": {"href": f"/api/v3/users/{user_id}"}}},
+        )
+        return True
+
+    async def remove_watcher(self, work_package_id: int, user_id: int) -> bool:
+        """Remove a user from the watcher list of a work package."""
+        await self._request(
+            "DELETE", f"/work_packages/{work_package_id}/watchers/{user_id}"
+        )
+        return True
+
+    async def get_activity(self, activity_id: int) -> dict:
+        """Get a single work package activity (comment or change) by ID."""
+        return await self._request("GET", f"/activities/{activity_id}")
+
+    async def update_activity(
+        self, activity_id: int, comment: str, internal: bool = False
+    ) -> dict:
+        """Edit the comment on an activity. Requires 'edit journals' permission."""
+        return await self._request(
+            "PATCH",
+            f"/activities/{activity_id}",
+            {"comment": {"raw": comment}, "internal": internal},
+        )
+
+    async def get_available_assignees(self, work_package_id: int) -> dict:
+        """List users eligible to be assigned to a work package."""
+        return await self._request(
+            "GET", f"/work_packages/{work_package_id}/available_assignees"
+        )
+
+    async def get_reminders(self, work_package_id: int) -> dict:
+        """List reminders set on a work package for the current user."""
+        return await self._request("GET", f"/work_packages/{work_package_id}/reminders")
+
+    async def create_reminder(
+        self, work_package_id: int, remind_at: str, note: str | None = None
+    ) -> dict:
+        """Create a reminder on a work package.
+
+        Args:
+            work_package_id: Work package ID
+            remind_at: ISO 8601 datetime string (e.g. '2026-06-25T09:00:00Z')
+            note: Optional reminder note
+        """
+        payload: dict = {"remindAt": remind_at}
+        if note is not None:
+            payload["note"] = note
+        return await self._request(
+            "POST", f"/work_packages/{work_package_id}/reminders", payload
+        )
