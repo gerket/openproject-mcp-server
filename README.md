@@ -107,7 +107,7 @@ Every tool carries up to 5 tags. Setting `OPENPROJECT_MCP_INCLUDE_TAGS` / `OPENP
 | Category | `work-packages`, `projects`, `queries`, `users`, `time`, `content`, `notifications`, `finance`, `reports`, `system` | API domain |
 | Profile | `core`, `situational` | Frequency of use |
 | Composite | `core-read`, `core-write`, `situational-read`, `situational-write` | AND-style filter (access × profile) |
-| Catch-all | `all` | Every tool — opt-in to full set explicitly |
+| Name | `list_work_packages`, `create_query`, etc. | Exact function name — cherry-pick individual tools |
 
 ### Profile definitions
 
@@ -191,4 +191,4 @@ uv run pre-commit install  # hooks: ruff, mypy, trailing whitespace, YAML/TOML
 uv run pytest              # must pass before opening a PR
 ```
 
-Tag rule for new tools: every `@mcp.tool` must carry `{access, category, profile_if_applicable, composite_if_applicable, "all"}`. `test_full_sweep` in `test_tags.py` enforces this in CI.
+Tag rule for new tools: every `@mcp.tool` must carry `{access, category, tool_name}` at minimum, plus `{profile, composite}` if applicable. `test_full_sweep` in `test_tags.py` enforces that every tool has exactly one access tag and at least one non-access tag.
