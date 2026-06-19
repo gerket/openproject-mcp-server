@@ -89,3 +89,12 @@ except ImportError as e:
     logger.warning(f"⚠️  Some tool modules failed to import: {e}")
     raise
 
+
+def main() -> None:
+    """Stdio entrypoint for `openproject-mcp` CLI script."""
+    mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()
+

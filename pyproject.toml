@@ -1,16 +1,16 @@
 [project]
 name = "openproject-mcp-server"
-version = "1.0.0"
+version = "2.0.0"
 description = "A Model Context Protocol (MCP) server for OpenProject API v3 integration"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Tom Gerke", email = "tom@thomasgerke.com"}
 ]
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 keywords = ["mcp", "openproject", "api", "project-management"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -26,9 +26,12 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "certifi>=2022.0.0",
     "pydantic>=2.0.0",
-    "uvicorn>=0.24.0",  # Required for SSE transport
-    "starlette>=0.27.0",  # Required for SSE transport
+    "uvicorn>=0.24.0",
+    "starlette>=0.27.0",
 ]
+
+[project.scripts]
+openproject-mcp = "src.server:main"
 
 [project.optional-dependencies]
 dev = [
@@ -47,7 +50,7 @@ packages = ["src"]
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py310', 'py311', 'py312']
 
 [tool.flake8]
 max-line-length = 88
