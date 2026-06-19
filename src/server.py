@@ -23,7 +23,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize FastMCP server
-mcp = FastMCP(name="openproject-mcp")
+
+
+def _parse_tags(env_var: str) -> set[str] | None:
+    """Parse comma-separated tags from an env var. Returns None if unset."""
+    val = os.getenv(env_var, "").strip()
+    if not val:
+        return None
+    return {t.strip() for t in val.split(",") if t.strip()}
+
+
+mcp = FastMCP(
+    name="openproject-mcp",
+    include_tags=_parse_tags("OPENPROJECT_MCP_INCLUDE_TAGS"),
+    exclude_tags=_parse_tags("OPENPROJECT_MCP_EXCLUDE_TAGS"),
+)
 
 # Initialize OpenProject client as global variable
 _client = None
@@ -69,6 +83,7 @@ try:
         news,  # 5 tools
         notifications,  # 3 tools
         projects,  # 7 tools (list, get, create, add_subproject, get_subprojects, update, delete)
+        queries,  # 8 tools: list_queries, get_query, get_default_query, create_query, update_query, delete_query, star_query, unstar_query
         relations,  # 5 tools
         reminders,  # 2 tools: list_reminders, create_reminder
         time_entries,  # 5 tools
