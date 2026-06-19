@@ -32,7 +32,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
     "black>=22.0.0",
     "flake8>=4.0.0",
 ]
@@ -51,3 +52,10 @@ target-version = ['py38']
 [tool.flake8]
 max-line-length = 88
 extend-ignore = ["E203", "W503"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["."]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = "--ignore=test_live_integration.py --ignore=test_tools.py"
