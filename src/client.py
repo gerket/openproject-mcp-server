@@ -4,17 +4,17 @@ OpenProject API Client
 A comprehensive async client for OpenProject API v3 with proxy support.
 """
 
-import os
-import re
+import asyncio
+import base64
 import json
 import logging
-from typing import Dict, List, Optional, Any
-from datetime import datetime
-import asyncio
-import aiohttp
-from urllib.parse import quote
-import base64
+import os
+import re
 import ssl
+from typing import Any, ClassVar
+from urllib.parse import quote
+
+import aiohttp
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -29,11 +29,31 @@ __version__ = "2.0.0"
 _CUSTOM_FIELD_KEY = re.compile(r"^customField\d+$")
 
 
-def _merge_custom_fields(payload: Dict, custom_fields: Optional[Dict]) -> None:
+def _merge_custom_fields(
+    payload: dict,
+    custom_fields: dict | None,
+    reference: dict | None = None,
+) -> None:
     """Merge validated custom-field values into a work-package payload in place.
 
     Each key must match ``customField<N>``; anything else raises ValueError so
     the caller fails loudly rather than injecting an arbitrary top-level field.
+
+    OpenProject represents long-text/markdown custom fields (type "Formattable")
+    as ``{"raw": "...", "html": "..."}`` objects rather than bare strings.
+    Passing a bare string for a Formattable field is silently ignored by the API
+    (the write succeeds but the value is discarded).  This function auto-wraps
+    bare strings for Formattable fields by inspecting ``reference`` — the
+    current work-package dict or a form payload — where the existing field value
+    reveals its type.  Callers may also pass the value pre-wrapped as
+    ``{"raw": "..."}`` and it will be forwarded as-is.
+
+    Args:
+        payload: The request body being built (mutated in place).
+        custom_fields: Caller-supplied ``{customField<N>: value}`` dict.
+        reference: Optional dict (current WP or form payload) used to detect
+            Formattable fields.  When None, bare strings are forwarded as-is and
+            a warning is logged.
     """
     if not custom_fields:
         return
@@ -44,7 +64,83 @@ def _merge_custom_fields(payload: Dict, custom_fields: Optional[Dict]) -> None:
                 f"'customField<N>' (e.g. 'customField12'). Refusing to set an "
                 f"arbitrary top-level property."
             )
+        # Auto-wrap bare strings for Formattable (long-text/markdown) fields.
+        if isinstance(cf_value, str):
+            ref_value = (reference or {}).get(cf_name)
+            if isinstance(ref_value, dict) and "raw" in ref_value:
+                cf_value = {"raw": cf_value}
+            elif ref_value is None and reference is not None:
+                # Field exists in schema but has no current value — can't detect
+                # type from a null; log and forward as-is.
+                logger.debug(
+                    "custom field %s has null reference value; forwarding bare string. "
+                    "If this is a long-text field, pass {'raw': <value>} explicitly.",
+                    cf_name,
+                )
         payload[cf_name] = cf_value
+
+
+def _verify_custom_fields(
+    response: dict,
+    custom_fields: dict | None,
+    operation: str = "write",
+) -> None:
+    """Raise if a custom field value was silently dropped by OpenProject.
+
+    Compares the values we intended to write against what came back in the
+    response.  Only checks fields the caller actually supplied.
+
+    Args:
+        response: The API response dict (work package after create/update).
+        custom_fields: The ``{customField<N>: value}`` dict we tried to write.
+        operation: Label for the error message ("create" or "update").
+
+    Raises:
+        ValueError: If a supplied field is present in the response but empty,
+            indicating the write was silently dropped by OpenProject.
+            Fields absent from the response entirely emit a warning instead
+            of raising, since absence may reflect a schema/type mismatch
+            rather than a write failure.
+    """
+    if not custom_fields:
+        return
+    dropped = []
+    for cf_name, intended in custom_fields.items():
+        actual = response.get(cf_name)
+        if actual is None:
+            # Field not present in response at all — possibly not enabled for
+            # this type/project, or a schema mismatch.  Warn but don't fail
+            # hard since it may be intentional (field disabled after creation).
+            logger.warning(
+                "custom field %s not present in %s response; "
+                "it may not be enabled for this work-package type/project.",
+                cf_name,
+                operation,
+            )
+            continue
+        # Determine the intended non-empty value for comparison.
+        if isinstance(intended, dict):
+            intended_raw = intended.get("raw", "")
+        else:
+            intended_raw = str(intended) if intended is not None else ""
+        if not intended_raw:
+            continue  # caller wrote empty — nothing to verify
+        # Determine what the response reports.
+        if isinstance(actual, dict):
+            actual_raw = actual.get("raw", "")
+        else:
+            actual_raw = str(actual) if actual is not None else ""
+        if not actual_raw:
+            dropped.append(
+                f"{cf_name}: intended {intended_raw!r} but response shows empty value "
+                f"(OpenProject silently dropped the write — check that the field "
+                f"format matches the value shape and that the field is enabled for "
+                f"this work-package type and project)."
+            )
+    if dropped:
+        raise ValueError(
+            f"custom field {operation} verification failed — " + "; ".join(dropped)
+        )
 
 
 class OpenProjectClient:
@@ -52,16 +148,16 @@ class OpenProjectClient:
 
     # Total attempts for a single request before giving up (includes the first
     # try). Retries apply only to transient failures (429 / 5xx / network).
-    _MAX_RETRIES = 4
+    _MAX_RETRIES: ClassVar[int] = 4
     # Base for exponential backoff (seconds): 1, 2, 4, ... per attempt.
-    _BACKOFF_BASE = 1.0
+    _BACKOFF_BASE: ClassVar[float] = 1.0
 
     def __init__(
         self,
         base_url: str,
         api_key: str,
-        proxy: Optional[str] = None,
-        ca_bundle: Optional[str] = None,
+        proxy: str | None = None,
+        ca_bundle: str | None = None,
     ):
         """
         Initialize the OpenProject client.
@@ -107,7 +203,7 @@ class OpenProjectClient:
         return base64.b64encode(credentials.encode()).decode()
 
     @classmethod
-    def _retry_delay(cls, attempt: int, headers: Optional[Any]) -> float:
+    def _retry_delay(cls, attempt: int, headers: Any | None) -> float:
         """Compute the backoff delay for a retry attempt (0-indexed).
 
         Honors a ``Retry-After`` header (seconds form) when present — the server's
@@ -121,11 +217,12 @@ class OpenProjectClient:
                     return float(retry_after)
                 except (TypeError, ValueError):
                     pass  # Non-numeric (HTTP-date form) — fall back to backoff.
-        return cls._BACKOFF_BASE * (2**attempt)
+        backoff: float = cls._BACKOFF_BASE * (2**attempt)
+        return backoff
 
     async def _request(
-        self, method: str, endpoint: str, data: Optional[Dict] = None
-    ) -> Dict:
+        self, method: str, endpoint: str, data: dict | None = None
+    ) -> dict:
         """
         Execute an API request.
 
@@ -155,10 +252,10 @@ class OpenProjectClient:
             # Bounded retry on transient failures: 429 (rate limit, honoring
             # Retry-After) and 5xx (server). 4xx other than 429 are caller
             # errors and are NOT retried. Exponential backoff between attempts.
-            last_error: Optional[str] = None
+            last_error: str | None = None
             for attempt in range(self._MAX_RETRIES):
                 try:
-                    request_params = {
+                    request_params: dict[str, Any] = {
                         "method": method,
                         "url": url,
                         "headers": self.headers,
@@ -187,7 +284,7 @@ class OpenProjectClient:
                             raise Exception(last_error)
 
                         try:
-                            response_json = (
+                            response_json: dict[str, Any] = (
                                 json.loads(response_text) if response_text else {}
                             )
                         except json.JSONDecodeError:
@@ -212,8 +309,12 @@ class OpenProjectClient:
                     # ClientError subclass), so it must be caught explicitly —
                     # a request timeout is exactly the transient failure retry is
                     # meant to cover. (3.11+: asyncio.TimeoutError == TimeoutError.)
-                    err_label = "Timeout" if isinstance(e, asyncio.TimeoutError) else "Network error"
-                    last_error = f"{err_label} accessing {url}: {str(e)}"
+                    err_label = (
+                        "Timeout"
+                        if isinstance(e, asyncio.TimeoutError)
+                        else "Network error"
+                    )
+                    last_error = f"{err_label} accessing {url}: {e!s}"
                     if attempt < self._MAX_RETRIES - 1:
                         delay = self._retry_delay(attempt, None)
                         logger.warning(
@@ -222,8 +323,8 @@ class OpenProjectClient:
                         )
                         await asyncio.sleep(delay)
                         continue
-                    logger.error(f"{err_label}: {str(e)}")
-                    raise Exception(last_error)
+                    logger.error(f"{err_label}: {e!s}")
+                    raise Exception(last_error) from None
 
             # Loop exhausted without returning (all attempts were retryable failures).
             raise Exception(last_error or f"Request to {url} failed after retries")
@@ -247,12 +348,12 @@ class OpenProjectClient:
 
         return base_msg
 
-    async def test_connection(self) -> Dict:
+    async def test_connection(self) -> dict:
         """Test the API connection and authentication"""
         logger.info("Testing API connection...")
         return await self._request("GET", "")
 
-    async def get_projects(self, filters: Optional[str] = None) -> Dict:
+    async def get_projects(self, filters: str | None = None) -> dict:
         """
         Retrieve all projects.
 
@@ -279,11 +380,11 @@ class OpenProjectClient:
 
     async def get_work_packages(
         self,
-        project_id: Optional[int] = None,
-        filters: Optional[str] = None,
-        offset: Optional[int] = None,
-        page_size: Optional[int] = None,
-    ) -> Dict:
+        project_id: int | None = None,
+        filters: str | None = None,
+        offset: int | None = None,
+        page_size: int | None = None,
+    ) -> dict:
         """
         Retrieve work packages.
 
@@ -324,7 +425,7 @@ class OpenProjectClient:
 
         return result
 
-    async def create_work_package(self, data: Dict) -> Dict:
+    async def create_work_package(self, data: dict) -> dict:
         """
         Create a new work package.
 
@@ -335,7 +436,7 @@ class OpenProjectClient:
             Dict: Created work package data
         """
         # Prepare initial payload for form
-        form_payload = {"_links": {}}
+        form_payload: dict[str, Any] = {"_links": {}}
 
         # Set required links
         if "project" in data:
@@ -387,13 +488,16 @@ class OpenProjectClient:
             payload["date"] = data["date"]
 
         # Custom fields: merge validated customField<N> keys as top-level payload
-        # entries (OpenProject represents custom values as flat top-level props).
-        _merge_custom_fields(payload, data.get("custom_fields"))
+        # entries.  Pass the form payload as reference so Formattable fields are
+        # auto-wrapped correctly.
+        _merge_custom_fields(payload, data.get("custom_fields"), reference=payload)
 
         # Create work package
-        return await self._request("POST", "/work_packages", payload)
+        result = await self._request("POST", "/work_packages", payload)
+        _verify_custom_fields(result, data.get("custom_fields"), "create")
+        return result
 
-    async def get_types(self, project_id: Optional[int] = None) -> Dict:
+    async def get_types(self, project_id: int | None = None) -> dict:
         """
         Retrieve available work package types.
 
@@ -418,7 +522,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_users(self, filters: Optional[str] = None) -> Dict:
+    async def get_users(self, filters: str | None = None) -> dict:
         """
         Retrieve users.
 
@@ -443,7 +547,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_user(self, user_id: int) -> Dict:
+    async def get_user(self, user_id: int) -> dict:
         """
         Retrieve a specific user by ID.
 
@@ -456,8 +560,8 @@ class OpenProjectClient:
         return await self._request("GET", f"/users/{user_id}")
 
     async def get_memberships(
-        self, project_id: Optional[int] = None, user_id: Optional[int] = None
-    ) -> Dict:
+        self, project_id: int | None = None, user_id: int | None = None
+    ) -> dict:
         """
         Retrieve memberships.
 
@@ -491,7 +595,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_statuses(self) -> Dict:
+    async def get_statuses(self) -> dict:
         """
         Retrieve available work package statuses.
 
@@ -508,7 +612,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_priorities(self) -> Dict:
+    async def get_priorities(self) -> dict:
         """
         Retrieve available work package priorities.
 
@@ -525,7 +629,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_work_package(self, work_package_id: int) -> Dict:
+    async def get_work_package(self, work_package_id: int) -> dict:
         """
         Retrieve a specific work package by ID.
 
@@ -538,8 +642,8 @@ class OpenProjectClient:
         return await self._request("GET", f"/work_packages/{work_package_id}")
 
     async def get_allowed_status_transitions(
-        self, work_package_id: int, lock_version: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        self, work_package_id: int, lock_version: int | None = None
+    ) -> list[dict[str, Any]]:
         """Return the statuses this work package may legally transition to NOW.
 
         OpenProject enforces a configurable workflow: from a given status, only
@@ -562,11 +666,11 @@ class OpenProjectClient:
             lock_version = current.get("lockVersion", 0)
 
         form = await self._request(
-            "POST", f"/work_packages/{work_package_id}/form", {"lockVersion": lock_version}
+            "POST",
+            f"/work_packages/{work_package_id}/form",
+            {"lockVersion": lock_version},
         )
-        status_schema = (
-            form.get("_embedded", {}).get("schema", {}).get("status", {})
-        )
+        status_schema = form.get("_embedded", {}).get("schema", {}).get("status", {})
         allowed = status_schema.get("_embedded", {}).get("allowedValues", [])
         return [
             {"id": v.get("id"), "name": v.get("name")}
@@ -574,7 +678,7 @@ class OpenProjectClient:
             if v.get("id") is not None
         ]
 
-    async def update_work_package(self, work_package_id: int, data: Dict) -> Dict:
+    async def update_work_package(self, work_package_id: int, data: dict) -> dict:
         """
         Update an existing work package.
 
@@ -613,9 +717,7 @@ class OpenProjectClient:
                 )
                 allowed_ids = {s["id"] for s in allowed}
                 if target_status_id not in allowed_ids:
-                    options = ", ".join(
-                        f"{s['name']} (id {s['id']})" for s in allowed
-                    )
+                    options = ", ".join(f"{s['name']} (id {s['id']})" for s in allowed)
                     raise Exception(
                         f"Status transition to id {target_status_id} is not allowed "
                         f"from the current status by the workflow. "
@@ -681,11 +783,14 @@ class OpenProjectClient:
             payload["date"] = data["date"]
 
         # Custom fields: merge validated customField<N> keys as top-level entries.
-        _merge_custom_fields(payload, data.get("custom_fields"))
+        # Pass current_wp as reference so Formattable fields are auto-wrapped.
+        _merge_custom_fields(payload, data.get("custom_fields"), reference=current_wp)
 
-        return await self._request(
+        result = await self._request(
             "PATCH", f"/work_packages/{work_package_id}", payload
         )
+        _verify_custom_fields(result, data.get("custom_fields"), "update")
+        return result
 
     async def delete_work_package(self, work_package_id: int) -> bool:
         """
@@ -702,7 +807,7 @@ class OpenProjectClient:
 
     async def add_work_package_comment(
         self, work_package_id: int, comment: str, internal: bool = False
-    ) -> Dict:
+    ) -> dict:
         """
         Add a comment/activity to a work package.
 
@@ -714,12 +819,7 @@ class OpenProjectClient:
         Returns:
             Dict: API response containing the created activity
         """
-        payload = {
-            "comment": {
-                "format": "markdown",
-                "raw": comment
-            }
-        }
+        payload: dict[str, Any] = {"comment": {"format": "markdown", "raw": comment}}
 
         if internal:
             payload["internal"] = internal
@@ -728,7 +828,7 @@ class OpenProjectClient:
             "POST", f"/work_packages/{work_package_id}/activities", payload
         )
 
-    async def get_work_package_activities(self, work_package_id: int) -> Dict:
+    async def get_work_package_activities(self, work_package_id: int) -> dict:
         """
         Retrieve activities (comments, changes) for a work package.
 
@@ -750,7 +850,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_time_entries(self, filters: Optional[str] = None) -> Dict:
+    async def get_time_entries(self, filters: str | None = None) -> dict:
         """
         Retrieve time entries.
 
@@ -775,7 +875,7 @@ class OpenProjectClient:
 
         return result
 
-    async def create_time_entry(self, data: Dict) -> Dict:
+    async def create_time_entry(self, data: dict) -> dict:
         """
         Create a new time entry.
 
@@ -786,7 +886,7 @@ class OpenProjectClient:
             Dict: Created time entry data
         """
         # Prepare payload
-        payload = {}
+        payload: dict[str, Any] = {}
 
         # Set required fields
         if "work_package_id" in data:
@@ -810,7 +910,7 @@ class OpenProjectClient:
 
         return await self._request("POST", "/time_entries", payload)
 
-    async def update_time_entry(self, time_entry_id: int, data: Dict) -> Dict:
+    async def update_time_entry(self, time_entry_id: int, data: dict) -> dict:
         """
         Update an existing time entry.
 
@@ -856,7 +956,7 @@ class OpenProjectClient:
         await self._request("DELETE", f"/time_entries/{time_entry_id}")
         return True
 
-    async def get_time_entry_activities(self) -> Dict:
+    async def get_time_entry_activities(self) -> dict:
         """
         Retrieve available time entry activities.
 
@@ -873,7 +973,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_versions(self, project_id: Optional[int] = None) -> Dict:
+    async def get_versions(self, project_id: int | None = None) -> dict:
         """
         Retrieve project versions.
 
@@ -898,7 +998,7 @@ class OpenProjectClient:
 
         return result
 
-    async def create_version(self, project_id: int, data: Dict) -> Dict:
+    async def create_version(self, project_id: int, data: dict) -> dict:
         """
         Create a new project version.
 
@@ -928,7 +1028,7 @@ class OpenProjectClient:
 
         return await self._request("POST", "/versions", payload)
 
-    async def check_permissions(self) -> Dict:
+    async def check_permissions(self) -> dict:
         """
         Check user permissions and capabilities.
 
@@ -942,7 +1042,7 @@ class OpenProjectClient:
             logger.error(f"Failed to check permissions: {e}")
             return {}
 
-    async def create_project(self, data: Dict) -> Dict:
+    async def create_project(self, data: dict) -> dict:
         """
         Create a new project.
 
@@ -975,7 +1075,7 @@ class OpenProjectClient:
 
         return await self._request("POST", "/projects", payload)
 
-    async def update_project(self, project_id: int, data: Dict) -> Dict:
+    async def update_project(self, project_id: int, data: dict) -> dict:
         """
         Update an existing project.
 
@@ -990,7 +1090,7 @@ class OpenProjectClient:
         try:
             current_project = await self.get_project(project_id)
             lock_version = current_project.get("lockVersion", 0)
-        except:
+        except Exception:
             lock_version = 0
 
         # Prepare payload with lock version
@@ -1029,7 +1129,7 @@ class OpenProjectClient:
         await self._request("DELETE", f"/projects/{project_id}")
         return True
 
-    async def get_project(self, project_id: int) -> Dict:
+    async def get_project(self, project_id: int) -> dict:
         """
         Retrieve a specific project by ID.
 
@@ -1041,7 +1141,7 @@ class OpenProjectClient:
         """
         return await self._request("GET", f"/projects/{project_id}")
 
-    async def get_subprojects(self, parent_id: int) -> Dict:
+    async def get_subprojects(self, parent_id: int) -> dict:
         """
         Retrieve direct subprojects of a parent project.
 
@@ -1052,12 +1152,14 @@ class OpenProjectClient:
             Dict: API response containing direct child projects
         """
         # Use parent_id filter for direct children only
-        filters = json.dumps([{
-            "parent_id": {"operator": "=", "values": [str(parent_id)]}
-        }])
+        filters = json.dumps(
+            [{"parent_id": {"operator": "=", "values": [str(parent_id)]}}]
+        )
         return await self.get_projects(filters)
 
-    async def validate_parent_project(self, parent_id: int, child_id: Optional[int] = None) -> bool:
+    async def validate_parent_project(
+        self, parent_id: int, child_id: int | None = None
+    ) -> bool:
         """
         Validate if a project can be a parent.
         Uses the available_parent_projects endpoint.
@@ -1078,7 +1180,7 @@ class OpenProjectClient:
 
         return any(p.get("id") == parent_id for p in candidates)
 
-    async def get_roles(self) -> Dict:
+    async def get_roles(self) -> dict:
         """
         Retrieve available roles.
 
@@ -1095,7 +1197,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_role(self, role_id: int) -> Dict:
+    async def get_role(self, role_id: int) -> dict:
         """
         Retrieve a specific role by ID.
 
@@ -1107,7 +1209,7 @@ class OpenProjectClient:
         """
         return await self._request("GET", f"/roles/{role_id}")
 
-    async def create_membership(self, data: Dict) -> Dict:
+    async def create_membership(self, data: dict) -> dict:
         """
         Create a new membership.
 
@@ -1118,7 +1220,7 @@ class OpenProjectClient:
             Dict: Created membership data
         """
         # Prepare payload
-        payload = {"_links": {}}
+        payload: dict[str, Any] = {"_links": {}}
 
         # Set required fields
         if "project_id" in data:
@@ -1144,7 +1246,7 @@ class OpenProjectClient:
 
         return await self._request("POST", "/memberships", payload)
 
-    async def update_membership(self, membership_id: int, data: Dict) -> Dict:
+    async def update_membership(self, membership_id: int, data: dict) -> dict:
         """
         Update an existing membership.
 
@@ -1159,7 +1261,7 @@ class OpenProjectClient:
         try:
             current_membership = await self.get_membership(membership_id)
             lock_version = current_membership.get("lockVersion", 0)
-        except:
+        except Exception:
             lock_version = 0
 
         # Prepare payload with lock version
@@ -1194,7 +1296,7 @@ class OpenProjectClient:
         await self._request("DELETE", f"/memberships/{membership_id}")
         return True
 
-    async def get_membership(self, membership_id: int) -> Dict:
+    async def get_membership(self, membership_id: int) -> dict:
         """
         Retrieve a specific membership by ID.
 
@@ -1208,7 +1310,7 @@ class OpenProjectClient:
 
     async def set_work_package_parent(
         self, work_package_id: int, parent_id: int
-    ) -> Dict:
+    ) -> dict:
         """
         Set a parent for a work package (create parent-child relationship).
 
@@ -1223,7 +1325,7 @@ class OpenProjectClient:
         try:
             current_wp = await self.get_work_package(work_package_id)
             lock_version = current_wp.get("lockVersion", 0)
-        except:
+        except Exception:
             lock_version = 0
 
         # Prepare payload with parent link
@@ -1236,7 +1338,7 @@ class OpenProjectClient:
             "PATCH", f"/work_packages/{work_package_id}", payload
         )
 
-    async def remove_work_package_parent(self, work_package_id: int) -> Dict:
+    async def remove_work_package_parent(self, work_package_id: int) -> dict:
         """
         Remove parent relationship from a work package (make it top-level).
 
@@ -1250,7 +1352,7 @@ class OpenProjectClient:
         try:
             current_wp = await self.get_work_package(work_package_id)
             lock_version = current_wp.get("lockVersion", 0)
-        except:
+        except Exception:
             lock_version = 0
 
         # Prepare payload with null parent link
@@ -1264,9 +1366,9 @@ class OpenProjectClient:
         self,
         parent_id: int,
         include_descendants: bool = False,
-        offset: Optional[int] = None,
-        page_size: Optional[int] = None,
-    ) -> Dict:
+        offset: int | None = None,
+        page_size: int | None = None,
+    ) -> dict:
         """
         List all child work packages of a parent.
 
@@ -1297,7 +1399,7 @@ class OpenProjectClient:
         if page_size is not None:
             query_params.append(f"pageSize={page_size}")
 
-        endpoint = f"/work_packages?" + "&".join(query_params)
+        endpoint = "/work_packages?" + "&".join(query_params)
         result = await self._request("GET", endpoint)
 
         # Ensure proper response structure
@@ -1313,15 +1415,15 @@ class OpenProjectClient:
         self,
         parent_id: int,
         include_descendants: bool = False,
-        offset: Optional[int] = None,
-        page_size: Optional[int] = None,
-    ) -> Dict:
+        offset: int | None = None,
+        page_size: int | None = None,
+    ) -> dict:
         """Alias for list_work_package_children."""
         return await self.list_work_package_children(
             parent_id, include_descendants, offset, page_size
         )
 
-    async def create_work_package_relation(self, data: Dict) -> Dict:
+    async def create_work_package_relation(self, data: dict) -> dict:
         """
         Create a relationship between work packages.
 
@@ -1336,13 +1438,11 @@ class OpenProjectClient:
             raise ValueError("from_id is required")
 
         # Prepare payload according to OpenProject API v3 spec
-        payload = {"_links": {}}
+        payload: dict[str, Any] = {"_links": {}}
 
         # Set required fields
         if "to_id" in data:
-            payload["_links"]["to"] = {
-                "href": f"/api/v3/work_packages/{data['to_id']}"
-            }
+            payload["_links"]["to"] = {"href": f"/api/v3/work_packages/{data['to_id']}"}
         if "type" in data:
             payload["type"] = data["type"]
         if "lag" in data:
@@ -1355,7 +1455,7 @@ class OpenProjectClient:
             "POST", f"/work_packages/{from_id}/relations", payload
         )
 
-    async def list_work_package_relations(self, filters: Optional[str] = None) -> Dict:
+    async def list_work_package_relations(self, filters: str | None = None) -> dict:
         """
         List work package relations.
 
@@ -1380,7 +1480,7 @@ class OpenProjectClient:
 
         return result
 
-    async def update_work_package_relation(self, relation_id: int, data: Dict) -> Dict:
+    async def update_work_package_relation(self, relation_id: int, data: dict) -> dict:
         """
         Update an existing work package relation.
 
@@ -1395,7 +1495,7 @@ class OpenProjectClient:
         try:
             current_relation = await self.get_work_package_relation(relation_id)
             lock_version = current_relation.get("lockVersion", 0)
-        except:
+        except Exception:
             lock_version = 0
 
         # Prepare payload with lock version
@@ -1424,7 +1524,7 @@ class OpenProjectClient:
         await self._request("DELETE", f"/relations/{relation_id}")
         return True
 
-    async def get_work_package_relation(self, relation_id: int) -> Dict:
+    async def get_work_package_relation(self, relation_id: int) -> dict:
         """
         Retrieve a specific work package relation by ID.
 
@@ -1442,11 +1542,11 @@ class OpenProjectClient:
 
     async def get_news(
         self,
-        filters: Optional[str] = None,
-        sort_by: Optional[str] = None,
-        offset: Optional[int] = None,
-        page_size: Optional[int] = None,
-    ) -> Dict:
+        filters: str | None = None,
+        sort_by: str | None = None,
+        offset: int | None = None,
+        page_size: int | None = None,
+    ) -> dict:
         """
         Retrieve news entries with filtering and pagination.
 
@@ -1487,7 +1587,7 @@ class OpenProjectClient:
 
         return result
 
-    async def get_news_item(self, news_id: int) -> Dict:
+    async def get_news_item(self, news_id: int) -> dict:
         """
         Retrieve a specific news entry by ID.
 
@@ -1499,7 +1599,7 @@ class OpenProjectClient:
         """
         return await self._request("GET", f"/news/{news_id}")
 
-    async def create_news(self, data: Dict) -> Dict:
+    async def create_news(self, data: dict) -> dict:
         """
         Create a new news entry.
 
@@ -1532,7 +1632,7 @@ class OpenProjectClient:
 
         return await self._request("POST", "/news", payload)
 
-    async def update_news(self, news_id: int, data: Dict) -> Dict:
+    async def update_news(self, news_id: int, data: dict) -> dict:
         """
         Update an existing news entry.
 
@@ -1575,3 +1675,242 @@ class OpenProjectClient:
         await self._request("DELETE", f"/news/{news_id}")
         return True
 
+    async def get_wiki_page_by_id(self, wiki_page_id: int) -> dict:
+        """Get a wiki page by integer ID.
+
+        The OpenProject v3 API wiki support is currently a stub: only this
+        single GET endpoint is available.  List, create, update, and delete
+        operations are not exposed via the API.
+        """
+        return await self._request("GET", f"/wiki_pages/{wiki_page_id}")
+
+    async def get_groups(self) -> dict:
+        """List all groups in the OpenProject instance."""
+        return await self._request("GET", "/groups")
+
+    async def get_group(self, group_id: int) -> dict:
+        """Get a specific group by ID."""
+        return await self._request("GET", f"/groups/{group_id}")
+
+    async def get_notifications(
+        self,
+        filters: str | None = None,
+        page_size: int = 20,
+    ) -> dict:
+        """List notifications for the current API user."""
+        query_params = [f"pageSize={page_size}"]
+        if filters:
+            query_params.append(f"filters={quote(filters)}")
+        endpoint = "/notifications?" + "&".join(query_params)
+        return await self._request("GET", endpoint)
+
+    async def mark_notification_read(self, notification_id: int) -> bool:
+        """Mark a single notification as read."""
+        await self._request("POST", f"/notifications/{notification_id}/read_ian")
+        return True
+
+    async def mark_all_notifications_read(self) -> bool:
+        """Mark all notifications as read for the current user."""
+        await self._request("POST", "/notifications/read_ian")
+        return True
+
+    async def _upload_request(
+        self,
+        endpoint: str,
+        file_bytes: bytes,
+        filename: str,
+        content_type: str,
+    ) -> dict:
+        """Upload a file via multipart form-data POST.
+
+        OpenProject v3 attachment upload requires a two-part multipart body:
+          - 'metadata': JSON part with {"fileName": "...", "contentType": "..."}
+          - 'file': binary part with the actual file bytes
+
+        Replicates the retry/backoff logic from _request.
+        """
+        import aiohttp as _aiohttp
+
+        url = f"{self.base_url}/api/v3{endpoint}"
+        connector = _aiohttp.TCPConnector(ssl=self.ssl_context)
+        timeout = _aiohttp.ClientTimeout(total=60)
+
+        last_error: str | None = None
+        async with _aiohttp.ClientSession(
+            connector=connector, timeout=timeout
+        ) as session:
+            for attempt in range(self._MAX_RETRIES):
+                try:
+                    form = _aiohttp.FormData()
+                    form.add_field(
+                        "metadata",
+                        json.dumps({"fileName": filename, "contentType": content_type}),
+                        content_type="application/json",
+                    )
+                    form.add_field(
+                        "file",
+                        file_bytes,
+                        filename=filename,
+                        content_type=content_type,
+                    )
+                    # Strip Content-Type from headers so aiohttp sets multipart boundary
+                    upload_headers = {
+                        k: v
+                        for k, v in self.headers.items()
+                        if k.lower() != "content-type"
+                    }
+                    request_params: dict = {
+                        "method": "POST",
+                        "url": url,
+                        "headers": upload_headers,
+                        "data": form,
+                    }
+                    if self.proxy:
+                        request_params["proxy"] = self.proxy
+
+                    async with session.request(**request_params) as response:
+                        response_text = await response.text()
+                        if response.status == 429 or response.status >= 500:
+                            last_error = self._format_error_message(
+                                response.status, response_text
+                            )
+                            if attempt < self._MAX_RETRIES - 1:
+                                delay = self._retry_delay(attempt, response.headers)
+                                await asyncio.sleep(delay)
+                                continue
+                            raise Exception(last_error)
+                        try:
+                            response_json: dict[str, Any] = (
+                                json.loads(response_text) if response_text else {}
+                            )
+                        except json.JSONDecodeError:
+                            response_json = {}
+                        if response.status >= 400:
+                            raise Exception(
+                                self._format_error_message(
+                                    response.status, response_text
+                                )
+                            )
+                        return response_json
+                except (_aiohttp.ClientError, asyncio.TimeoutError) as e:
+                    err_label = (
+                        "Timeout"
+                        if isinstance(e, asyncio.TimeoutError)
+                        else "Network error"
+                    )
+                    last_error = f"{err_label} during upload to {url}: {e!s}"
+                    if attempt < self._MAX_RETRIES - 1:
+                        delay = self._retry_delay(attempt, None)
+                        await asyncio.sleep(delay)
+                        continue
+                    raise Exception(last_error) from None
+        raise Exception(last_error or f"Upload to {url} failed after retries")
+
+    _ATTACHMENT_CONTAINERS: ClassVar[frozenset[str]] = frozenset(
+        {"work_packages", "wiki_pages", "projects"}
+    )
+
+    async def upload_attachment(
+        self,
+        container_type: str,
+        container_id: int,
+        file_bytes: bytes,
+        filename: str,
+        content_type: str = "application/octet-stream",
+    ) -> dict:
+        """Upload a file attachment to a work package, wiki page, or project.
+
+        Args:
+            container_type: One of 'work_packages', 'wiki_pages', 'projects'
+            container_id: ID of the container resource
+            file_bytes: Raw file bytes
+            filename: Original filename (used for Content-Disposition)
+            content_type: MIME type (default: application/octet-stream)
+        """
+        if container_type not in self._ATTACHMENT_CONTAINERS:
+            raise ValueError(
+                f"container_type must be one of {self._ATTACHMENT_CONTAINERS}, got '{container_type}'"
+            )
+        endpoint = f"/{container_type}/{container_id}/attachments"
+        return await self._upload_request(endpoint, file_bytes, filename, content_type)
+
+    async def get_attachment(self, attachment_id: int) -> dict:
+        """Get metadata for an attachment by ID."""
+        return await self._request("GET", f"/attachments/{attachment_id}")
+
+    async def delete_attachment(self, attachment_id: int) -> bool:
+        """Delete an attachment by ID."""
+        await self._request("DELETE", f"/attachments/{attachment_id}")
+        return True
+
+    async def list_attachments(self, container_type: str, container_id: int) -> dict:
+        """List attachments for a work package, wiki page, or project."""
+        return await self._request(
+            "GET", f"/{container_type}/{container_id}/attachments"
+        )
+
+    async def get_cost_types(self) -> dict:
+        """List all defined cost types (admin-level reference data)."""
+        return await self._request("GET", "/cost_types")
+
+    async def get_cost_entries(
+        self,
+        work_package_id: int | None = None,
+        project_id: int | None = None,
+    ) -> dict:
+        """List cost entries, optionally filtered by work package or project."""
+        filters_list = []
+        if work_package_id is not None:
+            filters_list.append(
+                {"work_package_id": {"operator": "=", "values": [str(work_package_id)]}}
+            )
+        if project_id is not None:
+            filters_list.append(
+                {"project_id": {"operator": "=", "values": [str(project_id)]}}
+            )
+        if filters_list:
+            encoded = quote(json.dumps(filters_list))
+            return await self._request("GET", f"/cost_entries?filters={encoded}")
+        return await self._request("GET", "/cost_entries")
+
+    async def create_cost_entry(self, data: dict) -> dict:
+        """Create a cost entry.
+
+        Args:
+            data: Dict with keys:
+                project_id (int), work_package_id (int), cost_type_id (int),
+                units (float), spent_on (str YYYY-MM-DD),
+                optionally comment (str)
+        """
+        payload: dict = {
+            "_links": {
+                "project": {"href": f"/api/v3/projects/{data['project_id']}"},
+                "workPackage": {
+                    "href": f"/api/v3/work_packages/{data['work_package_id']}"
+                },
+                "costType": {"href": f"/api/v3/cost_types/{data['cost_type_id']}"},
+            },
+            "units": str(data["units"]),
+            "spentOn": data["spent_on"],
+        }
+        if data.get("comment"):
+            payload["comment"] = {"raw": data["comment"]}
+        return await self._request("POST", "/cost_entries", payload)
+
+    async def update_cost_entry(self, cost_entry_id: int, data: dict) -> dict:
+        """Update a cost entry (units, spent_on, comment)."""
+        current = await self._request("GET", f"/cost_entries/{cost_entry_id}")
+        lock_version = current.get("lockVersion", 0)
+        payload: dict = {"lockVersion": lock_version}
+        if "units" in data:
+            payload["units"] = str(data["units"])
+        if "spent_on" in data:
+            payload["spentOn"] = data["spent_on"]
+        if "comment" in data:
+            payload["comment"] = {"raw": data["comment"]}
+        return await self._request("PATCH", f"/cost_entries/{cost_entry_id}", payload)
+
+    async def delete_cost_entry(self, cost_entry_id: int) -> bool:
+        """Delete a cost entry by ID."""
+        await self._request("DELETE", f"/cost_entries/{cost_entry_id}")
+        return True
