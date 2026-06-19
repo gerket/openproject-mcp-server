@@ -87,54 +87,13 @@ async def run_tests(base_url: str, api_key: str):
     # ════════════════════════════════════════════
     # WIKI
     # ════════════════════════════════════════════
+    # The OpenProject v3 wiki API is a stub: only GET /wiki_pages/{id} exists.
+    # List/create/update/delete by slug are not implemented in the API.
+    # To test get_wiki_page_by_id we need a known integer ID — skip if none available.
     print("─── Wiki ───────────────────────────────────")
-
-    # list wiki pages
-    try:
-        resp = await client.get_wiki_pages(project_id)
-        pages = resp.get("_embedded", {}).get("elements", [])
-        record("get_wiki_pages", True, f"{len(pages)} pages found")
-    except Exception as e:
-        record("get_wiki_pages", False, str(e))
-        pages = []
-
-    # upsert a test page
-    test_slug = "claude-integration-test"
-    try:
-        resp = await client.upsert_wiki_page(
-            project_id, test_slug,
-            {"title": "Claude Integration Test", "content": "# Test\n\nAuto-created by live integration test."}
-        )
-        record("upsert_wiki_page (create)", True, f"slug={resp.get('slug', test_slug)}")
-        created_slug = resp.get("slug", test_slug)
-    except Exception as e:
-        record("upsert_wiki_page (create)", False, str(e))
-        created_slug = test_slug
-
-    # get the page back
-    try:
-        resp = await client.get_wiki_page(project_id, created_slug)
-        content_raw = resp.get("content", {}).get("raw", "") if isinstance(resp.get("content"), dict) else ""
-        record("get_wiki_page", "# Test" in content_raw, f"title={resp.get('title', '?')}")
-    except Exception as e:
-        record("get_wiki_page", False, str(e))
-
-    # update it
-    try:
-        resp = await client.upsert_wiki_page(
-            project_id, created_slug,
-            {"title": "Claude Integration Test (updated)", "content": "# Test\n\nUpdated content."}
-        )
-        record("upsert_wiki_page (update)", True, f"title={resp.get('title', '?')}")
-    except Exception as e:
-        record("upsert_wiki_page (update)", False, str(e))
-
-    # delete it
-    try:
-        await client.delete_wiki_page(project_id, created_slug)
-        record("delete_wiki_page", True)
-    except Exception as e:
-        record("delete_wiki_page", False, str(e))
+    print("  Note: wiki API is a stub (GET by integer ID only). Skipping live test.")
+    print("  To test manually: find a wiki page ID in OpenProject UI and call")
+    print("  client.get_wiki_page_by_id(<id>)")
 
     # ════════════════════════════════════════════
     # GROUPS

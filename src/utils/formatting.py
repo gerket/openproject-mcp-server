@@ -421,22 +421,6 @@ def format_news_detail(news_item: Dict) -> str:
     return text
 
 
-def format_wiki_page_list(pages: List[Dict]) -> str:
-    """Format a list of wiki pages."""
-    if not pages:
-        return "No wiki pages found."
-    text = f"✅ **Found {len(pages)} wiki page(s):**\n\n"
-    for page in pages:
-        slug = page.get("slug", page.get("id", "N/A"))
-        title = page.get("title", "Untitled")
-        updated = page.get("updatedAt", "")
-        text += f"- **{title}** (`{slug}`)"
-        if updated:
-            text += f"  — updated {updated[:10]}"
-        text += "\n"
-    return text
-
-
 def format_wiki_page_detail(page: Dict) -> str:
     """Format a single wiki page with full content."""
     title = page.get("title", "Untitled")
