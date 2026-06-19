@@ -31,7 +31,7 @@ class UpdateRelationInput(BaseModel):
     description: str | None = Field(None, description="New description")
 
 
-@mcp.tool(tags={"write"})
+@mcp.tool(tags={"write", "work-packages"})
 async def create_work_package_relation(input: CreateRelationInput) -> str:
     """Create a relation between two work packages.
 
@@ -99,7 +99,7 @@ async def create_work_package_relation(input: CreateRelationInput) -> str:
         return format_error(f"Failed to create relation: {e!s}")
 
 
-@mcp.tool(tags={"read"})
+@mcp.tool(tags={"read", "work-packages"})
 async def list_work_package_relations(work_package_id: int) -> str:
     """List all relations for a work package.
 
@@ -148,7 +148,7 @@ async def list_work_package_relations(work_package_id: int) -> str:
         return format_error(f"Failed to list relations: {e!s}")
 
 
-@mcp.tool(tags={"read"})
+@mcp.tool(tags={"read", "work-packages"})
 async def get_work_package_relation(relation_id: int) -> str:
     """Get detailed information about a specific relation.
 
@@ -182,7 +182,7 @@ async def get_work_package_relation(relation_id: int) -> str:
         return format_error(f"Failed to get relation: {e!s}")
 
 
-@mcp.tool(tags={"write"})
+@mcp.tool(tags={"write", "work-packages"})
 async def update_work_package_relation(input: UpdateRelationInput) -> str:
     """Update a work package relation (modify lag or description).
 
@@ -225,7 +225,7 @@ async def update_work_package_relation(input: UpdateRelationInput) -> str:
         return format_error(f"Failed to update relation: {e!s}")
 
 
-@mcp.tool(tags={"write"})
+@mcp.tool(tags={"write", "work-packages"})
 async def delete_work_package_relation(relation_id: int) -> str:
     """Delete a work package relation.
 

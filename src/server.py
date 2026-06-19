@@ -70,15 +70,25 @@ try:
         notifications,  # 3 tools
         projects,  # 7 tools (list, get, create, add_subproject, get_subprojects, update, delete)
         relations,  # 5 tools
+        reminders,  # 2 tools: list_reminders, create_reminder
         time_entries,  # 5 tools
         users,  # 6 tools
         versions,  # 2 tools
+        watchers,  # 7 tools: list_watchers, list_available_watchers, add_watcher, remove_watcher, get_activity, update_activity, list_available_assignees
         weekly_reports,  # 4 tools
         wiki,  # 1 tool (API v3 wiki is a stub — only GET by integer ID)
         work_packages,  # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
     )
 
-    logger.info("✅ All 77 tools loaded successfully (45 read, 32 write)")
+    _tool_map: dict = getattr(getattr(mcp, "_tool_manager", None), "_tools", {})
+    _read = sum(1 for t in _tool_map.values() if "read" in (t.tags or set()))
+    _write = sum(1 for t in _tool_map.values() if "write" in (t.tags or set()))
+    logger.info(
+        "✅ All %d tools loaded successfully (%d read, %d write)",
+        len(_tool_map),
+        _read,
+        _write,
+    )
 except ImportError as e:
     logger.warning(f"⚠️  Some tool modules failed to import: {e}")
     raise
