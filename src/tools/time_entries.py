@@ -1,35 +1,43 @@
 """Time entry management tools for time tracking."""
 
-from typing import Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
-from src.server import mcp, get_client
-from src.utils.formatting import format_success, format_error
+
+from src.server import get_client, mcp
+from src.utils.formatting import format_error, format_success
 
 
 class CreateTimeEntryInput(BaseModel):
     """Input model for creating time entries."""
+
     work_package_id: int = Field(..., description="Work package ID", gt=0)
     hours: float = Field(..., description="Hours spent", gt=0)
     spent_on: str = Field(..., description="Date spent (YYYY-MM-DD)")
-    activity_id: int = Field(..., description="Activity ID (1=Management, 2=Specification, 3=Development, 4=Testing)", gt=0)
-    comment: Optional[str] = Field(None, description="Optional comment")
+    activity_id: int = Field(
+        ...,
+        description="Activity ID (1=Management, 2=Specification, 3=Development, 4=Testing)",
+        gt=0,
+    )
+    comment: str | None = Field(None, description="Optional comment")
 
 
 class UpdateTimeEntryInput(BaseModel):
     """Input model for updating time entries."""
+
     time_entry_id: int = Field(..., description="Time entry ID to update", gt=0)
-    hours: Optional[float] = Field(None, description="New hours spent", gt=0)
-    spent_on: Optional[str] = Field(None, description="New date (YYYY-MM-DD)")
-    activity_id: Optional[int] = Field(None, description="New activity ID", gt=0)
-    comment: Optional[str] = Field(None, description="New comment")
+    hours: float | None = Field(None, description="New hours spent", gt=0)
+    spent_on: str | None = Field(None, description="New date (YYYY-MM-DD)")
+    activity_id: int | None = Field(None, description="New activity ID", gt=0)
+    comment: str | None = Field(None, description="New comment")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_time_entries(
-    work_package_id: Optional[int] = None,
-    user_id: Optional[int] = None,
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None
+    work_package_id: int | None = None,
+    user_id: int | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
 ) -> str:
     """List time entries with optional filters.
 
@@ -46,9 +54,12 @@ async def list_time_entries(
         client = get_client()
 
         import json
+
         filters = []
         if work_package_id:
-            filters.append({"work_package": {"operator": "=", "values": [str(work_package_id)]}})
+            filters.append(
+                {"work_package": {"operator": "=", "values": [str(work_package_id)]}}
+            )
         if user_id:
             filters.append({"user": {"operator": "=", "values": [str(user_id)]}})
         if from_date:
@@ -80,10 +91,10 @@ async def list_time_entries(
             if "activity" in embedded:
                 text += f"  Activity: {embedded['activity'].get('name', 'Unknown')}\n"
 
-            if entry.get('comment', {}).get('raw'):
+            if entry.get("comment", {}).get("raw"):
                 text += f"  Comment: {entry['comment']['raw']}\n"
 
-            total_hours += entry.get('hours', 0)
+            total_hours += entry.get("hours", 0)
             text += "\n"
 
         text += f"**Total Hours**: {total_hours}\n"
@@ -91,10 +102,10 @@ async def list_time_entries(
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list time entries: {str(e)}")
+        return format_error(f"Failed to list time entries: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def create_time_entry(input: CreateTimeEntryInput) -> str:
     """Create a new time entry for a work package.
 
@@ -134,7 +145,7 @@ async def create_time_entry(input: CreateTimeEntryInput) -> str:
 
         result = await client.create_time_entry(data)
 
-        text = format_success(f"Time entry created successfully!\n\n")
+        text = format_success("Time entry created successfully!\n\n")
         text += f"**ID**: #{result.get('id', 'N/A')}\n"
         text += f"**Hours**: {result.get('hours', 0)}\n"
         text += f"**Date**: {result.get('spentOn', 'N/A')}\n"
@@ -145,16 +156,16 @@ async def create_time_entry(input: CreateTimeEntryInput) -> str:
         if "activity" in embedded:
             text += f"**Activity**: {embedded['activity'].get('name', 'Unknown')}\n"
 
-        if result.get('comment', {}).get('raw'):
+        if result.get("comment", {}).get("raw"):
             text += f"**Comment**: {result['comment']['raw']}\n"
 
         return text
 
     except Exception as e:
-        return format_error(f"Failed to create time entry: {str(e)}")
+        return format_error(f"Failed to create time entry: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def update_time_entry(input: UpdateTimeEntryInput) -> str:
     """Update an existing time entry.
 
@@ -167,7 +178,7 @@ async def update_time_entry(input: UpdateTimeEntryInput) -> str:
     try:
         client = get_client()
 
-        update_data = {}
+        update_data: dict[str, Any] = {}
 
         if input.hours is not None:
             update_data["hours"] = str(input.hours)
@@ -183,7 +194,9 @@ async def update_time_entry(input: UpdateTimeEntryInput) -> str:
 
         result = await client.update_time_entry(input.time_entry_id, update_data)
 
-        text = format_success(f"Time entry #{input.time_entry_id} updated successfully!\n\n")
+        text = format_success(
+            f"Time entry #{input.time_entry_id} updated successfully!\n\n"
+        )
         text += f"**Hours**: {result.get('hours', 0)}\n"
         text += f"**Date**: {result.get('spentOn', 'N/A')}\n"
 
@@ -191,16 +204,16 @@ async def update_time_entry(input: UpdateTimeEntryInput) -> str:
         if "activity" in embedded:
             text += f"**Activity**: {embedded['activity'].get('name', 'Unknown')}\n"
 
-        if result.get('comment', {}).get('raw'):
+        if result.get("comment", {}).get("raw"):
             text += f"**Comment**: {result['comment']['raw']}\n"
 
         return text
 
     except Exception as e:
-        return format_error(f"Failed to update time entry: {str(e)}")
+        return format_error(f"Failed to update time entry: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def delete_time_entry(time_entry_id: int) -> str:
     """Delete a time entry.
 
@@ -221,10 +234,10 @@ async def delete_time_entry(time_entry_id: int) -> str:
             return format_error(f"Failed to delete time entry #{time_entry_id}")
 
     except Exception as e:
-        return format_error(f"Failed to delete time entry: {str(e)}")
+        return format_error(f"Failed to delete time entry: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_time_entry_activities() -> str:
     """List available time entry activities.
 
@@ -258,7 +271,7 @@ async def list_time_entry_activities() -> str:
 
         return text
 
-    except Exception as e:
+    except Exception:
         # Return common activities on error
         text = "⚠️  **Common Time Entry Activities:**\n\n"
         text += "- **Management** (ID: 1)\n"

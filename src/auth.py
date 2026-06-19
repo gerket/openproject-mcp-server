@@ -1,13 +1,12 @@
 """Authentication middleware for HTTP transport."""
 
 import os
-from typing import Dict, Optional
 
 
 class APIKeyAuth:
     """Simple API Key authentication for HTTP transport."""
 
-    def __init__(self, valid_keys: Optional[Dict[str, str]] = None):
+    def __init__(self, valid_keys: dict[str, str] | None = None):
         """
         Initialize API Key authentication.
 
@@ -21,7 +20,7 @@ class APIKeyAuth:
         else:
             self.valid_keys = valid_keys
 
-    def validate(self, api_key: str) -> Optional[str]:
+    def validate(self, api_key: str) -> str | None:
         """Validate API key and return user name if valid.
 
         Args:
@@ -33,7 +32,7 @@ class APIKeyAuth:
         return self.valid_keys.get(api_key)
 
 
-def load_api_keys_from_env() -> Dict[str, str]:
+def load_api_keys_from_env() -> dict[str, str]:
     """Load API keys from environment variable.
 
     Format: MCP_API_KEYS=key1:User1,key2:User2,key3:User3
@@ -42,7 +41,7 @@ def load_api_keys_from_env() -> Dict[str, str]:
         Dict mapping API keys to user names
     """
     keys_env = os.getenv("MCP_API_KEYS", "")
-    valid_keys = {}
+    valid_keys: dict[str, str] = {}
 
     if not keys_env:
         print("[WARNING] No MCP_API_KEYS environment variable set. HTTP auth disabled.")
@@ -57,7 +56,7 @@ def load_api_keys_from_env() -> Dict[str, str]:
     return valid_keys
 
 
-def extract_bearer_token(auth_header: str) -> Optional[str]:
+def extract_bearer_token(auth_header: str) -> str | None:
     """Extract bearer token from Authorization header.
 
     Args:

@@ -4,8 +4,9 @@ OpenProject MCP Server - FastMCP Implementation
 Main server file that initializes FastMCP and registers all tools.
 """
 
-import os
 import logging
+import os
+
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 
@@ -22,9 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize FastMCP server
-mcp = FastMCP(
-    name="openproject-mcp"
-)
+mcp = FastMCP(name="openproject-mcp")
 
 # Initialize OpenProject client as global variable
 _client = None
@@ -39,13 +38,9 @@ try:
             "Missing required environment variables: OPENPROJECT_URL and OPENPROJECT_API_KEY must be set"
         )
 
-    _client = OpenProjectClient(
-        base_url=base_url,
-        api_key=api_key,
-        proxy=proxy
-    )
+    _client = OpenProjectClient(base_url=base_url, api_key=api_key, proxy=proxy)
 
-    logger.info(f"✅ OpenProject MCP Server initialized")
+    logger.info("✅ OpenProject MCP Server initialized")
     logger.info(f"   Server: {base_url}")
     logger.info(f"   Proxy: {proxy if proxy else 'None'}")
 
@@ -64,23 +59,35 @@ def get_client():
 logger.info("Loading tool modules...")
 
 try:
-    # Phase 1: Priority tools (7 tools)
-    from src.tools import connection      # 2 tools: test_connection, check_permissions
-    from src.tools import work_packages   # 7 tools: list, create, update, delete, list_types, list_statuses, list_priorities
-    from src.tools import projects        # 5 tools: list, get, create, update, delete
+    from src.tools import (  # noqa: F401
+        attachments,  # 4 tools
+        connection,  # 2 tools
+        costs,  # 5 tools
+        groups,  # 2 tools
+        hierarchy,  # 3 tools
+        memberships,  # 5 tools
+        news,  # 5 tools
+        notifications,  # 3 tools
+        projects,  # 7 tools (list, get, create, add_subproject, get_subprojects, update, delete)
+        relations,  # 5 tools
+        time_entries,  # 5 tools
+        users,  # 6 tools
+        versions,  # 2 tools
+        weekly_reports,  # 4 tools
+        wiki,  # 1 tool (API v3 wiki is a stub — only GET by integer ID)
+        work_packages,  # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
+    )
 
-    # Phase 2: Additional tools (28 tools)
-    from src.tools import users           # 6 tools: list_users, get_user, list_roles, get_role, list_project_members, list_user_projects
-    from src.tools import memberships     # 5 tools: list, get, create, update, delete
-    from src.tools import hierarchy       # 3 tools: set_parent, remove_parent, list_children
-    from src.tools import relations       # 5 tools: create, list, get, update, delete
-    from src.tools import time_entries    # 5 tools: list, create, update, delete, list_activities
-    from src.tools import versions        # 2 tools: list, create
-    from src.tools import weekly_reports   # 4 tools: generate_weekly_report, get_report_data, generate_this_week_report, generate_last_week_report
-    from src.tools import news             # 5 tools: list_news, create_news, get_news, update_news, delete_news
-
-    logger.info("✅ All 49 tool modules loaded successfully")
+    logger.info("✅ All 77 tools loaded successfully (45 read, 32 write)")
 except ImportError as e:
     logger.warning(f"⚠️  Some tool modules failed to import: {e}")
     raise
 
+
+def main() -> None:
+    """Stdio entrypoint for `openproject-mcp` CLI script."""
+    mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()

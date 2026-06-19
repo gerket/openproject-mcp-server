@@ -1,12 +1,11 @@
 """User and role management tools."""
 
-from typing import Optional
-from src.server import mcp, get_client
-from src.utils.formatting import format_success, format_error
+from src.server import get_client, mcp
+from src.utils.formatting import format_error
 
 
-@mcp.tool
-async def list_users(name: Optional[str] = None, status: Optional[str] = None) -> str:
+@mcp.tool(tags={"read"})
+async def list_users(name: str | None = None, status: str | None = None) -> str:
     """List users in OpenProject.
 
     Args:
@@ -26,6 +25,7 @@ async def list_users(name: Optional[str] = None, status: Optional[str] = None) -
             filters.append({"status": {"operator": "=", "values": [status]}})
 
         import json
+
         filters_json = json.dumps(filters) if filters else None
 
         result = await client.get_users(filters_json)
@@ -36,7 +36,9 @@ async def list_users(name: Optional[str] = None, status: Optional[str] = None) -
 
         text = f"✅ **Found {len(users)} user(s):**\n\n"
         for user in users:
-            text += f"- **{user.get('name', 'Unknown')}** (ID: {user.get('id', 'N/A')})\n"
+            text += (
+                f"- **{user.get('name', 'Unknown')}** (ID: {user.get('id', 'N/A')})\n"
+            )
             text += f"  Email: {user.get('email', 'N/A')}\n"
             text += f"  Login: {user.get('login', 'N/A')}\n"
             text += f"  Status: {user.get('status', 'N/A')}\n"
@@ -47,10 +49,10 @@ async def list_users(name: Optional[str] = None, status: Optional[str] = None) -
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list users: {str(e)}")
+        return format_error(f"Failed to list users: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def get_user(user_id: int) -> str:
     """Get detailed information about a specific user.
 
@@ -71,18 +73,18 @@ async def get_user(user_id: int) -> str:
         text += f"**Status**: {user.get('status', 'N/A')}\n"
         text += f"**Admin**: {'Yes' if user.get('admin') else 'No'}\n"
 
-        if user.get('createdAt'):
+        if user.get("createdAt"):
             text += f"**Created**: {user['createdAt']}\n"
-        if user.get('updatedAt'):
+        if user.get("updatedAt"):
             text += f"**Updated**: {user['updatedAt']}\n"
 
         return text
 
     except Exception as e:
-        return format_error(f"Failed to get user: {str(e)}")
+        return format_error(f"Failed to get user: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_roles() -> str:
     """List available user roles in OpenProject.
 
@@ -100,15 +102,17 @@ async def list_roles() -> str:
 
         text = "✅ **Available Roles:**\n\n"
         for role in roles:
-            text += f"- **{role.get('name', 'Unnamed')}** (ID: {role.get('id', 'N/A')})\n"
+            text += (
+                f"- **{role.get('name', 'Unnamed')}** (ID: {role.get('id', 'N/A')})\n"
+            )
 
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list roles: {str(e)}")
+        return format_error(f"Failed to list roles: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def get_role(role_id: int) -> str:
     """Get detailed information about a specific role.
 
@@ -138,10 +142,10 @@ async def get_role(role_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to get role: {str(e)}")
+        return format_error(f"Failed to get role: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_project_members(project_id: int) -> str:
     """List all members of a specific project.
 
@@ -184,10 +188,10 @@ async def list_project_members(project_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list project members: {str(e)}")
+        return format_error(f"Failed to list project members: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_user_projects(user_id: int) -> str:
     """List all projects a user is a member of.
 
@@ -201,7 +205,10 @@ async def list_user_projects(user_id: int) -> str:
         client = get_client()
 
         import json
-        filters = json.dumps([{"principal": {"operator": "=", "values": [str(user_id)]}}])
+
+        filters = json.dumps(
+            [{"principal": {"operator": "=", "values": [str(user_id)]}}]
+        )
 
         result = await client.get_memberships(filters)
         memberships = result.get("_embedded", {}).get("elements", [])
@@ -226,4 +233,4 @@ async def list_user_projects(user_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list user projects: {str(e)}")
+        return format_error(f"Failed to list user projects: {e!s}")

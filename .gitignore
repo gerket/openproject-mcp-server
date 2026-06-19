@@ -208,3 +208,6 @@ __marimo__/
 
 # Claude Code configuration
 CLAUDE.md.worktrees/
+
+# Git worktrees
+.worktrees/

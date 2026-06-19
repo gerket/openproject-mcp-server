@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+"""Verify that all @mcp.tool decorators carry a read or write tag."""
+
+import asyncio
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
+async def get_tools():
+    os.environ.setdefault("OPENPROJECT_URL", "http://test.example.com")
+    os.environ.setdefault("OPENPROJECT_API_KEY", "test-key")
+    from src.server import mcp
+    return await mcp.get_tools()
+
+
+async def test_all_tools_have_tags():
+    tools = await get_tools()
+    missing = [name for name, t in tools.items() if not getattr(t, "tags", None)]
+    assert not missing, f"Tools without tags: {missing}"
+    print(f"✅ All {len(tools)} tools have tags")
+
+
+async def test_tag_values():
+    tools = await get_tools()
+    bad = [
+        f"{name}:{t.tags}"
+        for name, t in tools.items()
+        if getattr(t, "tags", None) and t.tags - {"read", "write"}
+    ]
+    assert not bad, f"Tools with unexpected tag values: {bad}"
+    print("✅ All tags are 'read' or 'write'")
+
+
+async def assert_tag(tool_name: str, expected_tag: str, tools: dict):
+    t = tools.get(tool_name)
+    assert t is not None, f"Tool '{tool_name}' not found"
+    assert expected_tag in (t.tags or set()), (
+        f"Expected {tool_name} to have tag '{expected_tag}', got {t.tags}"
+    )
+
+
+async def test_connection_tags():
+    tools = await get_tools()
+    await assert_tag("test_connection", "read", tools)
+    await assert_tag("check_permissions", "read", tools)
+    print("✅ connection tags correct")
+
+
+async def test_work_packages_tags():
+    tools = await get_tools()
+    read_tools = [
+        "list_work_packages", "search_work_packages", "list_types",
+        "list_statuses", "list_priorities", "list_work_package_activities",
+        "list_overdue_work_packages", "list_work_packages_due_soon",
+        "list_unassigned_work_packages", "list_work_packages_created_recently",
+        "list_high_priority_work_packages", "list_work_packages_nearly_complete",
+    ]
+    write_tools = [
+        "create_work_package", "update_work_package", "delete_work_package",
+        "assign_work_package", "unassign_work_package", "add_work_package_comment",
+    ]
+    for name in read_tools:
+        await assert_tag(name, "read", tools)
+    for name in write_tools:
+        await assert_tag(name, "write", tools)
+    print(f"✅ work_packages tags correct ({len(read_tools)} read, {len(write_tools)} write)")
+
+
+async def test_projects_tags():
+    tools = await get_tools()
+    for name in ["list_projects", "get_project", "get_subprojects"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_project", "add_subproject", "update_project", "delete_project"]:
+        await assert_tag(name, "write", tools)
+    print("✅ projects tags correct (3 read, 4 write)")
+
+
+async def test_users_tags():
+    tools = await get_tools()
+    for name in ["list_users", "get_user", "list_roles", "get_role",
+                 "list_project_members", "list_user_projects"]:
+        await assert_tag(name, "read", tools)
+    print("✅ users tags correct (6 read)")
+
+
+async def test_memberships_tags():
+    tools = await get_tools()
+    for name in ["list_memberships", "get_membership"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_membership", "update_membership", "delete_membership"]:
+        await assert_tag(name, "write", tools)
+    print("✅ memberships tags correct (2 read, 3 write)")
+
+
+async def test_hierarchy_relations_tags():
+    tools = await get_tools()
+    await assert_tag("list_work_package_children", "read", tools)
+    for name in ["set_work_package_parent", "remove_work_package_parent"]:
+        await assert_tag(name, "write", tools)
+    for name in ["list_work_package_relations", "get_work_package_relation"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_work_package_relation", "update_work_package_relation",
+                 "delete_work_package_relation"]:
+        await assert_tag(name, "write", tools)
+    print("✅ hierarchy + relations tags correct")
+
+
+async def test_time_entries_versions_tags():
+    tools = await get_tools()
+    for name in ["list_time_entries", "list_time_entry_activities"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_time_entry", "update_time_entry", "delete_time_entry"]:
+        await assert_tag(name, "write", tools)
+    await assert_tag("list_versions", "read", tools)
+    await assert_tag("create_version", "write", tools)
+    print("✅ time_entries + versions tags correct")
+
+
+async def test_reports_news_tags():
+    tools = await get_tools()
+    for name in ["generate_weekly_report", "generate_this_week_report",
+                 "generate_last_week_report", "get_report_data"]:
+        await assert_tag(name, "read", tools)
+    for name in ["list_news", "get_news"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_news", "update_news", "delete_news"]:
+        await assert_tag(name, "write", tools)
+    print("✅ weekly_reports + news tags correct")
+
+
+async def test_new_modules_tags():
+    tools = await get_tools()
+    # wiki
+    await assert_tag("get_wiki_page", "read", tools)
+    # groups
+    for name in ["list_groups", "get_group"]:
+        await assert_tag(name, "read", tools)
+    # notifications
+    await assert_tag("list_notifications", "read", tools)
+    for name in ["mark_notification_read", "mark_all_notifications_read"]:
+        await assert_tag(name, "write", tools)
+    # attachments
+    for name in ["list_attachments", "get_attachment"]:
+        await assert_tag(name, "read", tools)
+    for name in ["upload_attachment", "delete_attachment"]:
+        await assert_tag(name, "write", tools)
+    # costs
+    for name in ["list_cost_types", "list_cost_entries"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_cost_entry", "update_cost_entry", "delete_cost_entry"]:
+        await assert_tag(name, "write", tools)
+    print("✅ new module tags correct (wiki/groups/notifications/attachments/costs)")
+
+
+async def test_full_sweep():
+    """Every single registered tool must have exactly one of: read, write."""
+    tools = await get_tools()
+    missing = [name for name, t in tools.items() if not getattr(t, "tags", None)]
+    bad_values = [
+        f"{name}:{t.tags}"
+        for name, t in tools.items()
+        if getattr(t, "tags", None) and t.tags - {"read", "write"}
+    ]
+    assert not missing, f"Tools without tags: {sorted(missing)}"
+    assert not bad_values, f"Tools with unexpected tag values: {bad_values}"
+    read_count = sum(1 for t in tools.values() if "read" in (t.tags or set()))
+    write_count = sum(1 for t in tools.values() if "write" in (t.tags or set()))
+    print(f"✅ Full sweep: {len(tools)} tools, {read_count} read, {write_count} write")
+

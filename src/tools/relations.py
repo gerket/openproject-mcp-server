@@ -1,28 +1,37 @@
 """Work package relation management tools (follows, blocks, relates, etc.)."""
 
-from typing import Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
-from src.server import mcp, get_client
-from src.utils.formatting import format_success, format_error
+
+from src.server import get_client, mcp
+from src.utils.formatting import format_error, format_success
 
 
 class CreateRelationInput(BaseModel):
     """Input model for creating work package relations."""
+
     from_id: int = Field(..., description="Source work package ID", gt=0)
     to_id: int = Field(..., description="Target work package ID", gt=0)
-    type: str = Field(..., description="Relation type (relates, duplicates, blocks, precedes, follows, includes, requires, partof)")
-    lag: Optional[int] = Field(None, description="Lag in working days (for precedes/follows)")
-    description: Optional[str] = Field(None, description="Relation description")
+    type: str = Field(
+        ...,
+        description="Relation type (relates, duplicates, blocks, precedes, follows, includes, requires, partof)",
+    )
+    lag: int | None = Field(
+        None, description="Lag in working days (for precedes/follows)"
+    )
+    description: str | None = Field(None, description="Relation description")
 
 
 class UpdateRelationInput(BaseModel):
     """Input model for updating work package relations."""
+
     relation_id: int = Field(..., description="Relation ID to update", gt=0)
-    lag: Optional[int] = Field(None, description="New lag in working days")
-    description: Optional[str] = Field(None, description="New description")
+    lag: int | None = Field(None, description="New lag in working days")
+    description: str | None = Field(None, description="New description")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def create_work_package_relation(input: CreateRelationInput) -> str:
     """Create a relation between two work packages.
 
@@ -67,7 +76,7 @@ async def create_work_package_relation(input: CreateRelationInput) -> str:
 
         result = await client.create_work_package_relation(data)
 
-        text = format_success(f"Relation created successfully!\n\n")
+        text = format_success("Relation created successfully!\n\n")
         text += f"**ID**: #{result.get('id', 'N/A')}\n"
         text += f"**Type**: {result.get('type', 'Unknown')}\n"
 
@@ -75,20 +84,22 @@ async def create_work_package_relation(input: CreateRelationInput) -> str:
         if "from" in embedded:
             text += f"**From**: {embedded['from'].get('subject', 'Unknown')} (#{input.from_id})\n"
         if "to" in embedded:
-            text += f"**To**: {embedded['to'].get('subject', 'Unknown')} (#{input.to_id})\n"
+            text += (
+                f"**To**: {embedded['to'].get('subject', 'Unknown')} (#{input.to_id})\n"
+            )
 
-        if result.get('lag'):
+        if result.get("lag"):
             text += f"**Lag**: {result['lag']} days\n"
-        if result.get('description'):
+        if result.get("description"):
             text += f"**Description**: {result['description']}\n"
 
         return text
 
     except Exception as e:
-        return format_error(f"Failed to create relation: {str(e)}")
+        return format_error(f"Failed to create relation: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_work_package_relations(work_package_id: int) -> str:
     """List all relations for a work package.
 
@@ -103,7 +114,10 @@ async def list_work_package_relations(work_package_id: int) -> str:
 
         # Get relations for a specific work package
         import json
-        filters = json.dumps([{"involved": {"operator": "=", "values": [str(work_package_id)]}}])
+
+        filters = json.dumps(
+            [{"involved": {"operator": "=", "values": [str(work_package_id)]}}]
+        )
         result = await client.list_work_package_relations(filters)
         relations = result.get("_embedded", {}).get("elements", [])
 
@@ -121,9 +135,9 @@ async def list_work_package_relations(work_package_id: int) -> str:
             if "to" in embedded:
                 text += f"  To: {embedded['to'].get('subject', 'Unknown')} (#{embedded['to'].get('id', 'N/A')})\n"
 
-            if rel.get('lag'):
+            if rel.get("lag"):
                 text += f"  Lag: {rel['lag']} days\n"
-            if rel.get('description'):
+            if rel.get("description"):
                 text += f"  Description: {rel['description']}\n"
 
             text += "\n"
@@ -131,10 +145,10 @@ async def list_work_package_relations(work_package_id: int) -> str:
         return text
 
     except Exception as e:
-        return format_error(f"Failed to list relations: {str(e)}")
+        return format_error(f"Failed to list relations: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def get_work_package_relation(relation_id: int) -> str:
     """Get detailed information about a specific relation.
 
@@ -157,18 +171,18 @@ async def get_work_package_relation(relation_id: int) -> str:
         if "to" in embedded:
             text += f"**To**: {embedded['to'].get('subject', 'Unknown')} (#{embedded['to'].get('id', 'N/A')})\n"
 
-        if rel.get('lag'):
+        if rel.get("lag"):
             text += f"**Lag**: {rel['lag']} days\n"
-        if rel.get('description'):
+        if rel.get("description"):
             text += f"**Description**: {rel['description']}\n"
 
         return text
 
     except Exception as e:
-        return format_error(f"Failed to get relation: {str(e)}")
+        return format_error(f"Failed to get relation: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def update_work_package_relation(input: UpdateRelationInput) -> str:
     """Update a work package relation (modify lag or description).
 
@@ -181,7 +195,7 @@ async def update_work_package_relation(input: UpdateRelationInput) -> str:
     try:
         client = get_client()
 
-        update_data = {}
+        update_data: dict[str, Any] = {}
 
         if input.lag is not None:
             update_data["lag"] = input.lag
@@ -191,23 +205,27 @@ async def update_work_package_relation(input: UpdateRelationInput) -> str:
         if not update_data:
             return format_error("No fields provided to update")
 
-        result = await client.update_work_package_relation(input.relation_id, update_data)
+        result = await client.update_work_package_relation(
+            input.relation_id, update_data
+        )
 
-        text = format_success(f"Relation #{input.relation_id} updated successfully!\n\n")
+        text = format_success(
+            f"Relation #{input.relation_id} updated successfully!\n\n"
+        )
         text += f"**Type**: {result.get('type', 'Unknown')}\n"
 
-        if result.get('lag'):
+        if result.get("lag"):
             text += f"**Lag**: {result['lag']} days\n"
-        if result.get('description'):
+        if result.get("description"):
             text += f"**Description**: {result['description']}\n"
 
         return text
 
     except Exception as e:
-        return format_error(f"Failed to update relation: {str(e)}")
+        return format_error(f"Failed to update relation: {e!s}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def delete_work_package_relation(relation_id: int) -> str:
     """Delete a work package relation.
 
@@ -228,4 +246,4 @@ async def delete_work_package_relation(relation_id: int) -> str:
             return format_error(f"Failed to delete relation #{relation_id}")
 
     except Exception as e:
-        return format_error(f"Failed to delete relation: {str(e)}")
+        return format_error(f"Failed to delete relation: {e!s}")

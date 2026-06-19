@@ -1,16 +1,16 @@
 [project]
 name = "openproject-mcp-server"
-version = "1.0.0"
+version = "2.0.0"
 description = "A Model Context Protocol (MCP) server for OpenProject API v3 integration"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Tom Gerke", email = "tom@thomasgerke.com"}
 ]
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 keywords = ["mcp", "openproject", "api", "project-management"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -26,13 +26,17 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "certifi>=2022.0.0",
     "pydantic>=2.0.0",
-    "uvicorn>=0.24.0",  # Required for SSE transport
-    "starlette>=0.27.0",  # Required for SSE transport
+    "uvicorn>=0.24.0",
+    "starlette>=0.27.0",
 ]
+
+[project.scripts]
+openproject-mcp = "src.server:main"
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
     "black>=22.0.0",
     "flake8>=4.0.0",
 ]
@@ -46,8 +50,39 @@ packages = ["src"]
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py310', 'py311', 'py312']
 
 [tool.flake8]
 max-line-length = 88
 extend-ignore = ["E203", "W503"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["."]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = "--ignore=test_live_integration.py --ignore=test_tools.py"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.1.0",
+    "pre-commit>=4.6.0",
+    "ruff>=0.15.18",
+]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"test_*.py" = ["E402", "F841", "B017"]
+"*.legacy.py" = ["E722", "B904", "B007"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_ignores = true
