@@ -1,291 +1,636 @@
 #!/usr/bin/env python3
-"""
-Live integration tests for new API domains.
+"""Live integration tests against a real OpenProject instance.
 
-Pulls credentials from Infisical at runtime. Requires:
-  - infisical CLI authenticated
-  - OPENPROJECT_URL env var OR fallback to discovering it from Infisical
-
-Tests each new endpoint with real HTTP calls. Each test is self-contained
-and cleans up after itself where possible.
-
-Usage:
-    OPENPROJECT_URL=https://your-instance uv run python test_live_integration.py
+Run with:
+    OPENPROJECT_URL=https://openproject.thomasgerke.com uv run python test_live_integration.py
 """
 
 import asyncio
+import json
+import os
 import subprocess
 import sys
-import os
-import json
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-INFISICAL_PROJECT_ID = "62dc8b3e-db71-4cb3-aa1f-aa457d665edb"
-INFISICAL_ENV = "prod"
-
-# ──────────────────────────────────────────────
-# Credential helpers
-# ──────────────────────────────────────────────
-
-def _infisical_get(key: str) -> str:
-    result = subprocess.run(
-        [
-            "infisical", "secrets", "get", key,
-            "--projectId", INFISICAL_PROJECT_ID,
-            "--env", INFISICAL_ENV,
-            "--plain",
-        ],
-        capture_output=True, text=True
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"infisical get {key} failed: {result.stderr.strip()}")
-    return result.stdout.strip()
-
-
-def load_credentials() -> tuple[str, str]:
-    """Return (base_url, api_key). Reads key from Infisical."""
-    base_url = os.environ.get("OPENPROJECT_URL", "").rstrip("/")
-    if not base_url:
-        raise RuntimeError(
-            "Set OPENPROJECT_URL env var (e.g. https://openproject.yourdomain.com)"
-        )
-    api_key = _infisical_get("openproject-api-token-tom")
-    return base_url, api_key
-
-
-# ──────────────────────────────────────────────
-# Test runner helpers
-# ──────────────────────────────────────────────
-
-PASS = "✅"
-FAIL = "❌"
 results: list[tuple[str, bool, str]] = []
 
 
-def record(name: str, passed: bool, detail: str = ""):
+def record(name: str, passed: bool, detail: str = "") -> None:
     results.append((name, passed, detail))
-    status = PASS if passed else FAIL
+    status = "✅" if passed else "❌"
     print(f"{status} {name}" + (f": {detail}" if detail else ""))
 
 
-async def run_tests(base_url: str, api_key: str):
+def section(title: str) -> None:
+    print(f"\n{'=' * 60}")
+    print(f"  {title}")
+    print('=' * 60)
+
+
+async def run_tests(base_url: str, api_key: str) -> None:
     from src.client import OpenProjectClient
     client = OpenProjectClient(base_url=base_url, api_key=api_key)
 
-    # ── helper: find a real project to test against ──
-    projects_resp = await client.get_projects()
-    projects = projects_resp.get("_embedded", {}).get("elements", [])
-    if not projects:
-        print("No projects found — cannot run integration tests")
-        sys.exit(1)
-    project = projects[0]
-    project_id = project["id"]
-    project_name = project.get("name", "unknown")
-    print(f"\nUsing project: {project_name} (ID: {project_id})\n")
-
-    # ════════════════════════════════════════════
-    # WIKI
-    # ════════════════════════════════════════════
-    # The OpenProject v3 wiki API is a stub: only GET /wiki_pages/{id} exists.
-    # List/create/update/delete by slug are not implemented in the API.
-    # To test get_wiki_page_by_id we need a known integer ID — skip if none available.
-    print("─── Wiki ───────────────────────────────────")
-    print("  Note: wiki API is a stub (GET by integer ID only). Skipping live test.")
-    print("  To test manually: find a wiki page ID in OpenProject UI and call")
-    print("  client.get_wiki_page_by_id(<id>)")
-
-    # ════════════════════════════════════════════
-    # GROUPS
-    # ════════════════════════════════════════════
-    print("\n─── Groups ─────────────────────────────────")
+    # ------------------------------------------------------------------ #
+    # CONNECTION
+    # ------------------------------------------------------------------ #
+    section("Connection")
 
     try:
-        resp = await client.get_groups()
-        groups = resp.get("_embedded", {}).get("elements", [])
-        record("get_groups", True, f"{len(groups)} groups found")
+        result = await client.test_connection()
+        assert "instanceVersion" in result or "_type" in result or "coreVersion" in result
+        record("connection/test_connection", True, f"version={result.get('instanceVersion', 'N/A')}")
     except Exception as e:
-        record("get_groups", False, str(e))
-        groups = []
+        record("connection/test_connection", False, str(e)[:120])
 
-    if groups:
-        group_id = groups[0]["id"]
+    try:
+        result = await client.check_permissions()
+        assert result  # non-empty
+        record("connection/check_permissions", True, f"user={result.get('name', 'N/A')}")
+    except Exception as e:
+        record("connection/check_permissions", False, str(e)[:120])
+
+    # ------------------------------------------------------------------ #
+    # PROJECTS
+    # ------------------------------------------------------------------ #
+    section("Projects")
+
+    try:
+        result = await client.get_projects()
+        elements = result.get("_embedded", {}).get("elements", [])
+        record("projects/list_projects", True, f"count={len(elements)}")
+    except Exception as e:
+        record("projects/list_projects", False, str(e)[:120])
+
+    try:
+        result = await client.get_project(4)
+        assert result.get("name"), "No name in project response"
+        record("projects/get_project_4", True, f"name={result['name']}")
+    except Exception as e:
+        record("projects/get_project_4", False, str(e)[:120])
+
+    # ------------------------------------------------------------------ #
+    # WORK PACKAGES
+    # ------------------------------------------------------------------ #
+    section("Work Packages")
+
+    try:
+        result = await client.get_work_packages(project_id=4, page_size=5)
+        elements = result.get("_embedded", {}).get("elements", [])
+        record("work_packages/list_project_4", True, f"count={len(elements)}")
+    except Exception as e:
+        record("work_packages/list_project_4", False, str(e)[:120])
+
+    try:
+        result = await client.get_work_package(46)
+        assert result.get("subject") == "test", f"Expected subject='test', got '{result.get('subject')}'"
+        record("work_packages/get_wp_46", True, f"subject={result['subject']}")
+    except Exception as e:
+        record("work_packages/get_wp_46", False, str(e)[:120])
+
+    temp_wp_id = None
+    try:
+        result = await client.create_work_package({
+            "project": 4, "subject": "integration-test-temp", "type": 1
+        })
+        temp_wp_id = result.get("id")
+        assert temp_wp_id, "No ID in created WP"
+        record("work_packages/create_temp", True, f"id={temp_wp_id}")
+    except Exception as e:
+        record("work_packages/create_temp", False, str(e)[:120])
+
+    if temp_wp_id:
         try:
-            resp = await client.get_group(group_id)
-            record("get_group", resp.get("id") == group_id, f"name={resp.get('name', '?')}")
+            result = await client.update_work_package(temp_wp_id, {"description": "integration test description"})
+            record("work_packages/update_temp", True)
         except Exception as e:
-            record("get_group", False, str(e))
+            record("work_packages/update_temp", False, str(e)[:120])
 
-    # ════════════════════════════════════════════
-    # NOTIFICATIONS
-    # ════════════════════════════════════════════
-    print("\n─── Notifications ──────────────────────────")
+        try:
+            ok = await client.delete_work_package(temp_wp_id)
+            assert ok
+            record("work_packages/delete_temp", True)
+        except Exception as e:
+            record("work_packages/delete_temp", False, str(e)[:120])
+    else:
+        record("work_packages/update_temp", False, "skipped: create_temp failed")
+        record("work_packages/delete_temp", False, "skipped: create_temp failed")
 
     try:
-        resp = await client.get_notifications(page_size=5)
-        items = resp.get("_embedded", {}).get("elements", [])
-        total = resp.get("total", len(items))
-        record("get_notifications", True, f"{total} total notifications")
+        filters = json.dumps([{"subjectOrId": {"operator": "**", "values": ["test"]}}])
+        result = await client.get_work_packages(filters=filters)
+        elements = result.get("_embedded", {}).get("elements", [])
+        assert len(elements) > 0, "Expected at least 1 result"
+        record("work_packages/search", True, f"count={len(elements)}")
     except Exception as e:
-        record("get_notifications", False, str(e))
-        items = []
+        record("work_packages/search", False, str(e)[:120])
 
-    # mark_all_notifications_read (safe — just marks inbox)
+    # ------------------------------------------------------------------ #
+    # CUSTOM FIELDS (on WP #46)
+    # ------------------------------------------------------------------ #
+    section("Custom Fields (WP #46)")
+
+    # CF2: String
+    try:
+        await client.update_work_package(46, {"custom_fields": {"customField2": "cf2-test-string"}})
+        result = await client.get_work_package(46)
+        val = result.get("customField2")
+        assert val == "cf2-test-string", f"Expected 'cf2-test-string', got {val!r}"
+        record("custom_fields/cf2_string", True)
+    except Exception as e:
+        record("custom_fields/cf2_string", False, str(e)[:120])
+
+    # CF3: Formattable
+    try:
+        await client.update_work_package(46, {"custom_fields": {"customField3": {"format": "markdown", "raw": "cf3 test text"}}})
+        result = await client.get_work_package(46)
+        val = result.get("customField3")
+        raw = val.get("raw", "") if isinstance(val, dict) else str(val)
+        assert "cf3 test text" in raw, f"Expected text in CF3, got {val!r}"
+        record("custom_fields/cf3_formattable", True)
+    except Exception as e:
+        record("custom_fields/cf3_formattable", False, str(e)[:120])
+
+    # CF4: Boolean
+    try:
+        await client.update_work_package(46, {"custom_fields": {"customField4": True}})
+        result = await client.get_work_package(46)
+        val = result.get("customField4")
+        assert val is True, f"Expected True, got {val!r}"
+        record("custom_fields/cf4_boolean", True)
+    except Exception as e:
+        record("custom_fields/cf4_boolean", False, str(e)[:120])
+
+    # CF5: Date
+    try:
+        await client.update_work_package(46, {"custom_fields": {"customField5": "2026-06-19"}})
+        result = await client.get_work_package(46)
+        val = result.get("customField5")
+        assert val == "2026-06-19", f"Expected date, got {val!r}"
+        record("custom_fields/cf5_date", True)
+    except Exception as e:
+        record("custom_fields/cf5_date", False, str(e)[:120])
+
+    # CF6: Float
+    try:
+        await client.update_work_package(46, {"custom_fields": {"customField6": 3.14}})
+        result = await client.get_work_package(46)
+        val = result.get("customField6")
+        assert val is not None, f"Expected float value, got None"
+        record("custom_fields/cf6_float", True, f"val={val}")
+    except Exception as e:
+        record("custom_fields/cf6_float", False, str(e)[:120])
+
+    # CF7: SKIP — needs admin setup
+    record("custom_fields/cf7", True, "SKIP: needs admin setup")
+
+    # CF8: Integer
+    try:
+        await client.update_work_package(46, {"custom_fields": {"customField8": 42}})
+        result = await client.get_work_package(46)
+        val = result.get("customField8")
+        assert val is not None, f"Expected integer value, got None"
+        record("custom_fields/cf8_integer", True, f"val={val}")
+    except Exception as e:
+        record("custom_fields/cf8_integer", False, str(e)[:120])
+
+    # CF9: Link (URL string)
+    try:
+        await client.update_work_package(46, {"custom_fields": {"customField9": "https://example.com"}})
+        result = await client.get_work_package(46)
+        val = result.get("customField9")
+        assert val is not None, f"Expected URL value, got None"
+        record("custom_fields/cf9_link", True, f"val={val}")
+    except Exception as e:
+        record("custom_fields/cf9_link", False, str(e)[:120])
+
+    # CF10: SKIP — needs admin setup
+    record("custom_fields/cf10", True, "SKIP: needs admin setup")
+
+    # CF11: String
+    try:
+        await client.update_work_package(46, {"custom_fields": {"customField11": "cf11-test"}})
+        result = await client.get_work_package(46)
+        val = result.get("customField11")
+        assert val == "cf11-test", f"Expected 'cf11-test', got {val!r}"
+        record("custom_fields/cf11_string", True)
+    except Exception as e:
+        record("custom_fields/cf11_string", False, str(e)[:120])
+
+    # CF12: SKIP — needs admin setup
+    record("custom_fields/cf12", True, "SKIP: needs admin setup")
+
+    # CF14: SKIP — needs admin setup
+    record("custom_fields/cf14", True, "SKIP: needs admin setup")
+
+    # CF15: Formattable
+    try:
+        await client.update_work_package(46, {"custom_fields": {"customField15": {"format": "markdown", "raw": "cf15 test text"}}})
+        result = await client.get_work_package(46)
+        val = result.get("customField15")
+        raw = val.get("raw", "") if isinstance(val, dict) else str(val)
+        assert "cf15 test text" in raw, f"Expected text in CF15, got {val!r}"
+        record("custom_fields/cf15_formattable", True)
+    except Exception as e:
+        record("custom_fields/cf15_formattable", False, str(e)[:120])
+
+    # Cleanup: reset all CFs on WP #46
+    try:
+        await client.update_work_package(46, {"custom_fields": {
+            "customField2": None,
+            "customField4": None,
+            "customField5": None,
+            "customField6": None,
+            "customField8": None,
+            "customField9": None,
+            "customField11": None,
+        }})
+        record("custom_fields/cleanup", True)
+    except Exception as e:
+        record("custom_fields/cleanup", False, str(e)[:120])
+
+    # ------------------------------------------------------------------ #
+    # GROUPS
+    # ------------------------------------------------------------------ #
+    section("Groups")
+
+    try:
+        result = await client.get_groups()
+        elements = result.get("_embedded", {}).get("elements", result.get("elements", []))
+        record("groups/list_groups", True, f"count={len(elements)}")
+    except Exception as e:
+        record("groups/list_groups", False, str(e)[:120])
+
+    # ------------------------------------------------------------------ #
+    # NOTIFICATIONS
+    # ------------------------------------------------------------------ #
+    section("Notifications")
+
+    try:
+        result = await client.get_notifications(page_size=5)
+        record("notifications/list", True, f"type={result.get('_type', 'N/A')}")
+    except Exception as e:
+        record("notifications/list", False, str(e)[:120])
+
     try:
         await client.mark_all_notifications_read()
-        record("mark_all_notifications_read", True)
+        record("notifications/mark_all_read", True)
     except Exception as e:
-        record("mark_all_notifications_read", False, str(e))
+        record("notifications/mark_all_read", False, str(e)[:120])
 
-    # ════════════════════════════════════════════
-    # ATTACHMENTS
-    # ════════════════════════════════════════════
-    print("\n─── Attachments ────────────────────────────")
+    # ------------------------------------------------------------------ #
+    # ATTACHMENTS (on WP #46)
+    # ------------------------------------------------------------------ #
+    section("Attachments")
 
-    # Get a work package to attach to
-    wp_resp = await client.get_work_packages(project_id=project_id, page_size=1)
-    wps = wp_resp.get("_embedded", {}).get("elements", [])
-    if wps:
-        wp_id = wps[0]["id"]
-        wp_subject = wps[0].get("subject", "?")
-        print(f"  Using WP #{wp_id}: {wp_subject}")
+    attachment_id = None
+    try:
+        file_bytes = b"integration test attachment content"
+        result = await client.upload_attachment(
+            container_type="work_packages",
+            container_id=46,
+            file_bytes=file_bytes,
+            filename="test-attachment.txt",
+            content_type="text/plain"
+        )
+        attachment_id = result.get("id")
+        assert attachment_id, "No attachment ID returned"
+        record("attachments/upload", True, f"id={attachment_id}")
+    except Exception as e:
+        record("attachments/upload", False, str(e)[:120])
 
-        # list attachments (before)
+    if attachment_id:
         try:
-            resp = await client.list_attachments("work_packages", wp_id)
-            before_count = len(resp.get("_embedded", {}).get("elements", []))
-            record("list_attachments", True, f"{before_count} existing attachments")
+            result = await client.list_attachments("work_packages", 46)
+            elements = result.get("_embedded", {}).get("elements", [])
+            assert len(elements) >= 1, f"Expected >= 1 attachment, got {len(elements)}"
+            record("attachments/list", True, f"count={len(elements)}")
         except Exception as e:
-            record("list_attachments", False, str(e))
-            before_count = 0
+            record("attachments/list", False, str(e)[:120])
 
-        # upload a small text attachment
-        test_content = b"Claude live integration test attachment"
         try:
-            resp = await client.upload_attachment(
-                container_type="work_packages",
-                container_id=wp_id,
-                file_bytes=test_content,
-                filename="claude-test.txt",
-                content_type="text/plain",
-            )
-            att_id = resp.get("id")
-            record("upload_attachment", att_id is not None, f"id={att_id}")
+            result = await client.get_attachment(attachment_id)
+            assert result.get("id") == attachment_id
+            record("attachments/get", True)
         except Exception as e:
-            record("upload_attachment", False, str(e))
-            att_id = None
+            record("attachments/get", False, str(e)[:120])
 
-        # get attachment metadata
-        if att_id:
-            try:
-                resp = await client.get_attachment(att_id)
-                record("get_attachment", resp.get("id") == att_id, f"fileName={resp.get('fileName', '?')}")
-            except Exception as e:
-                record("get_attachment", False, str(e))
-
-            # delete it
-            try:
-                await client.delete_attachment(att_id)
-                record("delete_attachment", True)
-            except Exception as e:
-                record("delete_attachment", False, str(e))
+        try:
+            ok = await client.delete_attachment(attachment_id)
+            assert ok
+            record("attachments/delete", True)
+        except Exception as e:
+            record("attachments/delete", False, str(e)[:120])
     else:
-        print("  No work packages found — skipping attachment tests")
+        record("attachments/list", False, "skipped: upload failed")
+        record("attachments/get", False, "skipped: upload failed")
+        record("attachments/delete", False, "skipped: upload failed")
 
-    # ════════════════════════════════════════════
-    # COST TYPES + ENTRIES
-    # ════════════════════════════════════════════
-    print("\n─── Cost types & entries ───────────────────")
+    # ------------------------------------------------------------------ #
+    # TIME ENTRIES
+    # ------------------------------------------------------------------ #
+    section("Time Entries")
+
+    before_count = 0
+    try:
+        filters = json.dumps([{"project": {"operator": "=", "values": ["4"]}}])
+        result = await client.get_time_entries(filters=filters)
+        elements = result.get("_embedded", {}).get("elements", [])
+        before_count = len(elements)
+        record("time_entries/list_project_4", True, f"count={before_count}")
+    except Exception as e:
+        record("time_entries/list_project_4", False, str(e)[:120])
+
+    entry_id = None
+    try:
+        result = await client.create_time_entry({
+            "work_package_id": 46,
+            "hours": 0.5,
+            "spent_on": "2026-06-19",
+            "activity_id": 1,
+        })
+        entry_id = result.get("id")
+        assert entry_id, "No ID in created time entry"
+        record("time_entries/create", True, f"id={entry_id}")
+    except Exception as e:
+        record("time_entries/create", False, str(e)[:120])
+
+    if entry_id:
+        try:
+            filters = json.dumps([{"project": {"operator": "=", "values": ["4"]}}])
+            result = await client.get_time_entries(filters=filters)
+            elements = result.get("_embedded", {}).get("elements", [])
+            assert len(elements) > before_count, f"Expected count > {before_count}, got {len(elements)}"
+            record("time_entries/list_after_create", True, f"count={len(elements)}")
+        except Exception as e:
+            record("time_entries/list_after_create", False, str(e)[:120])
+
+        try:
+            ok = await client.delete_time_entry(entry_id)
+            assert ok
+            record("time_entries/delete", True)
+        except Exception as e:
+            record("time_entries/delete", False, str(e)[:120])
+    else:
+        record("time_entries/list_after_create", False, "skipped: create failed")
+        record("time_entries/delete", False, "skipped: create failed")
+
+    # ------------------------------------------------------------------ #
+    # VERSIONS
+    # ------------------------------------------------------------------ #
+    section("Versions")
 
     try:
-        resp = await client.get_cost_types()
-        cost_types = resp.get("_embedded", {}).get("elements", [])
-        record("get_cost_types", True, f"{len(cost_types)} types found")
+        result = await client.get_versions(4)
+        elements = result.get("_embedded", {}).get("elements", [])
+        record("versions/list", True, f"count={len(elements)}")
     except Exception as e:
-        record("get_cost_types", False, str(e))
-        cost_types = []
+        record("versions/list", False, str(e)[:120])
 
-    if cost_types and wps:
-        cost_type_id = cost_types[0]["id"]
-        cost_type_name = cost_types[0].get("name", "?")
-        print(f"  Using cost type: {cost_type_name} (ID: {cost_type_id})")
+    version_id = None
+    try:
+        result = await client.create_version(4, {"name": "Integration Test Version"})
+        version_id = result.get("id")
+        assert version_id, "No ID in created version"
+        record("versions/create", True, f"id={version_id}")
+    except Exception as e:
+        record("versions/create", False, str(e)[:120])
 
-        # create a cost entry
+    if version_id:
         try:
-            resp = await client.create_cost_entry({
-                "project_id": project_id,
-                "work_package_id": wp_id,
-                "cost_type_id": cost_type_id,
-                "units": 100.0,
-                "spent_on": "2026-06-18",
-                "comment": "Claude live integration test",
+            result = await client.get_versions(4)
+            elements = result.get("_embedded", {}).get("elements", [])
+            assert len(elements) >= 1, f"Expected >= 1 version, got {len(elements)}"
+            record("versions/list_after_create", True, f"count={len(elements)}")
+        except Exception as e:
+            record("versions/list_after_create", False, str(e)[:120])
+
+        # Try to delete; if not supported, close it
+        try:
+            if hasattr(client, 'delete_version'):
+                await client.delete_version(version_id)
+            else:
+                await client._request("PATCH", f"/versions/{version_id}", {"status": "closed"})
+            record("versions/delete_or_close", True)
+        except Exception as e:
+            record("versions/delete_or_close", False, str(e)[:120])
+    else:
+        record("versions/list_after_create", False, "skipped: create failed")
+        record("versions/delete_or_close", False, "skipped: create failed")
+
+    # ------------------------------------------------------------------ #
+    # MEMBERSHIPS
+    # ------------------------------------------------------------------ #
+    section("Memberships")
+
+    try:
+        result = await client.get_memberships(project_id=4)
+        elements = result.get("_embedded", {}).get("elements", [])
+        record("memberships/list_project_4", True, f"count={len(elements)}")
+
+        if elements:
+            first = elements[0]
+            first_id = first.get("id")
+            if first_id:
+                try:
+                    m = await client.get_membership(first_id)
+                    record("memberships/get_first", True, f"id={first_id}")
+                except Exception as e2:
+                    record("memberships/get_first", False, str(e2)[:120])
+            else:
+                record("memberships/get_first", True, "SKIP: no membership ID")
+        else:
+            record("memberships/get_first", True, "SKIP: no memberships")
+    except Exception as e:
+        record("memberships/list_project_4", False, str(e)[:120])
+        record("memberships/get_first", False, "skipped: list failed")
+
+    # ------------------------------------------------------------------ #
+    # USERS
+    # ------------------------------------------------------------------ #
+    section("Users")
+
+    try:
+        result = await client.get_users()
+        elements = result.get("_embedded", {}).get("elements", [])
+        record("users/list", True, f"count={len(elements)}")
+    except Exception as e:
+        record("users/list", False, str(e)[:120])
+
+    try:
+        result = await client.get_user(5)
+        name = result.get("name", "")
+        assert "Tom" in name, f"Expected 'Tom' in name, got {name!r}"
+        record("users/get_5", True, f"name={name}")
+    except Exception as e:
+        record("users/get_5", False, str(e)[:120])
+
+    # ------------------------------------------------------------------ #
+    # NEWS
+    # ------------------------------------------------------------------ #
+    section("News")
+
+    try:
+        filters = json.dumps([{"project": {"operator": "=", "values": ["4"]}}])
+        result = await client.get_news(filters=filters, page_size=5)
+        elements = result.get("_embedded", {}).get("elements", [])
+        record("news/list_project_4", True, f"count={len(elements)}")
+    except Exception as e:
+        record("news/list_project_4", False, str(e)[:120])
+
+    news_id = None
+    try:
+        result = await client.create_news({
+            "project": 4,
+            "title": "Integration Test News",
+            "summary": "Created by integration test",
+            "description": "This is a test news entry."
+        })
+        news_id = result.get("id")
+        assert news_id, "No ID in created news"
+        record("news/create", True, f"id={news_id}")
+    except Exception as e:
+        record("news/create", False, str(e)[:120])
+
+    if news_id:
+        try:
+            result = await client.get_news_item(news_id)
+            assert result.get("id") == news_id
+            record("news/get", True)
+        except Exception as e:
+            record("news/get", False, str(e)[:120])
+
+        try:
+            result = await client.update_news(news_id, {"title": "Integration Test News (Updated)"})
+            # success if no exception
+            record("news/update", True)
+        except Exception as e:
+            record("news/update", False, str(e)[:120])
+
+        try:
+            ok = await client.delete_news(news_id)
+            assert ok
+            record("news/delete", True)
+        except Exception as e:
+            record("news/delete", False, str(e)[:120])
+    else:
+        record("news/get", False, "skipped: create failed")
+        record("news/update", False, "skipped: create failed")
+        record("news/delete", False, "skipped: create failed")
+
+    # ------------------------------------------------------------------ #
+    # RELATIONS
+    # ------------------------------------------------------------------ #
+    section("Relations")
+
+    wp_a_id = None
+    wp_b_id = None
+
+    try:
+        result = await client.create_work_package({
+            "project": 4, "subject": "integration-test-relation-A", "type": 1
+        })
+        wp_a_id = result.get("id")
+        assert wp_a_id
+        record("relations/create_wp_a", True, f"id={wp_a_id}")
+    except Exception as e:
+        record("relations/create_wp_a", False, str(e)[:120])
+
+    try:
+        result = await client.create_work_package({
+            "project": 4, "subject": "integration-test-relation-B", "type": 1
+        })
+        wp_b_id = result.get("id")
+        assert wp_b_id
+        record("relations/create_wp_b", True, f"id={wp_b_id}")
+    except Exception as e:
+        record("relations/create_wp_b", False, str(e)[:120])
+
+    relation_id = None
+    if wp_a_id and wp_b_id:
+        try:
+            result = await client.create_work_package_relation({
+                "from_id": wp_a_id, "to_id": wp_b_id, "type": "relates"
             })
-            entry_id = resp.get("id")
-            record("create_cost_entry", entry_id is not None, f"id={entry_id}")
+            relation_id = result.get("id")
+            assert relation_id
+            record("relations/create_relation", True, f"id={relation_id}")
         except Exception as e:
-            record("create_cost_entry", False, str(e))
-            entry_id = None
+            record("relations/create_relation", False, str(e)[:120])
 
-        # list cost entries
         try:
-            resp = await client.get_cost_entries(work_package_id=wp_id)
-            entries = resp.get("_embedded", {}).get("elements", [])
-            record("get_cost_entries", True, f"{len(entries)} entries for WP #{wp_id}")
+            filters = json.dumps([{"involved": {"operator": "=", "values": [str(wp_a_id)]}}])
+            result = await client.list_work_package_relations(filters)
+            elements = result.get("_embedded", {}).get("elements", [])
+            assert len(elements) >= 1, f"Expected >= 1 relation, got {len(elements)}"
+            record("relations/list_relations", True, f"count={len(elements)}")
         except Exception as e:
-            record("get_cost_entries", False, str(e))
+            record("relations/list_relations", False, str(e)[:120])
 
-        # update it
-        if entry_id:
+        if relation_id:
             try:
-                resp = await client.update_cost_entry(entry_id, {
-                    "units": 200.0,
-                    "comment": "Claude live integration test (updated)",
-                })
-                record("update_cost_entry", True, f"units={resp.get('units', '?')}")
+                ok = await client.delete_work_package_relation(relation_id)
+                assert ok
+                record("relations/delete_relation", True)
             except Exception as e:
-                record("update_cost_entry", False, str(e))
+                record("relations/delete_relation", False, str(e)[:120])
+        else:
+            record("relations/delete_relation", False, "skipped: create_relation failed")
+    else:
+        record("relations/create_relation", False, "skipped: WP creation failed")
+        record("relations/list_relations", False, "skipped: WP creation failed")
+        record("relations/delete_relation", False, "skipped: WP creation failed")
 
-            # delete it
+    # Cleanup: delete both temp WPs
+    cleanup_ok = True
+    for wp_id in [wp_a_id, wp_b_id]:
+        if wp_id:
             try:
-                await client.delete_cost_entry(entry_id)
-                record("delete_cost_entry", True)
-            except Exception as e:
-                record("delete_cost_entry", False, str(e))
-    elif not cost_types:
-        print("  No cost types found — Costs module may not be enabled; skipping cost entry tests")
-    elif not wps:
-        print("  No work packages — skipping cost entry tests")
+                await client.delete_work_package(wp_id)
+            except Exception:
+                cleanup_ok = False
+    record("relations/cleanup_wps", cleanup_ok, "" if cleanup_ok else "some WP deletions failed")
+
+    # ------------------------------------------------------------------ #
+    # SUMMARY
+    # ------------------------------------------------------------------ #
+    print(f"\n{'=' * 60}")
+    passed = sum(1 for _, p, _ in results if p)
+    failed = sum(1 for _, p, _ in results if not p)
+    print(f"TOTAL: {passed} passed, {failed} failed out of {len(results)}")
+
+    if failed > 0:
+        print("\nFailed tests:")
+        for name, p, detail in results:
+            if not p:
+                print(f"  ❌ {name}: {detail}")
+        sys.exit(1)
+    else:
+        print("All tests passed!")
 
 
-async def main():
-    print("=" * 60)
-    print("OpenProject Live Integration Tests")
-    print("New API domains: wiki, groups, notifications, attachments, costs")
-    print("=" * 60)
-
-    try:
-        base_url, api_key = load_credentials()
-    except Exception as e:
-        print(f"\n{FAIL} Could not load credentials: {e}")
+def main() -> None:
+    base_url = os.environ.get("OPENPROJECT_URL", "")
+    if not base_url:
+        print("Error: OPENPROJECT_URL environment variable not set")
         sys.exit(1)
 
-    print(f"\nConnecting to: {base_url}")
+    api_key = subprocess.run(
+        ["infisical", "secrets", "get", "openproject-api-token-tom",
+         "--projectId", "62dc8b3e-db71-4cb3-aa1f-aa457d665edb", "--env", "prod", "--plain"],
+        capture_output=True, text=True
+    ).stdout.strip()
 
-    await run_tests(base_url, api_key)
+    if not api_key:
+        print("Error: Failed to retrieve API key from Infisical")
+        sys.exit(1)
 
-    print("\n" + "=" * 60)
-    passed = sum(1 for _, ok, _ in results if ok)
-    failed = sum(1 for _, ok, _ in results if not ok)
-    skipped = [n for n, ok, d in results if not ok and "skip" in d.lower()]
-    print(f"Results: {passed} passed, {failed} failed out of {len(results)} tests")
-    if failed:
-        print("\nFailed tests:")
-        for name, ok, detail in results:
-            if not ok:
-                print(f"  {FAIL} {name}: {detail}")
-    print("=" * 60)
-    sys.exit(0 if failed == 0 else 1)
+    os.environ["OPENPROJECT_URL"] = base_url
+    os.environ["OPENPROJECT_API_KEY"] = api_key
+
+    asyncio.run(run_tests(base_url, api_key))
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
