@@ -1981,3 +1981,45 @@ class OpenProjectClient:
         return await self._request(
             "POST", f"/work_packages/{work_package_id}/reminders", payload
         )
+
+    async def get_queries(self, project_id: int | None = None) -> dict:
+        """List saved queries, optionally scoped to a project."""
+        if project_id is not None:
+            filters = quote(
+                json.dumps(
+                    [{"project_id": {"operator": "=", "values": [str(project_id)]}}]
+                )
+            )
+            return await self._request("GET", f"/queries?filters={filters}")
+        return await self._request("GET", "/queries")
+
+    async def get_query(self, query_id: int) -> dict:
+        """Get a saved query by ID."""
+        return await self._request("GET", f"/queries/{query_id}")
+
+    async def get_default_query(self, project_id: int | None = None) -> dict:
+        """Get the default query (global or project-scoped)."""
+        if project_id is not None:
+            return await self._request("GET", f"/projects/{project_id}/queries/default")
+        return await self._request("GET", "/queries/default")
+
+    async def create_query(self, data: dict) -> dict:
+        """Create a new saved query. `data` is the full HAL payload."""
+        return await self._request("POST", "/queries", data)
+
+    async def update_query(self, query_id: int, data: dict) -> dict:
+        """Update a saved query. `data` is the partial HAL payload."""
+        return await self._request("PATCH", f"/queries/{query_id}", data)
+
+    async def delete_query(self, query_id: int) -> bool:
+        """Delete a saved query by ID."""
+        await self._request("DELETE", f"/queries/{query_id}")
+        return True
+
+    async def star_query(self, query_id: int) -> dict:
+        """Star a query (pin to top of the list)."""
+        return await self._request("PATCH", f"/queries/{query_id}/star")
+
+    async def unstar_query(self, query_id: int) -> dict:
+        """Unstar a query."""
+        return await self._request("PATCH", f"/queries/{query_id}/unstar")
