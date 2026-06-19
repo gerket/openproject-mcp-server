@@ -5,7 +5,7 @@ from src.server import mcp, get_client
 from src.utils.formatting import format_success, format_error, format_work_package_list
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def set_work_package_parent(child_id: int, parent_id: int) -> str:
     """Set a work package as child of another (create parent-child relationship).
 
@@ -36,7 +36,7 @@ async def set_work_package_parent(child_id: int, parent_id: int) -> str:
         return format_error(f"Failed to set parent: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def remove_work_package_parent(work_package_id: int) -> str:
     """Remove parent from a work package (break parent-child relationship).
 
@@ -59,7 +59,7 @@ async def remove_work_package_parent(work_package_id: int) -> str:
         return format_error(f"Failed to remove parent: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_work_package_children(
     work_package_id: int,
     offset: int = 0,

@@ -94,10 +94,24 @@ async def test_memberships_tags():
     print("✅ memberships tags correct (2 read, 3 write)")
 
 
+async def test_hierarchy_relations_tags():
+    tools = await get_tools()
+    await assert_tag("list_work_package_children", "read", tools)
+    for name in ["set_work_package_parent", "remove_work_package_parent"]:
+        await assert_tag(name, "write", tools)
+    for name in ["list_work_package_relations", "get_work_package_relation"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_work_package_relation", "update_work_package_relation",
+                 "delete_work_package_relation"]:
+        await assert_tag(name, "write", tools)
+    print("✅ hierarchy + relations tags correct")
+
+
 if __name__ == "__main__":
     asyncio.run(test_connection_tags())
     asyncio.run(test_work_packages_tags())
     asyncio.run(test_projects_tags())
     asyncio.run(test_users_tags())
     asyncio.run(test_memberships_tags())
+    asyncio.run(test_hierarchy_relations_tags())
     print("\n(Full tag sweep will pass once all modules are tagged)")
