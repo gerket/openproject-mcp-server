@@ -47,8 +47,3 @@ async def test_get_wiki_page_error():
             assert "error" in result.lower() or "failed" in result.lower()
             print("✅ PASSED: get_wiki_page error handled")
 
-
-if __name__ == "__main__":
-    asyncio.run(test_get_wiki_page_found())
-    asyncio.run(test_get_wiki_page_error())
-    print("\n✅ All wiki tool tests passed")

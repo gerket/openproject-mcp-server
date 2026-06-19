@@ -111,13 +111,3 @@ async def test_mark_all_notifications_read_tool():
             assert "all" in result.lower() or "read" in result.lower()
             print("✅ PASSED: mark_all_notifications_read tool")
 
-
-if __name__ == "__main__":
-    asyncio.run(test_get_notifications_client())
-    asyncio.run(test_mark_notification_read_client())
-    asyncio.run(test_mark_all_notifications_read_client())
-    asyncio.run(test_list_notifications_tool_empty())
-    asyncio.run(test_list_notifications_tool_with_items())
-    asyncio.run(test_mark_notification_read_tool())
-    asyncio.run(test_mark_all_notifications_read_tool())
-    print("\n✅ All notifications tests passed")

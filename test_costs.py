@@ -121,13 +121,3 @@ async def test_create_cost_entry_validation():
         except Exception:
             print("✅ PASSED: CreateCostEntryInput rejects negative units")
 
-
-if __name__ == "__main__":
-    asyncio.run(test_get_cost_types_client())
-    asyncio.run(test_get_cost_entries_filtered())
-    asyncio.run(test_create_cost_entry_client())
-    asyncio.run(test_delete_cost_entry_client())
-    asyncio.run(test_list_cost_types_tool())
-    asyncio.run(test_create_cost_entry_tool())
-    asyncio.run(test_create_cost_entry_validation())
-    print("\n✅ All costs tests passed")

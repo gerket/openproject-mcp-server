@@ -27,7 +27,3 @@ async def test_get_wiki_page_by_id():
         assert result == mock_response
         print("✅ PASSED: get_wiki_page_by_id")
 
-
-if __name__ == "__main__":
-    asyncio.run(test_get_wiki_page_by_id())
-    print("\n✅ All wiki client tests passed")

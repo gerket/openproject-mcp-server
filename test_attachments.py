@@ -122,13 +122,3 @@ async def test_list_attachments_tool():
             assert "doc.pdf" in result
             print("✅ PASSED: list_attachments tool")
 
-
-if __name__ == "__main__":
-    asyncio.run(test_upload_attachment_calls_upload_request())
-    asyncio.run(test_get_attachment_client())
-    asyncio.run(test_delete_attachment_client())
-    asyncio.run(test_list_attachments_client())
-    asyncio.run(test_upload_attachment_tool_invalid_container())
-    asyncio.run(test_upload_attachment_tool_valid())
-    asyncio.run(test_list_attachments_tool())
-    print("\n✅ All attachment tests passed")

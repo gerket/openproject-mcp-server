@@ -65,10 +65,3 @@ async def test_get_group_tool():
         assert "Devs" in result
         print("✅ PASSED: get_group tool")
 
-
-if __name__ == "__main__":
-    asyncio.run(test_get_groups_client())
-    asyncio.run(test_get_group_client())
-    asyncio.run(test_list_groups_tool())
-    asyncio.run(test_get_group_tool())
-    print("\n✅ All groups tests passed")
