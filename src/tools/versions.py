@@ -17,7 +17,7 @@ class CreateVersionInput(BaseModel):
     status: str | None = Field(None, description="Status (open, locked, closed)")
 
 
-@mcp.tool(tags={"read", "projects"})
+@mcp.tool(tags={"read", "projects", "core", "core-read", "all"})
 async def list_versions(project_id: int) -> str:
     """List all versions/milestones in a project.
 
@@ -62,7 +62,7 @@ async def list_versions(project_id: int) -> str:
         return format_error(f"Failed to list versions: {e!s}")
 
 
-@mcp.tool(tags={"write", "projects"})
+@mcp.tool(tags={"write", "projects", "all"})
 async def create_version(input: CreateVersionInput) -> str:
     """Create a new version/milestone in a project.
 

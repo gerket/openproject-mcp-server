@@ -42,7 +42,7 @@ class UpdateNewsInput(BaseModel):
 # ============================================================
 
 
-@mcp.tool(tags={"read", "content"})
+@mcp.tool(tags={"read", "content", "situational", "situational-read", "all"})
 async def list_news(
     project_id: int | None = None,
     sort_by_created: bool = True,
@@ -104,7 +104,7 @@ async def list_news(
         return format_error(f"Failed to list news: {e!s}")
 
 
-@mcp.tool(tags={"write", "content"})
+@mcp.tool(tags={"write", "content", "situational", "situational-write", "all"})
 async def create_news(input: CreateNewsInput) -> str:
     """Create a new news entry for a project.
 
@@ -157,7 +157,7 @@ async def create_news(input: CreateNewsInput) -> str:
         return format_error(f"Failed to create news: {e!s}")
 
 
-@mcp.tool(tags={"read", "content"})
+@mcp.tool(tags={"read", "content", "situational", "situational-read", "all"})
 async def get_news(news_id: int) -> str:
     """Get detailed information about a specific news entry.
 
@@ -186,7 +186,7 @@ async def get_news(news_id: int) -> str:
         return format_error(f"Failed to get news entry: {e!s}")
 
 
-@mcp.tool(tags={"write", "content"})
+@mcp.tool(tags={"write", "content", "situational", "situational-write", "all"})
 async def update_news(input: UpdateNewsInput) -> str:
     """Update an existing news entry.
 
@@ -241,7 +241,7 @@ async def update_news(input: UpdateNewsInput) -> str:
         return format_error(f"Failed to update news: {e!s}")
 
 
-@mcp.tool(tags={"write", "content"})
+@mcp.tool(tags={"write", "content", "situational", "situational-write", "all"})
 async def delete_news(news_id: int) -> str:
     """Delete a news entry permanently.
 

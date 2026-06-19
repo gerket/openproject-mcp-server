@@ -9,7 +9,7 @@ from src.server import get_client, mcp
 from src.utils.formatting import format_error, format_project_list, format_success
 
 
-@mcp.tool(tags={"read", "projects"})
+@mcp.tool(tags={"read", "projects", "core", "core-read", "all"})
 async def list_projects(active_only: bool = True, show_hierarchy: bool = False) -> str:
     """List all OpenProject projects.
 
@@ -104,7 +104,7 @@ def _format_project_hierarchy(projects: list) -> str:
     return text
 
 
-@mcp.tool(tags={"read", "projects"})
+@mcp.tool(tags={"read", "projects", "core", "core-read", "all"})
 async def get_project(project_id: int) -> str:
     """Get detailed information about a specific project.
 
@@ -193,7 +193,7 @@ class UpdateProjectInput(BaseModel):
     parent_id: int | None = Field(None, description="New parent project ID", gt=0)
 
 
-@mcp.tool(tags={"write", "projects"})
+@mcp.tool(tags={"write", "projects", "all"})
 async def create_project(input: CreateProjectInput) -> str:
     """Create a new project.
 
@@ -243,7 +243,7 @@ async def create_project(input: CreateProjectInput) -> str:
         return format_error(f"Failed to create project: {e!s}")
 
 
-@mcp.tool(tags={"write", "projects"})
+@mcp.tool(tags={"write", "projects", "all"})
 async def add_subproject(input: AddSubprojectInput) -> str:
     """Add a subproject to an existing project.
 
@@ -306,7 +306,7 @@ async def add_subproject(input: AddSubprojectInput) -> str:
         return format_error(f"Failed to create subproject: {e!s}")
 
 
-@mcp.tool(tags={"read", "projects"})
+@mcp.tool(tags={"read", "projects", "all"})
 async def get_subprojects(parent_id: int) -> str:
     """Get direct subprojects of a parent project.
 
@@ -357,7 +357,7 @@ async def get_subprojects(parent_id: int) -> str:
         return format_error(f"Failed to get subprojects: {e!s}")
 
 
-@mcp.tool(tags={"write", "projects"})
+@mcp.tool(tags={"write", "projects", "all"})
 async def update_project(input: UpdateProjectInput) -> str:
     """Update an existing project.
 
@@ -402,7 +402,7 @@ async def update_project(input: UpdateProjectInput) -> str:
         return format_error(f"Failed to update project: {e!s}")
 
 
-@mcp.tool(tags={"write", "projects"})
+@mcp.tool(tags={"write", "projects", "all"})
 async def delete_project(project_id: int) -> str:
     """Delete a project.
 

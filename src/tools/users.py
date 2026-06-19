@@ -4,7 +4,7 @@ from src.server import get_client, mcp
 from src.utils.formatting import format_error
 
 
-@mcp.tool(tags={"read", "users"})
+@mcp.tool(tags={"read", "users", "core", "core-read", "all"})
 async def list_users(name: str | None = None, status: str | None = None) -> str:
     """List users in OpenProject.
 
@@ -52,7 +52,7 @@ async def list_users(name: str | None = None, status: str | None = None) -> str:
         return format_error(f"Failed to list users: {e!s}")
 
 
-@mcp.tool(tags={"read", "users"})
+@mcp.tool(tags={"read", "users", "core", "core-read", "all"})
 async def get_user(user_id: int) -> str:
     """Get detailed information about a specific user.
 
@@ -84,7 +84,7 @@ async def get_user(user_id: int) -> str:
         return format_error(f"Failed to get user: {e!s}")
 
 
-@mcp.tool(tags={"read", "users"})
+@mcp.tool(tags={"read", "users", "all"})
 async def list_roles() -> str:
     """List available user roles in OpenProject.
 
@@ -112,7 +112,7 @@ async def list_roles() -> str:
         return format_error(f"Failed to list roles: {e!s}")
 
 
-@mcp.tool(tags={"read", "users"})
+@mcp.tool(tags={"read", "users", "all"})
 async def get_role(role_id: int) -> str:
     """Get detailed information about a specific role.
 
@@ -145,7 +145,7 @@ async def get_role(role_id: int) -> str:
         return format_error(f"Failed to get role: {e!s}")
 
 
-@mcp.tool(tags={"read", "users"})
+@mcp.tool(tags={"read", "users", "all"})
 async def list_project_members(project_id: int) -> str:
     """List all members of a specific project.
 
@@ -191,7 +191,7 @@ async def list_project_members(project_id: int) -> str:
         return format_error(f"Failed to list project members: {e!s}")
 
 
-@mcp.tool(tags={"read", "users"})
+@mcp.tool(tags={"read", "users", "all"})
 async def list_user_projects(user_id: int) -> str:
     """List all projects a user is a member of.
 

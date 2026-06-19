@@ -32,7 +32,7 @@ class UpdateTimeEntryInput(BaseModel):
     comment: str | None = Field(None, description="New comment")
 
 
-@mcp.tool(tags={"read", "time"})
+@mcp.tool(tags={"read", "time", "situational", "situational-read", "all"})
 async def list_time_entries(
     work_package_id: int | None = None,
     user_id: int | None = None,
@@ -105,7 +105,7 @@ async def list_time_entries(
         return format_error(f"Failed to list time entries: {e!s}")
 
 
-@mcp.tool(tags={"write", "time"})
+@mcp.tool(tags={"write", "time", "situational", "situational-write", "all"})
 async def create_time_entry(input: CreateTimeEntryInput) -> str:
     """Create a new time entry for a work package.
 
@@ -165,7 +165,7 @@ async def create_time_entry(input: CreateTimeEntryInput) -> str:
         return format_error(f"Failed to create time entry: {e!s}")
 
 
-@mcp.tool(tags={"write", "time"})
+@mcp.tool(tags={"write", "time", "situational", "situational-write", "all"})
 async def update_time_entry(input: UpdateTimeEntryInput) -> str:
     """Update an existing time entry.
 
@@ -213,7 +213,7 @@ async def update_time_entry(input: UpdateTimeEntryInput) -> str:
         return format_error(f"Failed to update time entry: {e!s}")
 
 
-@mcp.tool(tags={"write", "time"})
+@mcp.tool(tags={"write", "time", "situational", "situational-write", "all"})
 async def delete_time_entry(time_entry_id: int) -> str:
     """Delete a time entry.
 
@@ -237,7 +237,7 @@ async def delete_time_entry(time_entry_id: int) -> str:
         return format_error(f"Failed to delete time entry: {e!s}")
 
 
-@mcp.tool(tags={"read", "time"})
+@mcp.tool(tags={"read", "time", "situational", "situational-read", "all"})
 async def list_time_entry_activities() -> str:
     """List available time entry activities.
 
