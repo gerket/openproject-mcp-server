@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Verify that all @mcp.tool decorators carry a read or write tag."""
 
-import asyncio
 import os
 import sys
 
@@ -12,6 +11,7 @@ async def get_tools():
     os.environ.setdefault("OPENPROJECT_URL", "http://test.example.com")
     os.environ.setdefault("OPENPROJECT_API_KEY", "test-key")
     from src.server import mcp
+
     return await mcp.get_tools()
 
 
@@ -24,21 +24,22 @@ async def test_all_tools_have_tags():
 
 async def test_tag_values():
     tools = await get_tools()
+    # Every tool must have at least one access tag ("read" or "write")
     bad = [
         f"{name}:{t.tags}"
         for name, t in tools.items()
-        if getattr(t, "tags", None) and t.tags - {"read", "write"}
+        if getattr(t, "tags", None) and not (t.tags & {"read", "write"})
     ]
-    assert not bad, f"Tools with unexpected tag values: {bad}"
-    print("✅ All tags are 'read' or 'write'")
+    assert not bad, f"Tools missing an access tag (read/write): {bad}"
+    print("✅ All tags have an access tag (read or write)")
 
 
 async def assert_tag(tool_name: str, expected_tag: str, tools: dict):
     t = tools.get(tool_name)
     assert t is not None, f"Tool '{tool_name}' not found"
-    assert expected_tag in (t.tags or set()), (
-        f"Expected {tool_name} to have tag '{expected_tag}', got {t.tags}"
-    )
+    assert expected_tag in (
+        t.tags or set()
+    ), f"Expected {tool_name} to have tag '{expected_tag}', got {t.tags}"
 
 
 async def test_connection_tags():
@@ -51,36 +52,60 @@ async def test_connection_tags():
 async def test_work_packages_tags():
     tools = await get_tools()
     read_tools = [
-        "list_work_packages", "search_work_packages", "list_types",
-        "list_statuses", "list_priorities", "list_work_package_activities",
-        "list_overdue_work_packages", "list_work_packages_due_soon",
-        "list_unassigned_work_packages", "list_work_packages_created_recently",
-        "list_high_priority_work_packages", "list_work_packages_nearly_complete",
+        "list_work_packages",
+        "search_work_packages",
+        "list_types",
+        "list_statuses",
+        "list_priorities",
+        "list_work_package_activities",
+        "list_overdue_work_packages",
+        "list_work_packages_due_soon",
+        "list_unassigned_work_packages",
+        "list_work_packages_created_recently",
+        "list_high_priority_work_packages",
+        "list_work_packages_nearly_complete",
     ]
     write_tools = [
-        "create_work_package", "update_work_package", "delete_work_package",
-        "assign_work_package", "unassign_work_package", "add_work_package_comment",
+        "create_work_package",
+        "update_work_package",
+        "delete_work_package",
+        "assign_work_package",
+        "unassign_work_package",
+        "add_work_package_comment",
     ]
     for name in read_tools:
         await assert_tag(name, "read", tools)
     for name in write_tools:
         await assert_tag(name, "write", tools)
-    print(f"✅ work_packages tags correct ({len(read_tools)} read, {len(write_tools)} write)")
+    print(
+        f"✅ work_packages tags correct ({len(read_tools)} read, {len(write_tools)} write)"
+    )
 
 
 async def test_projects_tags():
     tools = await get_tools()
     for name in ["list_projects", "get_project", "get_subprojects"]:
         await assert_tag(name, "read", tools)
-    for name in ["create_project", "add_subproject", "update_project", "delete_project"]:
+    for name in [
+        "create_project",
+        "add_subproject",
+        "update_project",
+        "delete_project",
+    ]:
         await assert_tag(name, "write", tools)
     print("✅ projects tags correct (3 read, 4 write)")
 
 
 async def test_users_tags():
     tools = await get_tools()
-    for name in ["list_users", "get_user", "list_roles", "get_role",
-                 "list_project_members", "list_user_projects"]:
+    for name in [
+        "list_users",
+        "get_user",
+        "list_roles",
+        "get_role",
+        "list_project_members",
+        "list_user_projects",
+    ]:
         await assert_tag(name, "read", tools)
     print("✅ users tags correct (6 read)")
 
@@ -101,8 +126,11 @@ async def test_hierarchy_relations_tags():
         await assert_tag(name, "write", tools)
     for name in ["list_work_package_relations", "get_work_package_relation"]:
         await assert_tag(name, "read", tools)
-    for name in ["create_work_package_relation", "update_work_package_relation",
-                 "delete_work_package_relation"]:
+    for name in [
+        "create_work_package_relation",
+        "update_work_package_relation",
+        "delete_work_package_relation",
+    ]:
         await assert_tag(name, "write", tools)
     print("✅ hierarchy + relations tags correct")
 
@@ -120,8 +148,12 @@ async def test_time_entries_versions_tags():
 
 async def test_reports_news_tags():
     tools = await get_tools()
-    for name in ["generate_weekly_report", "generate_this_week_report",
-                 "generate_last_week_report", "get_report_data"]:
+    for name in [
+        "generate_weekly_report",
+        "generate_this_week_report",
+        "generate_last_week_report",
+        "get_report_data",
+    ]:
         await assert_tag(name, "read", tools)
     for name in ["list_news", "get_news"]:
         await assert_tag(name, "read", tools)
@@ -155,17 +187,34 @@ async def test_new_modules_tags():
 
 
 async def test_full_sweep():
-    """Every single registered tool must have exactly one of: read, write."""
+    """Every registered tool must have exactly one access tag and at least one category tag."""
     tools = await get_tools()
     missing = [name for name, t in tools.items() if not getattr(t, "tags", None)]
     bad_values = [
         f"{name}:{t.tags}"
         for name, t in tools.items()
-        if getattr(t, "tags", None) and t.tags - {"read", "write"}
+        if getattr(t, "tags", None)
+        and t.tags - {"read", "write"} == set()
+        and len(t.tags) < 2
     ]
     assert not missing, f"Tools without tags: {sorted(missing)}"
-    assert not bad_values, f"Tools with unexpected tag values: {bad_values}"
+
+    # Every tool must have exactly one access tag
+    wrong_access = [
+        f"{name}:{t.tags}"
+        for name, t in tools.items()
+        if len(t.tags & {"read", "write"}) != 1
+    ]
+    assert not wrong_access, f"Tools without exactly one read/write tag: {wrong_access}"
+
+    # Every tool must have at least one category tag (non-access tag)
+    no_category = [
+        name for name, t in tools.items() if not (t.tags - {"read", "write"})
+    ]
+    assert not no_category, f"Tools missing a category tag: {sorted(no_category)}"
+
     read_count = sum(1 for t in tools.values() if "read" in (t.tags or set()))
     write_count = sum(1 for t in tools.values() if "write" in (t.tags or set()))
-    print(f"✅ Full sweep: {len(tools)} tools, {read_count} read, {write_count} write")
-
+    print(
+        f"✅ Full sweep: {len(tools)} tools, {read_count} read, {write_count} write, all have category tags"
+    )
