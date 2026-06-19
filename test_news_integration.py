@@ -163,14 +163,3 @@ async def test_news_tools_integration():
         traceback.print_exc()
         return False
 
-
-if __name__ == "__main__":
-    print("\n>> Starting News Tools Integration Test...\n")
-    success = asyncio.run(test_news_tools_integration())
-    
-    if success:
-        print("\n🎉 INTEGRATION TEST PASSED!\n")
-        sys.exit(0)
-    else:
-        print("\n⚠️ INTEGRATION TEST FAILED!\n")
-        sys.exit(1)
