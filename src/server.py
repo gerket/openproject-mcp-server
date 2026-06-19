@@ -64,27 +64,24 @@ def get_client():
 logger.info("Loading tool modules...")
 
 try:
-    # Phase 1: Priority tools (7 tools)
-    from src.tools import connection      # 2 tools: test_connection, check_permissions
-    from src.tools import work_packages   # 7 tools: list, create, update, delete, list_types, list_statuses, list_priorities
-    from src.tools import projects        # 5 tools: list, get, create, update, delete
+    from src.tools import connection      # 2 tools
+    from src.tools import work_packages   # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
+    from src.tools import projects        # 7 tools (list, get, create, add_subproject, get_subprojects, update, delete)
+    from src.tools import users           # 6 tools
+    from src.tools import memberships     # 5 tools
+    from src.tools import hierarchy       # 3 tools
+    from src.tools import relations       # 5 tools
+    from src.tools import time_entries    # 5 tools
+    from src.tools import versions        # 2 tools
+    from src.tools import weekly_reports  # 4 tools
+    from src.tools import news            # 5 tools
+    from src.tools import wiki            # 1 tool (API v3 wiki is a stub — only GET by integer ID)
+    from src.tools import groups          # 2 tools
+    from src.tools import notifications   # 3 tools
+    from src.tools import attachments     # 4 tools
+    from src.tools import costs           # 5 tools
 
-    # Phase 2: Additional tools (28 tools)
-    from src.tools import users           # 6 tools: list_users, get_user, list_roles, get_role, list_project_members, list_user_projects
-    from src.tools import memberships     # 5 tools: list, get, create, update, delete
-    from src.tools import hierarchy       # 3 tools: set_parent, remove_parent, list_children
-    from src.tools import relations       # 5 tools: create, list, get, update, delete
-    from src.tools import time_entries    # 5 tools: list, create, update, delete, list_activities
-    from src.tools import versions        # 2 tools: list, create
-    from src.tools import weekly_reports   # 4 tools: generate_weekly_report, get_report_data, generate_this_week_report, generate_last_week_report
-    from src.tools import news             # 5 tools: list_news, create_news, get_news, update_news, delete_news
-    from src.tools import wiki             # 1 tool: get_wiki_page (API v3 wiki is a stub — only GET by ID is available)
-    from src.tools import groups            # 2 tools: list_groups, get_group
-    from src.tools import notifications     # 3 tools: list_notifications, mark_notification_read, mark_all_notifications_read
-    from src.tools import attachments       # 4 tools: upload_attachment, list_attachments, get_attachment, delete_attachment
-    from src.tools import costs             # 5 tools: list_cost_types, list_cost_entries, create_cost_entry, update_cost_entry, delete_cost_entry
-
-    logger.info("✅ All 64 tool modules loaded successfully")
+    logger.info("✅ All 77 tools loaded successfully (45 read, 32 write)")
 except ImportError as e:
     logger.warning(f"⚠️  Some tool modules failed to import: {e}")
     raise
