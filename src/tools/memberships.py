@@ -24,7 +24,7 @@ class UpdateMembershipInput(BaseModel):
     notification_message: Optional[str] = Field(None, description="Optional notification message")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_memberships(
     project_id: Optional[int] = None,
     user_id: Optional[int] = None
@@ -80,7 +80,7 @@ async def list_memberships(
         return format_error(f"Failed to list memberships: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def get_membership(membership_id: int) -> str:
     """Get detailed information about a specific membership.
 
@@ -125,7 +125,7 @@ async def get_membership(membership_id: int) -> str:
         return format_error(f"Failed to get membership: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def create_membership(input: CreateMembershipInput) -> str:
     """Create a new membership (add user/group to project).
 
@@ -186,7 +186,7 @@ async def create_membership(input: CreateMembershipInput) -> str:
         return format_error(f"Failed to create membership: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def update_membership(input: UpdateMembershipInput) -> str:
     """Update an existing membership (change roles).
 
@@ -227,7 +227,7 @@ async def update_membership(input: UpdateMembershipInput) -> str:
         return format_error(f"Failed to update membership: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def delete_membership(membership_id: int) -> str:
     """Delete a membership (remove user/group from project).
 
