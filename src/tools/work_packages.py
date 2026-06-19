@@ -69,7 +69,7 @@ class UpdateWorkPackageInput(BaseModel):
     )
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_work_packages(
     # Existing parameters (backward compatible)
     project_id: Optional[int] = None,
@@ -310,7 +310,7 @@ async def list_work_packages(
 
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def search_work_packages(
     query: str,
     project_id: Optional[int] = None,
@@ -410,7 +410,7 @@ async def search_work_packages(
         return format_error(f"Failed to search work packages: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def create_work_package(input: CreateWorkPackageInput) -> str:
     """Create a new work package (task) - CRITICAL tool for creating tasks.
 
@@ -496,7 +496,7 @@ async def create_work_package(input: CreateWorkPackageInput) -> str:
         return format_error(f"Failed to create work package: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def update_work_package(input: UpdateWorkPackageInput) -> str:
     """Update an existing work package (task) - CRITICAL tool for updating tasks.
 
@@ -590,7 +590,7 @@ async def update_work_package(input: UpdateWorkPackageInput) -> str:
         return format_error(f"Failed to update work package: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def delete_work_package(work_package_id: int) -> str:
     """Delete a work package (task).
 
@@ -614,7 +614,7 @@ async def delete_work_package(work_package_id: int) -> str:
         return format_error(f"Failed to delete work package: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_types(project_id: Optional[int] = None) -> str:
     """List available work package types (Bug, Task, Feature, etc.).
 
@@ -647,7 +647,7 @@ async def list_types(project_id: Optional[int] = None) -> str:
         return format_error(f"Failed to list work package types: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_statuses() -> str:
     """List available work package statuses (New, In Progress, Closed, etc.).
 
@@ -678,7 +678,7 @@ async def list_statuses() -> str:
         return format_error(f"Failed to list work package statuses: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_priorities() -> str:
     """List available work package priorities (Low, Normal, High, Immediate).
 
@@ -709,7 +709,7 @@ async def list_priorities() -> str:
         return format_error(f"Failed to list work package priorities: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def assign_work_package(work_package_id: int, assignee_id: int) -> str:
     """Assign a work package (task) to a user.
 
@@ -765,7 +765,7 @@ async def assign_work_package(work_package_id: int, assignee_id: int) -> str:
         return format_error(f"Failed to assign work package: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def unassign_work_package(work_package_id: int) -> str:
     """Unassign a work package (remove assignee from task).
 
@@ -803,7 +803,7 @@ async def unassign_work_package(work_package_id: int) -> str:
         return format_error(f"Failed to unassign work package: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"write"})
 async def add_work_package_comment(
     work_package_id: int,
     comment: str,
@@ -867,7 +867,7 @@ async def add_work_package_comment(
         return format_error(f"Failed to add comment: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_work_package_activities(work_package_id: int) -> str:
     """List all activities (comments, changes) for a work package.
 
@@ -939,7 +939,7 @@ async def list_work_package_activities(work_package_id: int) -> str:
 # ADVANCED FILTERS - New high-priority tools for better task discovery
 # ============================================================================
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_overdue_work_packages(
     project_id: Optional[int] = None,
     assignee_id: Optional[int] = None,
@@ -1045,7 +1045,7 @@ async def list_overdue_work_packages(
         return format_error(f"Failed to list overdue work packages: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_work_packages_due_soon(
     days: int = 7,
     project_id: Optional[int] = None,
@@ -1151,7 +1151,7 @@ async def list_work_packages_due_soon(
         return format_error(f"Failed to list work packages due soon: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_unassigned_work_packages(
     project_id: Optional[int] = None,
     priority_ids: Optional[str] = None,
@@ -1239,7 +1239,7 @@ async def list_unassigned_work_packages(
         return format_error(f"Failed to list unassigned work packages: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_work_packages_created_recently(
     days: int = 7,
     project_id: Optional[int] = None,
@@ -1337,7 +1337,7 @@ async def list_work_packages_created_recently(
         return format_error(f"Failed to list recently created work packages: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_high_priority_work_packages(
     project_id: Optional[int] = None,
     assignee_id: Optional[int] = None,
@@ -1431,7 +1431,7 @@ async def list_high_priority_work_packages(
         return format_error(f"Failed to list high priority work packages: {str(e)}")
 
 
-@mcp.tool
+@mcp.tool(tags={"read"})
 async def list_work_packages_nearly_complete(
     project_id: Optional[int] = None,
     assignee_id: Optional[int] = None,
