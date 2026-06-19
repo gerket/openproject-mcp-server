@@ -68,7 +68,17 @@ async def test_work_packages_tags():
     print(f"✅ work_packages tags correct ({len(read_tools)} read, {len(write_tools)} write)")
 
 
+async def test_projects_tags():
+    tools = await get_tools()
+    for name in ["list_projects", "get_project", "get_subprojects"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_project", "add_subproject", "update_project", "delete_project"]:
+        await assert_tag(name, "write", tools)
+    print("✅ projects tags correct (3 read, 4 write)")
+
+
 if __name__ == "__main__":
     asyncio.run(test_connection_tags())
     asyncio.run(test_work_packages_tags())
+    asyncio.run(test_projects_tags())
     print("\n(Full tag sweep will pass once all modules are tagged)")
