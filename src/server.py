@@ -78,13 +78,13 @@ try:
     from src.tools import versions        # 2 tools: list, create
     from src.tools import weekly_reports   # 4 tools: generate_weekly_report, get_report_data, generate_this_week_report, generate_last_week_report
     from src.tools import news             # 5 tools: list_news, create_news, get_news, update_news, delete_news
-    from src.tools import wiki             # 4 tools: list_wiki_pages, get_wiki_page, upsert_wiki_page, delete_wiki_page
+    from src.tools import wiki             # 1 tool: get_wiki_page (API v3 wiki is a stub — only GET by ID is available)
     from src.tools import groups            # 2 tools: list_groups, get_group
     from src.tools import notifications     # 3 tools: list_notifications, mark_notification_read, mark_all_notifications_read
     from src.tools import attachments       # 4 tools: upload_attachment, list_attachments, get_attachment, delete_attachment
     from src.tools import costs             # 5 tools: list_cost_types, list_cost_entries, create_cost_entry, update_cost_entry, delete_cost_entry
 
-    logger.info("✅ All 67 tool modules loaded successfully")
+    logger.info("✅ All 64 tool modules loaded successfully")
 except ImportError as e:
     logger.warning(f"⚠️  Some tool modules failed to import: {e}")
     raise

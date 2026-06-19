@@ -48,7 +48,7 @@ async def test_mark_all_notifications_read_client():
     with patch.object(client, "_request", new=AsyncMock(return_value={})) as mock_req:
         result = await client.mark_all_notifications_read()
         assert result is True
-        assert "read_all_ian" in mock_req.call_args[0][1]
+        assert "read_ian" in mock_req.call_args[0][1]
         print("✅ PASSED: mark_all_notifications_read client")
 
 

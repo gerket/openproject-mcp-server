@@ -29,11 +29,31 @@ __version__ = "2.0.0"
 _CUSTOM_FIELD_KEY = re.compile(r"^customField\d+$")
 
 
-def _merge_custom_fields(payload: Dict, custom_fields: Optional[Dict]) -> None:
+def _merge_custom_fields(
+    payload: Dict,
+    custom_fields: Optional[Dict],
+    reference: Optional[Dict] = None,
+) -> None:
     """Merge validated custom-field values into a work-package payload in place.
 
     Each key must match ``customField<N>``; anything else raises ValueError so
     the caller fails loudly rather than injecting an arbitrary top-level field.
+
+    OpenProject represents long-text/markdown custom fields (type "Formattable")
+    as ``{"raw": "...", "html": "..."}`` objects rather than bare strings.
+    Passing a bare string for a Formattable field is silently ignored by the API
+    (the write succeeds but the value is discarded).  This function auto-wraps
+    bare strings for Formattable fields by inspecting ``reference`` — the
+    current work-package dict or a form payload — where the existing field value
+    reveals its type.  Callers may also pass the value pre-wrapped as
+    ``{"raw": "..."}`` and it will be forwarded as-is.
+
+    Args:
+        payload: The request body being built (mutated in place).
+        custom_fields: Caller-supplied ``{customField<N>: value}`` dict.
+        reference: Optional dict (current WP or form payload) used to detect
+            Formattable fields.  When None, bare strings are forwarded as-is and
+            a warning is logged.
     """
     if not custom_fields:
         return
@@ -44,7 +64,80 @@ def _merge_custom_fields(payload: Dict, custom_fields: Optional[Dict]) -> None:
                 f"'customField<N>' (e.g. 'customField12'). Refusing to set an "
                 f"arbitrary top-level property."
             )
+        # Auto-wrap bare strings for Formattable (long-text/markdown) fields.
+        if isinstance(cf_value, str):
+            ref_value = (reference or {}).get(cf_name)
+            if isinstance(ref_value, dict) and "raw" in ref_value:
+                cf_value = {"raw": cf_value}
+            elif ref_value is None and reference is not None:
+                # Field exists in schema but has no current value — can't detect
+                # type from a null; log and forward as-is.
+                logger.debug(
+                    "custom field %s has null reference value; forwarding bare string. "
+                    "If this is a long-text field, pass {'raw': <value>} explicitly.",
+                    cf_name,
+                )
         payload[cf_name] = cf_value
+
+
+def _verify_custom_fields(
+    response: Dict,
+    custom_fields: Optional[Dict],
+    operation: str = "write",
+) -> None:
+    """Raise if a custom field value was silently dropped by OpenProject.
+
+    Compares the values we intended to write against what came back in the
+    response.  Only checks fields the caller actually supplied.
+
+    Args:
+        response: The API response dict (work package after create/update).
+        custom_fields: The ``{customField<N>: value}`` dict we tried to write.
+        operation: Label for the error message ("create" or "update").
+
+    Raises:
+        ValueError: If any supplied field is absent from or empty in the
+            response when a non-empty value was supplied.
+    """
+    if not custom_fields:
+        return
+    dropped = []
+    for cf_name, intended in custom_fields.items():
+        actual = response.get(cf_name)
+        if actual is None:
+            # Field not present in response at all — possibly not enabled for
+            # this type/project, or a schema mismatch.  Warn but don't fail
+            # hard since it may be intentional (field disabled after creation).
+            logger.warning(
+                "custom field %s not present in %s response; "
+                "it may not be enabled for this work-package type/project.",
+                cf_name, operation,
+            )
+            continue
+        # Determine the intended non-empty value for comparison.
+        if isinstance(intended, dict):
+            intended_raw = intended.get("raw", "")
+        else:
+            intended_raw = str(intended) if intended is not None else ""
+        if not intended_raw:
+            continue  # caller wrote empty — nothing to verify
+        # Determine what the response reports.
+        if isinstance(actual, dict):
+            actual_raw = actual.get("raw", "")
+        else:
+            actual_raw = str(actual) if actual is not None else ""
+        if not actual_raw:
+            dropped.append(
+                f"{cf_name}: intended {intended_raw!r} but response shows empty value "
+                f"(OpenProject silently dropped the write — check that the field "
+                f"format matches the value shape and that the field is enabled for "
+                f"this work-package type and project)."
+            )
+    if dropped:
+        raise ValueError(
+            f"custom field {operation} verification failed — "
+            + "; ".join(dropped)
+        )
 
 
 class OpenProjectClient:
@@ -387,11 +480,14 @@ class OpenProjectClient:
             payload["date"] = data["date"]
 
         # Custom fields: merge validated customField<N> keys as top-level payload
-        # entries (OpenProject represents custom values as flat top-level props).
-        _merge_custom_fields(payload, data.get("custom_fields"))
+        # entries.  Pass the form payload as reference so Formattable fields are
+        # auto-wrapped correctly.
+        _merge_custom_fields(payload, data.get("custom_fields"), reference=payload)
 
         # Create work package
-        return await self._request("POST", "/work_packages", payload)
+        result = await self._request("POST", "/work_packages", payload)
+        _verify_custom_fields(result, data.get("custom_fields"), "create")
+        return result
 
     async def get_types(self, project_id: Optional[int] = None) -> Dict:
         """
@@ -681,11 +777,14 @@ class OpenProjectClient:
             payload["date"] = data["date"]
 
         # Custom fields: merge validated customField<N> keys as top-level entries.
-        _merge_custom_fields(payload, data.get("custom_fields"))
+        # Pass current_wp as reference so Formattable fields are auto-wrapped.
+        _merge_custom_fields(payload, data.get("custom_fields"), reference=current_wp)
 
-        return await self._request(
+        result = await self._request(
             "PATCH", f"/work_packages/{work_package_id}", payload
         )
+        _verify_custom_fields(result, data.get("custom_fields"), "update")
+        return result
 
     async def delete_work_package(self, work_package_id: int) -> bool:
         """
@@ -1575,38 +1674,14 @@ class OpenProjectClient:
         await self._request("DELETE", f"/news/{news_id}")
         return True
 
-    async def get_wiki_pages(self, project_id: int) -> Dict:
-        """List all wiki pages for a project."""
-        return await self._request("GET", f"/projects/{project_id}/wiki_pages")
+    async def get_wiki_page_by_id(self, wiki_page_id: int) -> Dict:
+        """Get a wiki page by integer ID.
 
-    async def get_wiki_page(self, project_id: int, slug: str) -> Dict:
-        """Get a single wiki page by slug (title-derived identifier)."""
-        return await self._request("GET", f"/projects/{project_id}/wiki_pages/{slug}")
-
-    async def upsert_wiki_page(self, project_id: int, slug: str, data: Dict) -> Dict:
-        """Create or update a wiki page (idempotent PUT).
-
-        Args:
-            project_id: Project ID
-            slug: Page slug (URL-safe title, e.g. 'getting-started')
-            data: Dict with keys: title (str), content (str, raw Markdown),
-                  optionally parent_slug (str)
+        The OpenProject v3 API wiki support is currently a stub: only this
+        single GET endpoint is available.  List, create, update, and delete
+        operations are not exposed via the API.
         """
-        payload: Dict = {}
-        if "title" in data:
-            payload["title"] = data["title"]
-        if "content" in data:
-            payload["content"] = {"raw": data["content"]}
-        if "parent_slug" in data:
-            payload["_links"] = {
-                "parent": {"href": f"/api/v3/projects/{project_id}/wiki_pages/{data['parent_slug']}"}
-            }
-        return await self._request("PUT", f"/projects/{project_id}/wiki_pages/{slug}", payload)
-
-    async def delete_wiki_page(self, project_id: int, slug: str) -> bool:
-        """Delete a wiki page."""
-        await self._request("DELETE", f"/projects/{project_id}/wiki_pages/{slug}")
-        return True
+        return await self._request("GET", f"/wiki_pages/{wiki_page_id}")
 
     async def get_groups(self) -> Dict:
         """List all groups in the OpenProject instance."""
