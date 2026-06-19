@@ -73,17 +73,3 @@ async def test_generate_this_week_report_with_team_name():
         assert len(result) > 0, "Expected non-empty result"
         print("✅ test_generate_this_week_report_with_team_name passed")
 
-
-async def run_all():
-    tests = [
-        test_generate_this_week_report,
-        test_generate_last_week_report,
-        test_generate_this_week_report_with_team_name,
-    ]
-    for t in tests:
-        await t()
-    print(f"\n✅ All {len(tests)} tests passed")
-
-
-if __name__ == "__main__":
-    asyncio.run(run_all())

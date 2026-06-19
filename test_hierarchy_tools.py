@@ -76,18 +76,3 @@ async def test_remove_work_package_parent():
         assert "20" in result, f"Expected WP ID in result, got: {result}"
         print("✅ test_remove_work_package_parent passed")
 
-
-async def run_all():
-    tests = [
-        test_list_work_package_children_empty,
-        test_list_work_package_children_results,
-        test_set_work_package_parent,
-        test_remove_work_package_parent,
-    ]
-    for t in tests:
-        await t()
-    print(f"\n✅ All {len(tests)} tests passed")
-
-
-if __name__ == "__main__":
-    asyncio.run(run_all())

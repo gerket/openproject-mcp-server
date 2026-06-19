@@ -60,17 +60,3 @@ async def test_create_version():
         assert "✅" in result, f"Expected success emoji, got: {result}"
         print("✅ test_create_version passed")
 
-
-async def run_all():
-    tests = [
-        test_list_versions_empty,
-        test_list_versions_results,
-        test_create_version,
-    ]
-    for t in tests:
-        await t()
-    print(f"\n✅ All {len(tests)} tests passed")
-
-
-if __name__ == "__main__":
-    asyncio.run(run_all())

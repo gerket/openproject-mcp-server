@@ -54,13 +54,3 @@ async def test_check_permissions():
         assert "Tom Gerke" in result, f"Expected name in result, got: {result}"
         print("✅ test_check_permissions passed")
 
-
-async def run_all():
-    tests = [test_test_connection, test_check_permissions]
-    for t in tests:
-        await t()
-    print(f"\n✅ All {len(tests)} tests passed")
-
-
-if __name__ == "__main__":
-    asyncio.run(run_all())

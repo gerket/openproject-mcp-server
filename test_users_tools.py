@@ -87,19 +87,3 @@ async def test_list_project_members():
         assert "Tom Gerke" in result, f"Expected Tom Gerke in result, got: {result}"
         print("✅ test_list_project_members passed")
 
-
-async def run_all():
-    tests = [
-        test_list_users,
-        test_list_users_empty,
-        test_get_user,
-        test_list_roles,
-        test_list_project_members,
-    ]
-    for t in tests:
-        await t()
-    print(f"\n✅ All {len(tests)} tests passed")
-
-
-if __name__ == "__main__":
-    asyncio.run(run_all())

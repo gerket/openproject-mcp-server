@@ -83,18 +83,3 @@ async def test_delete_relation():
         assert "deleted" in result.lower(), f"Expected 'deleted' in result, got: {result}"
         print("✅ test_delete_relation passed")
 
-
-async def run_all():
-    tests = [
-        test_list_relations_empty,
-        test_list_relations_results,
-        test_create_relation,
-        test_delete_relation,
-    ]
-    for t in tests:
-        await t()
-    print(f"\n✅ All {len(tests)} tests passed")
-
-
-if __name__ == "__main__":
-    asyncio.run(run_all())

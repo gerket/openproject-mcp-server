@@ -108,20 +108,3 @@ async def test_list_time_entry_activities_empty_fallback():
         assert "Development" in result, f"Expected Development (fallback) in result, got: {result}"
         print("✅ test_list_time_entry_activities_empty_fallback passed")
 
-
-async def run_all():
-    tests = [
-        test_list_time_entries_empty,
-        test_list_time_entries_results,
-        test_create_time_entry,
-        test_delete_time_entry,
-        test_list_time_entry_activities_with_results,
-        test_list_time_entry_activities_empty_fallback,
-    ]
-    for t in tests:
-        await t()
-    print(f"\n✅ All {len(tests)} tests passed")
-
-
-if __name__ == "__main__":
-    asyncio.run(run_all())

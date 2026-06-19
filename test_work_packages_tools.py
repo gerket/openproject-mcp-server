@@ -147,23 +147,3 @@ async def test_list_priorities():
         assert "Normal" in result, f"Expected 'Normal' in result, got: {result}"
         print("✅ test_list_priorities passed")
 
-
-async def run_all():
-    tests = [
-        test_list_work_packages_empty,
-        test_list_work_packages_results,
-        test_search_work_packages,
-        test_search_work_packages_empty,
-        test_create_work_package,
-        test_delete_work_package,
-        test_list_types,
-        test_list_statuses,
-        test_list_priorities,
-    ]
-    for t in tests:
-        await t()
-    print(f"\n✅ All {len(tests)} tests passed")
-
-
-if __name__ == "__main__":
-    asyncio.run(run_all())

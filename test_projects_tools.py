@@ -83,19 +83,3 @@ async def test_delete_project():
         assert "deleted" in result.lower(), f"Expected 'deleted' in result, got: {result}"
         print("✅ test_delete_project passed")
 
-
-async def run_all():
-    tests = [
-        test_list_projects_empty,
-        test_list_projects_results,
-        test_get_project,
-        test_create_project,
-        test_delete_project,
-    ]
-    for t in tests:
-        await t()
-    print(f"\n✅ All {len(tests)} tests passed")
-
-
-if __name__ == "__main__":
-    asyncio.run(run_all())
