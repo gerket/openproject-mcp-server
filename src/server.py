@@ -106,9 +106,9 @@ from src.tools import (  # noqa: F401, E402
     work_packages,  # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
 )
 
-_tools = asyncio.run(mcp.get_tools())  # type: ignore[attr-defined]
-_read = sum(1 for t in _tools.values() if "read" in (t.tags or set()))
-_write = sum(1 for t in _tools.values() if "write" in (t.tags or set()))
+_tools = asyncio.run(mcp.list_tools())
+_read = sum(1 for t in _tools if "read" in (t.tags or set()))
+_write = sum(1 for t in _tools if "write" in (t.tags or set()))
 logger.info(
     "✅ All %d tools loaded successfully (%d read, %d write)",
     len(_tools),
