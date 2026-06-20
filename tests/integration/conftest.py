@@ -147,6 +147,23 @@ async def current_user_id(client: OpenProjectClient) -> int:
     return int(user_id)
 
 
+@pytest_asyncio.fixture(scope="session")
+async def bot_client(live_env: tuple[str, str]) -> OpenProjectClient | None:
+    """Client authenticated as the mcp-test-bot user.
+
+    Requires OPENPROJECT_BOT_API_KEY in the environment (or tests/integration/.env).
+    Generate it by logging in as mcp-test-bot and creating an API token at
+    User menu → Account settings → Access tokens → + API Token.
+
+    Returns None (causing dependent tests to skip) if the key is absent.
+    """
+    url, _ = live_env
+    bot_key = os.environ.get("OPENPROJECT_BOT_API_KEY", "")
+    if not bot_key:
+        return None
+    return OpenProjectClient(base_url=url, api_key=bot_key)
+
+
 @pytest.fixture(scope="session")
 def seed_wp_id() -> int | None:
     """Return the ID of the persistent seed WP, or None if not configured.

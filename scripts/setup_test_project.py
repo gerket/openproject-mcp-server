@@ -194,7 +194,74 @@ async def main() -> None:
         except Exception as e:
             fail(f"create query: {e}")
 
-    # ── 6. Custom action probe ────────────────────────────────────────────────
+    # ── 6. Bot user (for notification tests) ────────────────────────────────
+    section("Bot user (mcp-test-bot)")
+    users_result = await client.get_users()
+    users = users_result.get("_embedded", {}).get("elements", [])
+    bot_user = next((u for u in users if u.get("login") == "mcp-test-bot"), None)
+
+    if bot_user:
+        bot_id = int(bot_user["id"])
+        skip(f"bot user already exists (id={bot_id}, status={bot_user.get('status')})")
+        if bot_user.get("status") != "active":
+            await client._request("PATCH", f"/users/{bot_id}", {"status": "active"})
+            ok("restored bot to active")
+    else:
+        created_bot = await client._request(
+            "POST",
+            "/users",
+            {
+                "login": "mcp-test-bot",
+                "firstName": "MCP",
+                "lastName": "TestBot",
+                "email": "mcp-test-bot@example.invalid",
+                "admin": False,
+                "status": "active",
+                "password": "Mcp1Test!2Bot3",
+            },
+        )
+        bot_id = int(created_bot["id"])
+        ok(f"created bot user (id={bot_id})")
+
+    # Ensure bot is a member of the test project (needed to create WPs)
+    bot_membership = await client.get_memberships(project_id=project_id)
+    bot_members = bot_membership.get("_embedded", {}).get("elements", [])
+    bot_already_member = any(
+        m.get("_links", {}).get("principal", {}).get("href", "").endswith(f"/{bot_id}")
+        for m in bot_members
+    )
+    if bot_already_member:
+        skip(f"bot is already a member of '{project_slug}'")
+    else:
+        # The API doesn't distinguish project roles from global roles — probe each
+        roles_result = await client.get_roles()
+        all_roles = roles_result.get("_embedded", {}).get("elements", [])
+        system_names = {"anonymous", "non member", "non-member"}
+        candidate_roles = [
+            r for r in all_roles if r.get("name", "").lower() not in system_names
+        ]
+        added = False
+        for role in candidate_roles:
+            try:
+                await client.create_membership(
+                    {
+                        "project_id": project_id,
+                        "user_id": bot_id,
+                        "role_ids": [role["id"]],
+                    }
+                )
+                ok(f"added bot as '{role['name']}' in '{project_slug}'")
+                added = True
+                break
+            except Exception as e:
+                if "unassignable" in str(e).lower() or "422" in str(e):
+                    continue
+                fail(f"add bot membership: {e}")
+                break
+        if not added and not any("unassignable" in str(e) for e in []):
+            fail("could not find an assignable project role for bot — add manually")
+
+    # ── 7. Custom action probe ────────────────────────────────────────────────
     section("Custom action probe")
     custom_action_id_env = os.environ.get("OPENPROJECT_CUSTOM_ACTION_ID", "1")
     try:
@@ -215,8 +282,11 @@ async def main() -> None:
         f"OPENPROJECT_PROJECT={project_slug}\n"
         f"OPENPROJECT_SEED_WP_ID={seed_wp_id}\n"
         f"OPENPROJECT_CUSTOM_ACTION_ID={custom_action_id_env}\n"
-        f"# Set OPENPROJECT_API_KEY here or keep it in your shell (never commit it)\n"
-        f"# OPENPROJECT_API_KEY=your-token-here\n"
+        f"# Set API keys in your shell or here (never commit real tokens)\n"
+        f"# OPENPROJECT_API_KEY=your-admin-token-here\n"
+        f"# Bot token — log in as mcp-test-bot, go to User menu → Account settings\n"
+        f"# → Access tokens → + API Token, paste value below:\n"
+        f"# OPENPROJECT_BOT_API_KEY=mcp-test-bot-token-here\n"
         f"# Uncomment after enabling 'Time and costs' module on the project:\n"
         f"# OPENPROJECT_MODULE_TIME_COSTS=1\n"
     )
@@ -235,6 +305,16 @@ async def main() -> None:
     )
 
     clickops = [
+        (
+            "Generate an API token for the bot user",
+            "Log in as mcp-test-bot (password: Mcp1Test!2Bot3)\n"
+            "    User menu (top right) → Account settings → Access tokens\n"
+            "    → + API Token → copy the value\n"
+            "    Paste it into tests/integration/.env as:\n"
+            "    OPENPROJECT_BOT_API_KEY=<token>\n"
+            "    This enables test_mark_single_notification_read: bot assigns a WP\n"
+            "    to the admin user, which triggers a real notification.",
+        ),
         (
             "Enable modules on the test project",
             f"Projects → {project_slug} → Settings → Modules\n"
