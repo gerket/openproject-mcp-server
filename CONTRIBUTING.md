@@ -44,7 +44,17 @@ The `test_full_sweep` test in `tests/unit/test_tags.py` enforces that every tool
 
 ## Commit style
 
-Conventional commits with a required scope: `feat(scope):`, `fix(scope):`, `chore(scope):`, etc. Use `feat(scope)!:` or `fix(scope)!:` (or a `BREAKING CHANGE:` footer) for changes that break the public interface — Release Please uses this to produce a major version bump.
+Conventional commits with a required scope: `feat(scope):`, `fix(scope):`, `chore(scope):`, etc.
+
+For breaking changes, add a `BREAKING CHANGE:` footer in the PR description body:
+
+```
+feat(server): remove legacy auth endpoint
+
+BREAKING CHANGE: The /auth/v1 endpoint has been removed. Use /auth/v2 instead.
+```
+
+Release Please reads the `BREAKING CHANGE:` footer and produces a major version bump.
 
 **Scopes:**
 

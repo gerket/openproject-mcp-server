@@ -110,4 +110,10 @@ All PR titles must follow Conventional Commits with a required scope: `type(scop
 | `release` | Release tooling, versioning |
 | `auth` | Authentication, API key handling |
 
-Use `feat(scope)!:` or `fix(scope)!:` for breaking changes — Release Please requires the scope to correctly parse the `!` breaking change marker.
+For breaking changes, add a `BREAKING CHANGE:` footer in the PR body:
+
+```
+feat(server): remove legacy auth endpoint
+
+BREAKING CHANGE: The /auth/v1 endpoint has been removed.
+```
