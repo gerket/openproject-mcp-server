@@ -71,7 +71,7 @@ async def test_list_notifications_tool_empty():
         with patch("src.tools.notifications.get_client", return_value=mock):
             from src.tools.notifications import list_notifications
 
-            result = await list_notifications.fn()
+            result = await list_notifications()
             assert "no" in result.lower() or "0" in result
             print("✅ PASSED: list_notifications empty")
 
@@ -102,7 +102,7 @@ async def test_list_notifications_tool_with_items():
         with patch("src.tools.notifications.get_client", return_value=mock):
             from src.tools.notifications import list_notifications
 
-            result = await list_notifications.fn()
+            result = await list_notifications()
             assert "WP #5" in result or "Fix bug" in result or "mentioned" in result
             print("✅ PASSED: list_notifications with items")
 
@@ -119,7 +119,7 @@ async def test_mark_notification_read_tool():
         with patch("src.tools.notifications.get_client", return_value=mock):
             from src.tools.notifications import mark_notification_read
 
-            result = await mark_notification_read.fn(notification_id=42)
+            result = await mark_notification_read(notification_id=42)
             assert "marked" in result.lower() or "read" in result.lower()
             print("✅ PASSED: mark_notification_read tool")
 
@@ -136,6 +136,6 @@ async def test_mark_all_notifications_read_tool():
         with patch("src.tools.notifications.get_client", return_value=mock):
             from src.tools.notifications import mark_all_notifications_read
 
-            result = await mark_all_notifications_read.fn()
+            result = await mark_all_notifications_read()
             assert "all" in result.lower() or "read" in result.lower()
             print("✅ PASSED: mark_all_notifications_read tool")

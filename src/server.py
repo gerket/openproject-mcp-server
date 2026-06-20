@@ -4,6 +4,7 @@ OpenProject MCP Server - FastMCP Implementation
 Main server file that initializes FastMCP and registers all tools.
 """
 
+import asyncio
 import logging
 import os
 
@@ -33,11 +34,14 @@ def _parse_tags(env_var: str) -> set[str] | None:
     return {t.strip() for t in val.split(",") if t.strip()}
 
 
-mcp = FastMCP(
-    name="openproject-mcp",
-    include_tags=_parse_tags("OPENPROJECT_MCP_INCLUDE_TAGS"),
-    exclude_tags=_parse_tags("OPENPROJECT_MCP_EXCLUDE_TAGS"),
-)
+mcp = FastMCP(name="openproject-mcp")
+
+_include_tags = _parse_tags("OPENPROJECT_MCP_INCLUDE_TAGS")
+_exclude_tags = _parse_tags("OPENPROJECT_MCP_EXCLUDE_TAGS")
+if _include_tags:
+    mcp.enable(tags=_include_tags, only=True)
+if _exclude_tags:
+    mcp.disable(tags=_exclude_tags)
 
 # Initialize OpenProject client as global variable
 _client = None
@@ -102,15 +106,19 @@ from src.tools import (  # noqa: F401, E402
     work_packages,  # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
 )
 
-_tool_map: dict = getattr(getattr(mcp, "_tool_manager", None), "_tools", {})
-_read = sum(1 for t in _tool_map.values() if "read" in (t.tags or set()))
-_write = sum(1 for t in _tool_map.values() if "write" in (t.tags or set()))
-logger.info(
-    "✅ All %d tools loaded successfully (%d read, %d write)",
-    len(_tool_map),
-    _read,
-    _write,
-)
+try:
+    _tools = asyncio.run(mcp.list_tools())
+    _read = sum(1 for t in _tools if "read" in (t.tags or set()))
+    _write = sum(1 for t in _tools if "write" in (t.tags or set()))
+    logger.info(
+        "✅ All %d tools loaded successfully (%d read, %d write)",
+        len(_tools),
+        _read,
+        _write,
+    )
+except RuntimeError as e:
+    logger.warning("⚠️ Could not count loaded tools: %s", e)
+    logger.info("✅ Tools loaded (count unavailable)")
 
 
 def main() -> None:

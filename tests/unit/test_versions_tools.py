@@ -19,12 +19,6 @@ from src.tools.versions import (
     update_version,
 )
 
-# Unwrap FunctionTool wrappers so tools are directly callable
-list_versions = list_versions.fn
-create_version = create_version.fn
-update_version = update_version.fn
-delete_version = delete_version.fn
-
 
 async def test_list_versions_empty():
     with patch("src.tools.versions.get_client") as mock_get_client:
