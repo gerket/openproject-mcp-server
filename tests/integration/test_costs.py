@@ -20,8 +20,8 @@ async def test_list_cost_types(client: OpenProjectClient) -> None:
     except Exception as e:
         if "404" in str(e) or "403" in str(e):
             pytest.skip(
-                "GET /cost_types not available — enable 'Budgets' module in "
-                "Administration → Modules or upgrade OpenProject"
+                "GET /cost_types not in OpenProject v3 API spec — "
+                "cost tracking uses a separate plugin endpoint not part of core v3"
             )
         raise
     cost_types = result.get("_embedded", {}).get("elements", [])
@@ -35,9 +35,7 @@ async def test_cost_entry_lifecycle(
         types_result = await client.get_cost_types()
     except Exception as e:
         if "404" in str(e) or "403" in str(e):
-            pytest.skip(
-                "GET /cost_types not available — enable 'Budgets' module or upgrade"
-            )
+            pytest.skip("GET /cost_types not in OpenProject v3 API spec")
         raise
 
     cost_types = types_result.get("_embedded", {}).get("elements", [])

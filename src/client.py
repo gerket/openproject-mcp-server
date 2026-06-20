@@ -957,19 +957,21 @@ class OpenProjectClient:
         return True
 
     async def get_time_entry_activities(self) -> dict:
-        """
-        Retrieve available time entry activities.
+        """Retrieve available time entry activities via the form schema.
 
-        Returns:
-            Dict: API response containing activities
+        There is no dedicated collection endpoint (GET /time_entries/activities
+        does not exist in v3). Activities are discovered via the create-form's
+        allowedValues for the activity field.
         """
-        result = await self._request("GET", "/time_entries/activities")
-
-        # Ensure proper response structure
-        if "_embedded" not in result:
-            result["_embedded"] = {"elements": []}
-        elif "elements" not in result.get("_embedded", {}):
-            result["_embedded"]["elements"] = []
+        form = await self._request("POST", "/time_entries/form", {})
+        allowed = (
+            form.get("_embedded", {})
+            .get("schema", {})
+            .get("activity", {})
+            .get("_embedded", {})
+            .get("allowedValues", [])
+        )
+        result: dict = {"_embedded": {"elements": allowed}}
 
         return result
 
