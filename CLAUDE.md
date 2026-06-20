@@ -90,3 +90,22 @@ git branch -d feature/<name>
 ```
 
 `.worktrees/` is gitignored.
+
+## Commit / PR title style
+
+All PR titles must follow Conventional Commits with a required scope: `type(scope): description`. Enforced by `pr-title.yml`.
+
+| Scope | When to use |
+|---|---|
+| `server` | FastMCP server init, tag filtering, startup |
+| `api` | OpenProject API client (`src/client.py`) |
+| `tools` | Any tool module in `src/tools/` |
+| `ci` | GitHub Actions workflows |
+| `deps` | Dependency bumps, `pyproject.toml`, `uv.lock` |
+| `config` | Environment variables, configuration |
+| `docs` | README, CONTRIBUTING, CLAUDE.md |
+| `tests` | Test suite changes |
+| `release` | Release tooling, versioning |
+| `auth` | Authentication, API key handling |
+
+Use `feat(scope)!:` or `fix(scope)!:` for breaking changes — Release Please requires the scope to correctly parse the `!` breaking change marker.
