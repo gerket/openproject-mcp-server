@@ -117,9 +117,7 @@ try:
         _write,
     )
 except RuntimeError:
-    logger.info(
-        "✅ Tools loaded (count unavailable — imported from running event loop)"
-    )
+    logger.info("✅ Tools loaded (count unavailable)")
 
 
 def main() -> None:
