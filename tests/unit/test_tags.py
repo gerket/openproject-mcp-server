@@ -181,7 +181,25 @@ async def test_new_modules_tags():
     # budgets (cost entry endpoints don't exist in v3 API; tools removed)
     for name in ["list_budgets", "get_budget"]:
         await assert_tag(name, "read", tools)
-    print("✅ new module tags correct (wiki/groups/notifications/attachments/budgets)")
+    # Phase E — users (new), placeholder_users, preferences
+    for name in ["list_principals", "get_my_preferences"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_user", "update_user"]:
+        await assert_tag(name, "write", tools)
+        await assert_tag(name, "admin", tools)
+    for name in ["list_placeholder_users", "get_placeholder_user"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_placeholder_user", "update_placeholder_user"]:
+        await assert_tag(name, "write", tools)
+    await assert_tag("delete_placeholder_user", "write", tools)
+    await assert_tag("delete_placeholder_user", "admin", tools)
+    await assert_tag("update_my_preferences", "write", tools)
+    # admin tag on projects
+    for name in ["create_project", "delete_project"]:
+        await assert_tag(name, "admin", tools)
+    print(
+        "✅ new module tags correct (wiki/groups/notifications/attachments/budgets/phase-e)"
+    )
 
 
 async def test_full_sweep():
