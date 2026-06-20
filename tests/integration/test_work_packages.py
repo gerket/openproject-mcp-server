@@ -112,17 +112,17 @@ async def test_assign_and_unassign(
     assignee_id = assignees[0]["id"]
     updated = await client.update_work_package(fresh_wp, {"assignee_id": assignee_id})
     assignee_href = updated.get("_links", {}).get("assignee", {}).get("href", "")
-    assert (
-        str(assignee_id) in assignee_href
-    ), f"Expected user {assignee_id} as assignee, got href: {assignee_href}"
+    assert str(assignee_id) in assignee_href, (
+        f"Expected user {assignee_id} as assignee, got href: {assignee_href}"
+    )
 
     unassigned = await client.update_work_package(fresh_wp, {"assignee_id": None})
     assignee_href_after = (
         unassigned.get("_links", {}).get("assignee", {}).get("href") or ""
     )
-    assert not assignee_href_after or assignee_href_after.endswith(
-        "null"
-    ), f"Expected null assignee after unassign, got: {assignee_href_after}"
+    assert not assignee_href_after or assignee_href_after.endswith("null"), (
+        f"Expected null assignee after unassign, got: {assignee_href_after}"
+    )
 
 
 async def test_list_overdue(client: OpenProjectClient, project_id: int) -> None:
@@ -228,6 +228,6 @@ async def test_custom_fields(
             raw = actual.get("raw", "") if isinstance(actual, dict) else str(actual)
             assert "text" in raw, f"{cf_key}: expected text in raw, got {actual!r}"
         else:
-            assert (
-                actual == expected
-            ), f"{cf_key}: expected {expected!r}, got {actual!r}"
+            assert actual == expected, (
+                f"{cf_key}: expected {expected!r}, got {actual!r}"
+            )

@@ -30,12 +30,12 @@ async def test_test_connection():
         mock_get_client.return_value = mock_client
         result = await test_connection()
         assert "✅" in result, f"Expected ✅ in result, got: {result}"
-        assert (
-            "API connection successful!" in result
-        ), f"Expected success message, got: {result}"
-        assert (
-            "**Instance Version**:" in result
-        ), f"Expected Instance Version in result, got: {result}"
+        assert "API connection successful!" in result, (
+            f"Expected success message, got: {result}"
+        )
+        assert "**Instance Version**:" in result, (
+            f"Expected Instance Version in result, got: {result}"
+        )
         assert "17.5.1" in result, f"Expected version in result, got: {result}"
         print("✅ test_test_connection passed")
 
@@ -55,9 +55,9 @@ async def test_check_permissions():
         mock_get_client.return_value = mock_client
         result = await check_permissions()
         assert "✅" in result, f"Expected ✅ in result, got: {result}"
-        assert (
-            "User Permissions Retrieved" in result
-        ), f"Expected permissions header, got: {result}"
+        assert "User Permissions Retrieved" in result, (
+            f"Expected permissions header, got: {result}"
+        )
         assert "**Name**:" in result, f"Expected Name field in result, got: {result}"
         assert "Tom Gerke" in result, f"Expected name in result, got: {result}"
         print("✅ test_check_permissions passed")

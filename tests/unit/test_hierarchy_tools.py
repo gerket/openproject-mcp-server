@@ -30,9 +30,9 @@ async def test_list_work_package_children_empty():
         )
         mock_get_client.return_value = mock_client
         result = await list_work_package_children(10)
-        assert (
-            "Work package #10 has no children." in result
-        ), f"Expected no-children message, got: {result}"
+        assert "Work package #10 has no children." in result, (
+            f"Expected no-children message, got: {result}"
+        )
         print("✅ test_list_work_package_children_empty passed")
 
 
@@ -59,9 +59,9 @@ async def test_list_work_package_children_results():
         )
         mock_get_client.return_value = mock_client
         result = await list_work_package_children(10)
-        assert (
-            "Child task 1" in result
-        ), f"Expected child subject in result, got: {result}"
+        assert "Child task 1" in result, (
+            f"Expected child subject in result, got: {result}"
+        )
         assert "✅" in result, f"Expected success emoji, got: {result}"
         print("✅ test_list_work_package_children_results passed")
 

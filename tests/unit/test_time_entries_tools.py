@@ -33,9 +33,9 @@ async def test_list_time_entries_empty():
         )
         mock_get_client.return_value = mock_client
         result = await list_time_entries()
-        assert (
-            "No time entries found." in result
-        ), f"Expected empty message, got: {result}"
+        assert "No time entries found." in result, (
+            f"Expected empty message, got: {result}"
+        )
         print("✅ test_list_time_entries_empty passed")
 
 
@@ -99,9 +99,9 @@ async def test_delete_time_entry():
         mock_get_client.return_value = mock_client
         result = await delete_time_entry(77)
         assert "✅" in result, f"Expected success emoji, got: {result}"
-        assert (
-            "deleted" in result.lower()
-        ), f"Expected 'deleted' in result, got: {result}"
+        assert "deleted" in result.lower(), (
+            f"Expected 'deleted' in result, got: {result}"
+        )
         print("✅ test_delete_time_entry passed")
 
 
@@ -136,10 +136,10 @@ async def test_list_time_entry_activities_empty_fallback():
         mock_get_client.return_value = mock_client
         result = await list_time_entry_activities()
         # Falls through to the common activities fallback
-        assert (
-            "Management" in result
-        ), f"Expected Management (fallback) in result, got: {result}"
-        assert (
-            "Development" in result
-        ), f"Expected Development (fallback) in result, got: {result}"
+        assert "Management" in result, (
+            f"Expected Management (fallback) in result, got: {result}"
+        )
+        assert "Development" in result, (
+            f"Expected Development (fallback) in result, got: {result}"
+        )
         print("✅ test_list_time_entry_activities_empty_fallback passed")
