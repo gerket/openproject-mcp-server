@@ -183,11 +183,23 @@ async def test_list_nearly_complete(client: OpenProjectClient, project_id: int) 
     assert isinstance(extract_elements(result), list)
 
 
-async def test_custom_fields(client: OpenProjectClient, fresh_wp: int) -> None:
-    """Write + read each supported custom field type."""
+async def test_custom_fields(
+    client: OpenProjectClient, fresh_wp: int, seed_wp_id: int | None
+) -> None:
+    """Write + read each supported custom field type.
+
+    Uses fresh_wp (newly created each run). Custom fields must be enabled
+    on the project — see scripts/setup_test_project.py click-ops checklist.
+    If custom fields are not enabled, assertions will fail with 'field not present';
+    the test will still indicate which fields are missing.
+    """
     import datetime
 
     today = datetime.date.today().isoformat()
+
+    # Use fresh_wp as the target; seed_wp_id is available if tests need a
+    # persistent WP to check between runs.
+    target_wp = fresh_wp
 
     cases: list[tuple[str, object, object]] = [
         ("customField2", "cf2-test-string", "cf2-test-string"),
@@ -207,9 +219,9 @@ async def test_custom_fields(client: OpenProjectClient, fresh_wp: int) -> None:
 
     for cf_key, write_val, expected in cases:
         await client.update_work_package(
-            fresh_wp, {"custom_fields": {cf_key: write_val}}
+            target_wp, {"custom_fields": {cf_key: write_val}}
         )
-        result = await client.get_work_package(fresh_wp)
+        result = await client.get_work_package(target_wp)
         actual = result.get(cf_key)
         if expected is None:
             # Formattable: check raw text is present

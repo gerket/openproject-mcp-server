@@ -127,6 +127,17 @@ async def current_user_id(client: OpenProjectClient) -> int:
     return int(user_id)
 
 
+@pytest.fixture(scope="session")
+def seed_wp_id() -> int | None:
+    """Return the ID of the persistent seed WP, or None if not configured.
+
+    Set OPENPROJECT_SEED_WP_ID to the ID created by scripts/setup_test_project.py.
+    Tests that require a persistent WP (e.g. custom fields) will skip if not set.
+    """
+    val = os.environ.get("OPENPROJECT_SEED_WP_ID", "")
+    return int(val) if val.isdigit() else None
+
+
 # ---------------------------------------------------------------------------
 # Function-level: fresh WP per test, torn down unconditionally
 # ---------------------------------------------------------------------------
