@@ -2037,3 +2037,108 @@ class OpenProjectClient:
         return await self._request(
             "POST", f"/custom_actions/{action_id}/execute", payload
         )
+
+    async def create_user(self, data: dict) -> dict:
+        """Create a new user (admin only).
+
+        The account is immediately active but the user cannot authenticate until
+        they set a password via email confirmation or an admin sets it in the web UI.
+        The API silently ignores any password field — do not pass one.
+        """
+        payload = {
+            "login": data["login"],
+            "firstName": data["first_name"],
+            "lastName": data["last_name"],
+            "email": data["email"],
+            "status": data.get("status", "active"),
+        }
+        if data.get("admin") is not None:
+            payload["admin"] = data["admin"]
+        return await self._request("POST", "/users", payload)
+
+    async def update_user(self, user_id: int, data: dict) -> dict:
+        """Update an existing user (admin only). Auto-fetches lockVersion."""
+        current = await self.get_user(user_id)
+        lock_version = current.get("lockVersion", 0)
+        payload: dict = {"lockVersion": lock_version}
+        if "first_name" in data:
+            payload["firstName"] = data["first_name"]
+        if "last_name" in data:
+            payload["lastName"] = data["last_name"]
+        if "email" in data:
+            payload["email"] = data["email"]
+        if "status" in data:
+            payload["status"] = data["status"]
+        if "admin" in data:
+            payload["admin"] = data["admin"]
+        return await self._request("PATCH", f"/users/{user_id}", payload)
+
+    async def get_principals(self, project_id: int | None = None) -> dict:
+        """List principals (users + groups + placeholder users).
+
+        Optionally scoped to a project's available assignees context.
+        """
+        if project_id is not None:
+            from urllib.parse import quote
+
+            filters = quote(
+                json.dumps([{"member": {"operator": "=", "values": [str(project_id)]}}])
+            )
+            return await self._request("GET", f"/principals?filters={filters}")
+        return await self._request("GET", "/principals")
+
+    async def get_placeholder_users(self, filters: str | None = None) -> dict:
+        """List placeholder users."""
+        if filters:
+            from urllib.parse import quote as _quote
+
+            return await self._request(
+                "GET", f"/placeholder_users?filters={_quote(filters)}"
+            )
+        return await self._request("GET", "/placeholder_users")
+
+    async def get_placeholder_user(self, placeholder_id: int) -> dict:
+        """Get a single placeholder user by ID."""
+        return await self._request("GET", f"/placeholder_users/{placeholder_id}")
+
+    async def create_placeholder_user(self, name: str) -> dict:
+        """Create a placeholder user. Only requires a name."""
+        return await self._request("POST", "/placeholder_users", {"name": name})
+
+    async def update_placeholder_user(self, placeholder_id: int, name: str) -> dict:
+        """Update a placeholder user's name."""
+        current = await self.get_placeholder_user(placeholder_id)
+        lock_version = current.get("lockVersion", 0)
+        return await self._request(
+            "PATCH",
+            f"/placeholder_users/{placeholder_id}",
+            {"name": name, "lockVersion": lock_version},
+        )
+
+    async def delete_placeholder_user(self, placeholder_id: int) -> bool:
+        """Delete a placeholder user (admin only)."""
+        await self._request("DELETE", f"/placeholder_users/{placeholder_id}")
+        return True
+
+    async def get_my_preferences(self) -> dict:
+        """Get the authenticated user's notification and UI preferences."""
+        return await self._request("GET", "/my_preferences")
+
+    async def update_my_preferences(self, data: dict) -> dict:
+        """Update the authenticated user's preferences."""
+        payload: dict = {}
+        for field in (
+            "timeZone",
+            "wantsNewsletters",
+            "commentSortDescending",
+            "warnOnLeavingUnsaved",
+            "autoHidePopups",
+            "pauseReminders",
+        ):
+            if field in data:
+                payload[field] = data[field]
+        if "daily_reminders" in data:
+            payload["dailyReminders"] = data["daily_reminders"]
+        if "immediate_reminders" in data:
+            payload["immediateReminders"] = data["immediate_reminders"]
+        return await self._request("PATCH", "/my_preferences", payload)

@@ -1,7 +1,53 @@
 """User and role management tools."""
 
+from pydantic import BaseModel, Field
+
 from src.server import get_client, mcp
-from src.utils.formatting import format_error
+from src.utils.formatting import format_error, format_success
+
+
+class CreateUserInput(BaseModel):
+    """Input for creating a new user."""
+
+    login: str = Field(..., description="Unique login name")
+    first_name: str = Field(..., description="First name")
+    last_name: str = Field(..., description="Last name")
+    email: str = Field(..., description="Email address")
+    admin: bool = Field(False, description="Grant administrator privileges")
+
+
+class UpdateUserInput(BaseModel):
+    """Input for updating an existing user."""
+
+    user_id: int = Field(..., description="User ID to update", gt=0)
+    first_name: str | None = Field(None, description="New first name")
+    last_name: str | None = Field(None, description="New last name")
+    email: str | None = Field(None, description="New email address")
+    status: str | None = Field(
+        None, description="New status: active, locked, registered"
+    )
+    admin: bool | None = Field(
+        None, description="Set or revoke administrator privileges"
+    )
+
+
+class UpdateMyPreferencesInput(BaseModel):
+    """Input for updating the authenticated user's preferences."""
+
+    time_zone: str | None = Field(
+        None, description="IANA timezone (e.g. 'America/New_York')"
+    )
+    wants_newsletters: bool | None = Field(None, description="Subscribe to newsletters")
+    comment_sort_descending: bool | None = Field(
+        None, description="Sort comments newest-first"
+    )
+    warn_on_leaving_unsaved: bool | None = Field(
+        None, description="Warn before leaving unsaved changes"
+    )
+    auto_hide_popups: bool | None = Field(None, description="Auto-hide flash messages")
+    pause_reminders: bool | None = Field(
+        None, description="Pause all reminder notifications"
+    )
 
 
 @mcp.tool(tags={"read", "users", "core", "core-read", "list_users"})
@@ -234,3 +280,188 @@ async def list_user_projects(user_id: int) -> str:
 
     except Exception as e:
         return format_error(f"Failed to list user projects: {e!s}")
+
+
+@mcp.tool(tags={"read", "users", "core", "core-read", "list_principals"})
+async def list_principals(project_id: int | None = None) -> str:
+    """List principals (users, groups, and placeholder users) in one call.
+
+    More useful than separate list_users + list_groups calls when you need
+    all assignable entities — e.g. when populating an assignee picker.
+
+    Args:
+        project_id: Optional project ID to filter to project members only
+
+    Returns:
+        List of principals with their type, ID, and name
+    """
+    try:
+        client = get_client()
+        result = await client.get_principals(project_id)
+        principals = result.get("_embedded", {}).get("elements", [])
+
+        if not principals:
+            return "No principals found."
+
+        text = f"✅ **Principals ({len(principals)}):**\n\n"
+        for p in principals:
+            ptype = p.get("_type", "Unknown")
+            text += f"- **{p.get('name', 'Unknown')}** (ID: {p.get('id', 'N/A')}, type: {ptype})\n"
+        return text
+
+    except Exception as e:
+        return format_error(f"Failed to list principals: {e!s}")
+
+
+@mcp.tool(tags={"write", "users", "admin", "create_user"})
+async def create_user(input: CreateUserInput) -> str:
+    """Create a new user account (admin only).
+
+    The account is created with 'active' status immediately, but the user
+    cannot log in until they set a password. OpenProject ignores any password
+    passed via the API — the user must set one via email confirmation or an
+    admin must set it manually in Administration → Users → Edit.
+
+    Args:
+        input: User details — login, first_name, last_name, email, and optional admin flag
+
+    Returns:
+        Success message with the new user ID and login
+    """
+    try:
+        client = get_client()
+        user = await client.create_user(
+            {
+                "login": input.login,
+                "first_name": input.first_name,
+                "last_name": input.last_name,
+                "email": input.email,
+                "admin": input.admin,
+            }
+        )
+        text = format_success("User created successfully.\n\n")
+        text += f"**ID**: #{user.get('id', 'N/A')}\n"
+        text += f"**Login**: {user.get('login', 'N/A')}\n"
+        text += f"**Name**: {user.get('name', 'N/A')}\n"
+        text += f"**Email**: {user.get('email', 'N/A')}\n"
+        text += f"**Status**: {user.get('status', 'N/A')}\n"
+        text += "\n⚠️ The user cannot log in yet — a password must be set via "
+        text += "email confirmation or Administration → Users → Edit."
+        return text
+
+    except Exception as e:
+        if "403" in str(e):
+            return format_error("create_user requires administrator privileges.")
+        return format_error(f"Failed to create user: {e!s}")
+
+
+@mcp.tool(tags={"write", "users", "admin", "update_user"})
+async def update_user(input: UpdateUserInput) -> str:
+    """Update an existing user account (admin only).
+
+    Note: delete_user is not available via the OpenProject v3 API —
+    it returns 403 even for system admins. Use lock/unlock (status change) instead.
+
+    Args:
+        input: User ID and optional fields to update
+
+    Returns:
+        Success message with updated user details
+    """
+    try:
+        client = get_client()
+        data: dict[str, object] = {}
+        if input.first_name is not None:
+            data["first_name"] = input.first_name
+        if input.last_name is not None:
+            data["last_name"] = input.last_name
+        if input.email is not None:
+            data["email"] = input.email
+        if input.status is not None:
+            data["status"] = input.status
+        if input.admin is not None:
+            data["admin"] = input.admin
+
+        user = await client.update_user(input.user_id, data)
+        text = format_success(f"User #{input.user_id} updated.\n\n")
+        text += f"**Name**: {user.get('name', 'N/A')}\n"
+        text += f"**Status**: {user.get('status', 'N/A')}\n"
+        text += f"**Admin**: {'Yes' if user.get('admin') else 'No'}\n"
+        return text
+
+    except Exception as e:
+        if "403" in str(e):
+            return format_error("update_user requires administrator privileges.")
+        return format_error(f"Failed to update user #{input.user_id}: {e!s}")
+
+
+@mcp.tool(tags={"read", "users", "core", "core-read", "get_my_preferences"})
+async def get_my_preferences() -> str:
+    """Get the authenticated user's notification and UI preferences.
+
+    Returns:
+        Current preferences including timezone, reminder settings, and UI options
+    """
+    try:
+        client = get_client()
+        prefs = await client.get_my_preferences()
+
+        text = "✅ **My Preferences:**\n\n"
+        if prefs.get("timeZone"):
+            text += f"**Time Zone**: {prefs['timeZone']}\n"
+        text += f"**Comment sort**: {'Newest first' if prefs.get('commentSortDescending') else 'Oldest first'}\n"
+        text += f"**Warn on unsaved**: {'Yes' if prefs.get('warnOnLeavingUnsaved') else 'No'}\n"
+        text += (
+            f"**Auto-hide popups**: {'Yes' if prefs.get('autoHidePopups') else 'No'}\n"
+        )
+        if prefs.get("pauseReminders"):
+            text += "**Reminders**: Paused\n"
+        if prefs.get("dailyReminders"):
+            dr = prefs["dailyReminders"]
+            if dr.get("enabled"):
+                times = dr.get("times", [])
+                text += f"**Daily reminders**: Enabled at {', '.join(times) if times else 'default time'}\n"
+        return text
+
+    except Exception as e:
+        return format_error(f"Failed to get preferences: {e!s}")
+
+
+@mcp.tool(tags={"write", "users", "update_my_preferences"})
+async def update_my_preferences(input: UpdateMyPreferencesInput) -> str:
+    """Update the authenticated user's preferences.
+
+    Only the fields you provide are updated; omitted fields are unchanged.
+
+    Args:
+        input: Preference fields to update (timezone, reminders, UI options)
+
+    Returns:
+        Success message with the updated preferences
+    """
+    try:
+        client = get_client()
+        data: dict = {}
+        if input.time_zone is not None:
+            data["timeZone"] = input.time_zone
+        if input.wants_newsletters is not None:
+            data["wantsNewsletters"] = input.wants_newsletters
+        if input.comment_sort_descending is not None:
+            data["commentSortDescending"] = input.comment_sort_descending
+        if input.warn_on_leaving_unsaved is not None:
+            data["warnOnLeavingUnsaved"] = input.warn_on_leaving_unsaved
+        if input.auto_hide_popups is not None:
+            data["autoHidePopups"] = input.auto_hide_popups
+        if input.pause_reminders is not None:
+            data["pauseReminders"] = input.pause_reminders
+
+        prefs = await client.update_my_preferences(data)
+        text = format_success("Preferences updated.\n\n")
+        if prefs.get("timeZone"):
+            text += f"**Time Zone**: {prefs['timeZone']}\n"
+        if prefs.get("pauseReminders"):
+            text += "**Reminders**: Paused\n"
+        return text
+
+    except Exception as e:
+        return format_error(f"Failed to update preferences: {e!s}")
