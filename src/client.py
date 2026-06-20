@@ -2041,10 +2041,10 @@ class OpenProjectClient:
     async def create_user(self, data: dict) -> dict:
         """Create a new user (admin only).
 
-        Some OpenProject instances require a password field; others do not.
-        Even when accepted, the password does not enable basic-auth login —
-        the user must authenticate via SSO or a web-confirmed password reset.
-        Pass password only if your instance requires it (you'll get a 422 if so).
+        Some OpenProject instances require the password field; others do not
+        (you'll get a 422 if yours does and you omit it). When provided, the
+        password works for web login immediately. The v3 API does not support
+        basic-auth with username/password — API authentication always uses tokens.
         """
         payload = {
             "login": data["login"],

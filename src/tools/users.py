@@ -327,8 +327,9 @@ async def create_user(input: CreateUserInput) -> str:
 
     The account is created with 'active' status immediately. Some OpenProject
     instances require the `password` field; others do not (you'll get a 422 if
-    yours does and you omit it). Even when a password is supplied, the user may
-    still need to authenticate via SSO depending on your instance's auth configuration.
+    yours does and you omit it). When provided, the password works for web login
+    immediately. Note: the v3 API does not support username/password basic auth —
+    users authenticate via web login or API tokens only.
 
     Args:
         input: User details — login, first_name, last_name, email, and optional admin flag

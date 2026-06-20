@@ -75,8 +75,8 @@ async def test_create_and_update_user(
     created = await client.create_user(
         {
             "login": login,
-            "first_name": "MCP",
-            "last_name": "TestUser",
+            "first_name": "Delete Me",
+            "last_name": "MCP Integration Test",
             "email": f"{login}@example.invalid",
             "password": "Temporary1!Pass",  # some instances require this field
         }
@@ -84,6 +84,7 @@ async def test_create_and_update_user(
     uid = created.get("id")
     assert uid, f"No id in created user: {created}"
     assert created.get("status") == "active"
+    assert "Delete Me" in created.get("name", "")
 
     try:
         updated = await client.update_user(uid, {"first_name": "Updated"})
