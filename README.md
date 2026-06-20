@@ -154,7 +154,7 @@ OPENPROJECT_MCP_EXCLUDE_TAGS=storage
 
 ```bash
 # Unit tests (network-free, 192 tests)
-uv sync --extra dev
+uv sync --dev
 uv run pytest
 
 # Live integration tests against a real instance
@@ -242,7 +242,7 @@ All tools return formatted Markdown strings and catch all exceptions via `format
 ## Contributing
 
 ```bash
-uv sync --extra dev
+uv sync --dev
 uv run pre-commit install  # hooks: ruff, mypy, trailing whitespace, YAML/TOML
 uv run pytest              # unit tests must pass before opening a PR
 ```
