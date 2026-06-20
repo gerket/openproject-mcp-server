@@ -37,9 +37,9 @@ async def test_tag_values():
 async def assert_tag(tool_name: str, expected_tag: str, tools: dict):
     t = tools.get(tool_name)
     assert t is not None, f"Tool '{tool_name}' not found"
-    assert expected_tag in (
-        t.tags or set()
-    ), f"Expected {tool_name} to have tag '{expected_tag}', got {t.tags}"
+    assert expected_tag in (t.tags or set()), (
+        f"Expected {tool_name} to have tag '{expected_tag}', got {t.tags}"
+    )
 
 
 async def test_connection_tags():

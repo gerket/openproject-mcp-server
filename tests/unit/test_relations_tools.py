@@ -31,9 +31,9 @@ async def test_list_relations_empty():
         )
         mock_get_client.return_value = mock_client
         result = await list_work_package_relations(10)
-        assert (
-            "Work package #10 has no relations." in result
-        ), f"Expected no-relations message, got: {result}"
+        assert "Work package #10 has no relations." in result, (
+            f"Expected no-relations message, got: {result}"
+        )
         print("✅ test_list_relations_empty passed")
 
 
@@ -84,9 +84,9 @@ async def test_create_relation():
         assert "77" in result, f"Expected relation ID in result, got: {result}"
         assert "relates" in result, f"Expected relation type in result, got: {result}"
         assert "**ID**:" in result, f"Expected ID field label in result, got: {result}"
-        assert (
-            "**Type**:" in result
-        ), f"Expected Type field label in result, got: {result}"
+        assert "**Type**:" in result, (
+            f"Expected Type field label in result, got: {result}"
+        )
         print("✅ test_create_relation passed")
 
 
@@ -97,7 +97,7 @@ async def test_delete_relation():
         mock_get_client.return_value = mock_client
         result = await delete_work_package_relation(77)
         assert "✅" in result, f"Expected success emoji, got: {result}"
-        assert (
-            "deleted" in result.lower()
-        ), f"Expected 'deleted' in result, got: {result}"
+        assert "deleted" in result.lower(), (
+            f"Expected 'deleted' in result, got: {result}"
+        )
         print("✅ test_delete_relation passed")

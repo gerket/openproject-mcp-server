@@ -369,13 +369,13 @@ def format_weekly_report_markdown(
         report.append("| Loại | Hours | % |")
         report.append("|------|-------|---|")
         report.append(
-            f"| Development | {metrics['dev_hours']:.1f} | {metrics['dev_hours']/metrics['total_hours']*100:.1f}% |"
+            f"| Development | {metrics['dev_hours']:.1f} | {metrics['dev_hours'] / metrics['total_hours'] * 100:.1f}% |"
         )
         report.append(
-            f"| QA/Testing | {metrics['qa_hours']:.1f} | {metrics['qa_hours']/metrics['total_hours']*100:.1f}% |"
+            f"| QA/Testing | {metrics['qa_hours']:.1f} | {metrics['qa_hours'] / metrics['total_hours'] * 100:.1f}% |"
         )
         report.append(
-            f"| Management | {metrics['management_hours']:.1f} | {metrics['management_hours']/metrics['total_hours']*100:.1f}% |"
+            f"| Management | {metrics['management_hours']:.1f} | {metrics['management_hours'] / metrics['total_hours'] * 100:.1f}% |"
         )
         report.append("")
 

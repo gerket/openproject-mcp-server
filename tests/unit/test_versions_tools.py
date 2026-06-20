@@ -34,9 +34,9 @@ async def test_list_versions_empty():
         )
         mock_get_client.return_value = mock_client
         result = await list_versions(4)
-        assert (
-            "No versions found for project #4." in result
-        ), f"Expected empty message, got: {result}"
+        assert "No versions found for project #4." in result, (
+            f"Expected empty message, got: {result}"
+        )
         print("✅ test_list_versions_empty passed")
 
 
