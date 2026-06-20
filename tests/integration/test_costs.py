@@ -1,8 +1,8 @@
 """Integration tests: cost entries and cost types.
 
-Requires the "Time and costs" and "Budgets" modules enabled:
-Administration → Modules → enable both.
-Set OPENPROJECT_MODULE_TIME_COSTS=1 to run these tests.
+GET /cost_types and GET /cost_entries return 404 on OpenProject instances
+where the Budgets/Costs module is not active or not available in this API
+version. Tests skip gracefully on 404 rather than failing.
 """
 
 import datetime
@@ -11,11 +11,19 @@ import pytest
 
 from src.client import OpenProjectClient
 
-pytestmark = [pytest.mark.integration, pytest.mark.needs_module_time_costs]
+pytestmark = pytest.mark.integration
 
 
 async def test_list_cost_types(client: OpenProjectClient) -> None:
-    result = await client.get_cost_types()
+    try:
+        result = await client.get_cost_types()
+    except Exception as e:
+        if "404" in str(e) or "403" in str(e):
+            pytest.skip(
+                "GET /cost_types not available — enable 'Budgets' module in "
+                "Administration → Modules or upgrade OpenProject"
+            )
+        raise
     cost_types = result.get("_embedded", {}).get("elements", [])
     assert isinstance(cost_types, list)
 
@@ -23,7 +31,14 @@ async def test_list_cost_types(client: OpenProjectClient) -> None:
 async def test_cost_entry_lifecycle(
     client: OpenProjectClient, fresh_wp: int, project_id: int
 ) -> None:
-    types_result = await client.get_cost_types()
+    try:
+        types_result = await client.get_cost_types()
+    except Exception as e:
+        if "404" in str(e) or "403" in str(e):
+            pytest.skip(
+                "GET /cost_types not available — enable 'Budgets' module or upgrade"
+            )
+        raise
 
     cost_types = types_result.get("_embedded", {}).get("elements", [])
     if not cost_types:

@@ -46,30 +46,6 @@ def pytest_configure(config: pytest.Config) -> None:
         "markers",
         "integration: live tests that require OPENPROJECT_URL and OPENPROJECT_API_KEY",
     )
-    config.addinivalue_line(
-        "markers",
-        "needs_module_time_costs: requires 'Time and costs' module enabled in Administration → Modules. "
-        "Set OPENPROJECT_MODULE_TIME_COSTS=1 to run.",
-    )
-    config.addinivalue_line(
-        "markers",
-        "needs_module_budgets: requires 'Budgets' module enabled in Administration → Modules. "
-        "Set OPENPROJECT_MODULE_BUDGETS=1 to run.",
-    )
-
-
-def pytest_runtest_setup(item: pytest.Item) -> None:
-    """Skip module-gated tests unless the corresponding env var is set."""
-    _MODULE_MARKERS = {
-        "needs_module_time_costs": "OPENPROJECT_MODULE_TIME_COSTS",
-        "needs_module_budgets": "OPENPROJECT_MODULE_BUDGETS",
-    }
-    for marker_name, env_var in _MODULE_MARKERS.items():
-        if item.get_closest_marker(marker_name) and not os.environ.get(env_var):
-            pytest.skip(
-                f"Requires '{marker_name.replace('needs_module_', '').replace('_', ' ')}' "
-                f"module — enable it in Administration → Modules, then set {env_var}=1"
-            )
 
 
 # ---------------------------------------------------------------------------
@@ -120,22 +96,6 @@ async def wp_type_id(client: OpenProjectClient, project_id: int) -> int:
     types = result.get("_embedded", {}).get("elements", [])
     assert types, "No WP types found for project"
     return int(types[0]["id"])
-
-
-@pytest_asyncio.fixture(scope="session")
-async def activity_id(client: OpenProjectClient) -> int:
-    """Return the first available time entry activity ID.
-
-    Only used by tests marked needs_module_time_costs — the marker skips those
-    tests before this fixture runs if the module is disabled.
-    """
-    result = await client.get_time_entry_activities()
-    activities = result.get("_embedded", {}).get("elements", [])
-    if not activities:
-        pytest.skip(
-            "No time entry activities configured — add one in Administration → Time and costs"
-        )
-    return int(activities[0]["id"])
 
 
 @pytest_asyncio.fixture(scope="session")

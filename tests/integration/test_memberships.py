@@ -1,7 +1,5 @@
 """Integration tests: project memberships."""
 
-import time
-
 import pytest
 
 from src.client import OpenProjectClient
@@ -19,80 +17,96 @@ async def test_get_membership(client: OpenProjectClient, project_id: int) -> Non
     result = await client.get_memberships(project_id=project_id)
     members = extract_elements(result)
     if not members:
-        pytest.skip(
-            "No memberships in test project — the membership lifecycle test "
-            "creates its own, so run that first or add a member manually."
-        )
+        pytest.skip("No memberships in test project — run setup script first")
     m_id = members[0]["id"]
     fetched = await client.get_membership(m_id)
     assert fetched["id"] == m_id
 
 
 async def test_membership_lifecycle(
-    client: OpenProjectClient, current_user_id: int
+    client: OpenProjectClient,
+    bot_client: OpenProjectClient | None,
+    project_id: int,
 ) -> None:
-    """Full create/get/update/delete lifecycle on a throwaway project.
+    """Full create/get/update/delete lifecycle using the bot user on the test project.
 
-    Uses its own temporary project so there is no pre-existing membership for
-    the current user to conflict with — the create step must be a fresh add.
+    The bot's existing membership is removed, re-created, updated, then restored
+    to its original state in the finally block so the project is left clean.
     """
-    # Find a project-level member role by probing (the API response does not
-    # distinguish project roles from global roles — trial and error is the only way)
+    if bot_client is None:
+        pytest.skip(
+            "OPENPROJECT_BOT_API_KEY not set — bot user needed for membership lifecycle test"
+        )
+
+    # Discover the bot user's ID from their own token
+    bot_me = await bot_client.check_permissions()
+    bot_id = int(bot_me["id"])
+
+    # Find and remove the bot's existing membership (if any) so we can re-add it
+    all_memberships = extract_elements(
+        await client.get_memberships(project_id=project_id)
+    )
+    existing = next(
+        (
+            m
+            for m in all_memberships
+            if m.get("_links", {})
+            .get("principal", {})
+            .get("href", "")
+            .endswith(f"/{bot_id}")
+        ),
+        None,
+    )
+    original_role_ids = []
+    if existing:
+        original_role_ids = [
+            r["href"].rstrip("/").split("/")[-1]
+            for r in existing.get("_links", {}).get("roles", [])
+        ]
+        await client.delete_membership(existing["id"])
+
+    # Find an assignable project role
     roles_result = await client.get_roles()
     roles = roles_result.get("_embedded", {}).get("elements", [])
-    non_system = {
-        r["id"]
-        for r in roles
-        if r.get("name", "").lower() not in {"anonymous", "non member", "non-member"}
-    }
+    system_names = {"anonymous", "non member", "non-member"}
+    candidates = [r for r in roles if r.get("name", "").lower() not in system_names]
 
-    # Create a throwaway project for isolation
-    slug = f"mcp-mbr-test-{int(time.time())}"
-    proj = await client.create_project(
-        {"name": "mcp-membership-test", "identifier": slug, "public": False}
-    )
-    temp_project_id = proj["id"]
-
-    try:
-        # Try each non-system role until one succeeds as a project membership role
-        created = None
-        role_id = None
-        for r in roles:
-            if r["id"] not in non_system:
-                continue
-            try:
-                created = await client.create_membership(
-                    {
-                        "project_id": temp_project_id,
-                        "user_id": current_user_id,
-                        "role_ids": [r["id"]],
-                    }
-                )
-                role_id = r["id"]
-                break
-            except Exception as e:
-                if "unassignable" in str(e).lower() or "422" in str(e):
-                    continue
-                raise
-
-        if created is None:
-            pytest.skip(
-                "No project-level member roles found — all non-system roles are "
-                "global roles (not usable in project memberships) on this instance."
+    created = None
+    role_id = None
+    for r in candidates:
+        try:
+            created = await client.create_membership(
+                {"project_id": project_id, "user_id": bot_id, "role_ids": [r["id"]]}
             )
+            role_id = r["id"]
+            break
+        except Exception as e:
+            if "unassignable" in str(e).lower():
+                continue
+            raise
 
-        m_id = created.get("id")
-        assert m_id, f"No id in created membership: {created}"
+    if created is None:
+        pytest.skip("No assignable project-level roles found on this instance")
 
+    m_id = created["id"]
+    try:
         fetched = await client.get_membership(m_id)
         assert fetched["id"] == m_id
 
         updated = await client.update_membership(m_id, {"role_ids": [role_id]})
-        assert updated.get("id") == m_id
+        assert updated["id"] == m_id
 
         await client.delete_membership(m_id)
     finally:
-        try:
-            await client.delete_project(temp_project_id)
-        except Exception:
-            pass
+        # Restore original bot membership if it existed
+        if original_role_ids:
+            try:
+                await client.create_membership(
+                    {
+                        "project_id": project_id,
+                        "user_id": bot_id,
+                        "role_ids": original_role_ids,
+                    }
+                )
+            except Exception:
+                pass
