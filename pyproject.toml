@@ -1,6 +1,6 @@
 [project]
 name = "openproject-mcp-server"
-version = "3.0.0"
+version = "3.1.0"
 description = "A Model Context Protocol (MCP) server for OpenProject API v3 integration"
 authors = [
     {name = "Tom Gerke", email = "tom@thomasgerke.com"}
@@ -24,26 +24,19 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastmcp>=2.0.0,<3.0.0",
+    "fastmcp>=3.2.0,<4.0.0",
     "mcp>=1.0.0,<2.0.0",
-    "aiohttp>=3.8.0,<4.0.0",
-    "python-dotenv>=1.0.0",
+    "aiohttp>=3.14.1,<4.0.0",
+    "python-dotenv>=1.2.2",
     "certifi>=2022.0.0",
     "pydantic>=2.0.0,<3.0.0",
     "uvicorn>=0.24.0",
-    "starlette>=0.27.0",
+    "starlette>=1.3.1",
 ]
 
 [project.scripts]
 openproject-mcp = "src.server:main"
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "pytest-asyncio>=0.23",
-    "black>=22.0.0",
-    "flake8>=4.0.0",
-]
 
 [project.urls]
 Repository = "https://github.com/gerket/openproject-mcp-server"
@@ -57,13 +50,6 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
-[tool.black]
-line-length = 88
-target-version = ['py310', 'py311', 'py312']
-
-[tool.flake8]
-max-line-length = 88
-extend-ignore = ["E203", "W503"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -79,6 +65,8 @@ markers = [
 dev = [
     "mypy>=2.1.0",
     "pre-commit>=4.6.0",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=0.23",
     "ruff>=0.15.18",
 ]
 

@@ -203,7 +203,7 @@ async def test_tools_with_mocks():
         )
         mock_get_client.return_value = mock_client
 
-        result = await list_news.fn(project_id=1, page_size=10)
+        result = await list_news(project_id=1, page_size=10)
         assert "📰 News List" in result
         assert "Test News" in result
 
@@ -215,7 +215,7 @@ async def test_tools_with_mocks():
         )
         mock_get_client.return_value = mock_client
 
-        result = await list_news.fn()
+        result = await list_news()
         assert "No news entries found" in result or "✅" in result
 
     # Test 3.3: create_news with mock
@@ -237,7 +237,7 @@ async def test_tools_with_mocks():
             summary="Summary",
             description="Content",
         )
-        result = await create_news.fn(input_data)
+        result = await create_news(input_data)
         assert "✅" in result
         assert "10" in result
 
@@ -259,7 +259,7 @@ async def test_tools_with_mocks():
         )
         mock_get_client.return_value = mock_client
 
-        result = await get_news.fn(news_id=5)
+        result = await get_news(news_id=5)
         assert "📰 News Entry #5" in result
         assert "Detailed News" in result
 
@@ -276,7 +276,7 @@ async def test_tools_with_mocks():
         mock_get_client.return_value = mock_client
 
         input_data = UpdateNewsInput(news_id=5, title="Updated Title")
-        result = await update_news.fn(input_data)
+        result = await update_news(input_data)
         assert "✅" in result
         assert "5" in result
 
@@ -286,7 +286,7 @@ async def test_tools_with_mocks():
         mock_client.delete_news = AsyncMock(return_value=True)
         mock_get_client.return_value = mock_client
 
-        result = await delete_news.fn(news_id=5)
+        result = await delete_news(news_id=5)
         assert "✅" in result
         assert "5" in result
         assert "deleted" in result.lower()
@@ -297,6 +297,6 @@ async def test_tools_with_mocks():
         mock_client.get_news = AsyncMock(side_effect=Exception("API Error"))
         mock_get_client.return_value = mock_client
 
-        result = await list_news.fn()
+        result = await list_news()
         assert "❌" in result
         assert "Failed" in result or "Error" in result

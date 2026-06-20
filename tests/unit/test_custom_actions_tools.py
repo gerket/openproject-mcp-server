@@ -15,10 +15,6 @@ from src.tools.custom_actions import (
     list_custom_actions,
 )
 
-list_custom_actions = list_custom_actions.fn
-get_custom_action = get_custom_action.fn
-execute_custom_action = execute_custom_action.fn
-
 
 async def test_list_custom_actions_empty():
     with patch("src.tools.custom_actions.get_client") as mock_get_client:

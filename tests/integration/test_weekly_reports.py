@@ -24,7 +24,7 @@ async def test_get_report_data(project_id: int) -> None:
     week_start = (today - datetime.timedelta(days=today.weekday())).isoformat()
     week_end = today.isoformat()
 
-    result = await get_report_data.fn(
+    result = await get_report_data(
         GetReportDataInput(
             project_id=project_id,
             from_date=week_start,
@@ -40,7 +40,7 @@ async def test_generate_weekly_report(project_id: int) -> None:
     week_start = (today - datetime.timedelta(days=today.weekday())).isoformat()
     week_end = today.isoformat()
 
-    result = await generate_weekly_report.fn(
+    result = await generate_weekly_report(
         GenerateWeeklyReportInput(
             project_id=project_id,
             from_date=week_start,
