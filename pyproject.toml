@@ -58,10 +58,10 @@ extend-ignore = ["E203", "W503"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = ["tests/unit"]
 python_files = "test_*.py"
 python_functions = "test_*"
-addopts = "--ignore=tests/test_live_integration.py --ignore=tests/test_tools.py --ignore=tests/integration -m 'not integration'"
+addopts = "--ignore=tests/unit/test_live_integration.py --ignore=tests/unit/test_tools.py --ignore=tests/integration -m 'not integration'"
 markers = [
     "integration: live tests requiring OPENPROJECT_URL and OPENPROJECT_API_KEY",
 ]
@@ -81,7 +81,7 @@ select = ["E", "F", "W", "I", "UP", "B", "RUF"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/test_*.py" = ["E402", "F841", "B017"]
+"tests/unit/test_*.py" = ["E402", "F841", "B017"]
 "tests/integration/*.py" = ["E402", "F841", "B017"]
 "*.legacy.py" = ["E722", "B904", "B007"]
 
