@@ -2145,3 +2145,119 @@ class OpenProjectClient:
         if "immediate_reminders" in data:
             payload["immediateReminders"] = data["immediate_reminders"]
         return await self._request("PATCH", "/my_preferences", payload)
+
+    # ── Phase F: documents ──────────────────────────────────────────────────
+
+    async def get_documents(self, filters: str | None = None) -> dict:
+        """List documents. No POST endpoint exists in v3 (creation is form-only)."""
+        if filters:
+            from urllib.parse import quote as _q
+
+            return await self._request("GET", f"/documents?filters={_q(filters)}")
+        return await self._request("GET", "/documents")
+
+    async def get_document(self, document_id: int) -> dict:
+        """Get a document by ID."""
+        return await self._request("GET", f"/documents/{document_id}")
+
+    async def update_document(self, document_id: int, data: dict) -> dict:
+        """Update a document's title or description."""
+        current = await self.get_document(document_id)
+        lock_version = current.get("lockVersion", 0)
+        payload: dict = {"lockVersion": lock_version}
+        if "title" in data:
+            payload["title"] = data["title"]
+        if "description" in data:
+            payload["description"] = {"raw": data["description"]}
+        return await self._request("PATCH", f"/documents/{document_id}", payload)
+
+    # ── Phase F: storages ───────────────────────────────────────────────────
+
+    async def get_storages(self) -> dict:
+        """List configured file storages (OneDrive, Nextcloud, etc.)."""
+        return await self._request("GET", "/storages")
+
+    async def get_storage(self, storage_id: int) -> dict:
+        """Get a single file storage by ID."""
+        return await self._request("GET", f"/storages/{storage_id}")
+
+    async def get_project_storages(self, project_id: int | None = None) -> dict:
+        """List project-storage links (which storages are linked to which projects)."""
+        if project_id is not None:
+            from urllib.parse import quote as _q
+
+            filters = _q(
+                json.dumps(
+                    [{"projectId": {"operator": "=", "values": [str(project_id)]}}]
+                )
+            )
+            return await self._request("GET", f"/project_storages?filters={filters}")
+        return await self._request("GET", "/project_storages")
+
+    async def get_project_storage(self, project_storage_id: int) -> dict:
+        """Get a single project-storage link by ID."""
+        return await self._request("GET", f"/project_storages/{project_storage_id}")
+
+    # ── Phase F: file links ─────────────────────────────────────────────────
+
+    async def get_work_package_file_links(self, work_package_id: int) -> dict:
+        """List file links attached to a work package."""
+        return await self._request(
+            "GET", f"/work_packages/{work_package_id}/file_links"
+        )
+
+    async def get_file_link(self, file_link_id: int) -> dict:
+        """Get a single file link by ID."""
+        return await self._request("GET", f"/file_links/{file_link_id}")
+
+    async def create_file_links(
+        self, work_package_id: int, storage_id: int, file_infos: list[dict]
+    ) -> dict:
+        """Create file links on a work package.
+
+        Each item in file_infos should have: originId (str), name (str),
+        mimeType (str), createdAt (ISO str), lastModifiedAt (ISO str),
+        fileSize (int), originData (dict).
+        """
+        elements = [
+            {
+                "_type": "FileLink",
+                "originData": f.get("originData", {}),
+                "storageUrl": f.get("storageUrl", ""),
+                "_links": {
+                    "storageUrl": {"href": f.get("storageUrl", "")},
+                    "storage": {"href": f"/api/v3/storages/{storage_id}"},
+                },
+                **{k: v for k, v in f.items() if k not in ("originData", "storageUrl")},
+            }
+            for f in file_infos
+        ]
+        payload = {"_type": "Collection", "_embedded": {"elements": elements}}
+        return await self._request(
+            "POST", f"/work_packages/{work_package_id}/file_links", payload
+        )
+
+    async def delete_file_link(self, file_link_id: int) -> bool:
+        """Delete a file link by ID."""
+        await self._request("DELETE", f"/file_links/{file_link_id}")
+        return True
+
+    # ── Phase G: categories ─────────────────────────────────────────────────
+
+    async def get_project_categories(self, project_id: int) -> dict:
+        """List categories for a project."""
+        return await self._request("GET", f"/projects/{project_id}/categories")
+
+    async def get_category(self, category_id: int) -> dict:
+        """Get a single category by ID."""
+        return await self._request("GET", f"/categories/{category_id}")
+
+    # ── Phase G: views ──────────────────────────────────────────────────────
+
+    async def get_views(self) -> dict:
+        """List all saved views."""
+        return await self._request("GET", "/views")
+
+    async def get_view(self, view_id: int) -> dict:
+        """Get a single view by ID."""
+        return await self._request("GET", f"/views/{view_id}")
