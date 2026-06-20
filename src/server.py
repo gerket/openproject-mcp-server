@@ -4,6 +4,7 @@ OpenProject MCP Server - FastMCP Implementation
 Main server file that initializes FastMCP and registers all tools.
 """
 
+import asyncio
 import logging
 import os
 
@@ -105,12 +106,12 @@ from src.tools import (  # noqa: F401, E402
     work_packages,  # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
 )
 
-_tool_list = list(mcp.local_provider._components.values())
-_read = sum(1 for t in _tool_list if "read" in (t.tags or set()))
-_write = sum(1 for t in _tool_list if "write" in (t.tags or set()))
+_tools = asyncio.run(mcp.get_tools())  # type: ignore[attr-defined]
+_read = sum(1 for t in _tools.values() if "read" in (t.tags or set()))
+_write = sum(1 for t in _tools.values() if "write" in (t.tags or set()))
 logger.info(
     "✅ All %d tools loaded successfully (%d read, %d write)",
-    len(_tool_list),
+    len(_tools),
     _read,
     _write,
 )
