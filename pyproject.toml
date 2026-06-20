@@ -23,11 +23,6 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 
-[project.urls]
-Repository = "https://github.com/gerket/openproject-mcp-server"
-Issues = "https://github.com/gerket/openproject-mcp-server/issues"
-Changelog = "https://github.com/gerket/openproject-mcp-server/blob/main/CHANGELOG.md"
-
 dependencies = [
     "fastmcp>=2.0.0",
     "mcp>=1.0.0",
@@ -49,6 +44,11 @@ dev = [
     "black>=22.0.0",
     "flake8>=4.0.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/gerket/openproject-mcp-server"
+Issues = "https://github.com/gerket/openproject-mcp-server/issues"
+Changelog = "https://github.com/gerket/openproject-mcp-server/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]
