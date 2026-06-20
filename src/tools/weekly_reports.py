@@ -491,7 +491,15 @@ async def get_report_data(input: GetReportDataInput) -> str:
         return format_error(f"Failed to get report data: {e!s}")
 
 
-@mcp.tool(tags={"read", "reports", "generate_this_week_report"})
+@mcp.tool(
+    tags={
+        "read",
+        "reports",
+        "situational",
+        "situational-read",
+        "generate_this_week_report",
+    }
+)
 async def generate_this_week_report(
     project_id: int, team_name: str | None = None
 ) -> str:
@@ -541,7 +549,15 @@ async def generate_this_week_report(
         return format_error(f"Failed to generate this week's report: {e!s}")
 
 
-@mcp.tool(tags={"read", "reports", "generate_last_week_report"})
+@mcp.tool(
+    tags={
+        "read",
+        "reports",
+        "situational",
+        "situational-read",
+        "generate_last_week_report",
+    }
+)
 async def generate_last_week_report(
     project_id: int, team_name: str | None = None
 ) -> str:

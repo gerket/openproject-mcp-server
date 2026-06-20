@@ -25,7 +25,7 @@ remove_work_package_parent = remove_work_package_parent.fn
 async def test_list_work_package_children_empty():
     with patch("src.tools.hierarchy.get_client") as mock_get_client:
         mock_client = AsyncMock()
-        mock_client.get_work_package_children = AsyncMock(
+        mock_client.list_work_package_children = AsyncMock(
             return_value={"_embedded": {"elements": []}, "total": 0}
         )
         mock_get_client.return_value = mock_client
@@ -39,7 +39,7 @@ async def test_list_work_package_children_empty():
 async def test_list_work_package_children_results():
     with patch("src.tools.hierarchy.get_client") as mock_get_client:
         mock_client = AsyncMock()
-        mock_client.get_work_package_children = AsyncMock(
+        mock_client.list_work_package_children = AsyncMock(
             return_value={
                 "_embedded": {
                     "elements": [

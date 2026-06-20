@@ -38,7 +38,7 @@ async def list_projects(active_only: bool = True, show_hierarchy: bool = False) 
         return _format_project_hierarchy(projects)
 
     except Exception as e:
-        return f"❌ Failed to list projects: {e!s}"
+        return format_error(f"Failed to list projects: {e!s}")
 
 
 def _format_project_hierarchy(projects: list) -> str:
@@ -141,7 +141,7 @@ async def get_project(project_id: int) -> str:
         return text
 
     except Exception as e:
-        return f"❌ Failed to get project: {e!s}"
+        return format_error(f"Failed to get project: {e!s}")
 
 
 class CreateProjectInput(BaseModel):

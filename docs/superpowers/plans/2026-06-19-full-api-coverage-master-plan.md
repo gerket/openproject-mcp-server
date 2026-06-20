@@ -20,19 +20,21 @@ documentation thorough enough for a stranger to deploy and test it.
 
 - **PR #2 merged** (Phase 0 + Phase A): 94 tools, all tagged, CI green, pytest 153 tests, pre-commit enforced.
 - **PR #3 merged** (Phase B): watchers, activity edit, available assignees, reminders — 86 tools on main.
-- **PR #4 merged** (Phase C): queries (8 tools) + profile tags + env-var filtering — 94 tools on main.
-- **PR #5 open** (Phase D): custom actions (3 tools) + version update/delete (2 tools) + tests/ reorganisation — 99 tools, 162 tests when merged.
-- **Main branch** is at the Phase C merge (94 tools, 153 tests).
-- **Next phase after PR #5 merges:** Phase E (Users, principals, user preferences — ~10 tools).
+- **PR #4 merged** (Phase C): queries (8 tools) + profile tags + env-var filtering.
+- **PR #5 merged** (Phase D): custom actions, version update/delete, tests/ reorganisation.
+- **PR #6 merged** (Phase E): users, principals, placeholder users, preferences, admin tag.
+- **PR #7 merged** (Phase F+G): documents, storages, file links, categories, views.
+- **Main branch** (post Phase G): 120 tools, 192 unit + 79 integration tests.
+- **Phase H in progress:** README rewrite + documentation accuracy.
 
 ---
 
 ## Tag Convention
 
-Every tool carries **up to 5 tags**: access + category + profile + composite + `"all"`.
+Every tool carries **up to 5 tags**: access + category + profile + composite + tool_name.
 
 ```python
-# Core read tool — 5 tags
+# Core read tool — 5 tags (access + category + profile + composite + tool_name)
 @mcp.tool(tags={"read", "work-packages", "core", "core-read", "list_work_packages"})
 async def list_work_packages(...) -> str: ...
 
@@ -71,9 +73,8 @@ async def list_memberships(...) -> str: ...
 
 ### Profile tags
 
-- `"core"` — ~20 tools for every session (common WP operations, list/get projects, users, notifications, queries, versions)
-- `"situational"` — ~34 tools for specific tasks (relations, hierarchy, watchers, time entries, attachments, news, etc.)
-- `"all"` — every tool (no-profile tools only get this)
+- `"core"` — ~23 tools for every session (common WP operations, list/get projects, users, notifications, queries, versions)
+- `"situational"` — ~49 tools for specific tasks (relations, hierarchy, watchers, time entries, attachments, news, storages, etc.)
 
 ### Composite tags (AND-style filtering within FastMCP's OR semantics)
 
@@ -85,8 +86,8 @@ Set `OPENPROJECT_MCP_INCLUDE_TAGS` and/or `OPENPROJECT_MCP_EXCLUDE_TAGS` (comma-
 
 | Goal | Env var |
 |---|---|
-| Core reads only (~15 tools, optimal daily use) | `OPENPROJECT_MCP_INCLUDE_TAGS=core-read` |
-| All core (read + write, ~20 tools) | `OPENPROJECT_MCP_INCLUDE_TAGS=core` |
+| Core reads only (~18 tools, optimal daily use) | `OPENPROJECT_MCP_INCLUDE_TAGS=core-read` |
+| All core (read + write, ~23 tools) | `OPENPROJECT_MCP_INCLUDE_TAGS=core` |
 | Core + situational reads | `OPENPROJECT_MCP_INCLUDE_TAGS=core-read,situational-read` |
 | Everything except finance | `OPENPROJECT_MCP_EXCLUDE_TAGS=finance` |
 | Non-admin token (hide admin-only tools) | `OPENPROJECT_MCP_EXCLUDE_TAGS=admin` |
@@ -108,10 +109,10 @@ Phase A  ✅ COMPLETE  — CI + pytest + pre-commit + pyproject.toml (PR #2)
 Phase B  ✅ COMPLETE  — WP sub-resources: watchers, activity edit, assignees, reminders (PR #3)
 Phase C  ✅ COMPLETE  — Queries (saved views) + profile tags + env-var filtering (PR #4)
 Phase D  ✅ COMPLETE  — Custom actions + version lifecycle + tests/ reorganisation (PR #5)
-Phase E  🔲 IN PROGRESS — Users, principals, placeholder users, preferences + admin tag
-Phase F  🔲           — Budgets, documents, file links, storages
-Phase G  🔲           — Categories, views
-Phase H  🔲           — README rewrite + integration test setup guide
+Phase E  ✅ COMPLETE  — Users, principals, placeholder users, preferences + admin tag (PR #6)
+Phase F  ✅ COMPLETE  — Documents, storages, file links + budget read tools (PR #7)
+Phase G  ✅ COMPLETE  — Categories, views (PR #7, shipped with Phase F)
+Phase H  🔲 IN PROGRESS — README rewrite + master plan update
 ```
 
 ---
@@ -140,7 +141,7 @@ reminders ×2). Tool count 86 on main.
 
 ---
 
-## Phase C — Queries (saved views) 🔲 IN PR #4
+## Phase C — Queries (saved views) ✅ COMPLETE
 
 **Goal:** A stranger can clone the repo, run one command, and see all tests
 pass. Every PR is gated by CI.
@@ -306,7 +307,7 @@ queries/delete(id)
 
 ---
 
-## Phase D — Custom actions + version lifecycle 🔲
+## Phase D — Custom actions + version lifecycle ✅ COMPLETE
 
 **New tools (~5):**
 
@@ -342,7 +343,7 @@ versions/create → update name → delete
 
 ---
 
-## Phase E — Users, principals, user preferences 🔲
+## Phase E — Users, principals, placeholder users, preferences ✅ COMPLETE
 
 **New tools (~10):**
 
@@ -378,7 +379,7 @@ placeholder_users/create → get → update → delete lifecycle
 
 ---
 
-## Phase F — Budgets, documents, file links, storages 🔲
+## Phase F — Documents, storages, file links ✅ COMPLETE
 
 **New tools (~11):**
 
@@ -420,7 +421,7 @@ file_links/list(wp_id=46) → may be empty, assert no error
 
 ---
 
-## Phase G — Categories, views 🔲
+## Phase G — Categories, views ✅ COMPLETE (shipped with Phase F)
 
 **New tools (~4):**
 
@@ -589,6 +590,5 @@ PR #2 merge
 
 ## Related files
 
-- Feature branch plans: `docs/superpowers/plans/2026-06-17-wiki-groups-notifications-attachments-costs.md`
 - Phase 0 plan: `docs/superpowers/plans/2026-06-19-phase-0-tag-all-tools.md`
-- Handoff log: `docs/handoff.md`
+- Integration test setup: `docs/integration-test-setup.md`
