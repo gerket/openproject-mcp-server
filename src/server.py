@@ -93,7 +93,7 @@ from src.tools import (  # noqa: F401, E402
     reminders,  # 2 tools: list_reminders, create_reminder
     storages,  # 7 tools: list_storages, get_storage, list_project_storages, list/get/create/delete file links
     time_entries,  # 5 tools
-    users,  # 12 tools: list_users, get_user, list_roles, get_role, list_project_members, list_user_projects, list_principals, create_user[admin], update_user[admin], get_my_preferences, update_my_preferences
+    users,  # 11 tools: list_users, get_user, list_roles, get_role, list_project_members, list_user_projects, list_principals, create_user[admin], update_user[admin], get_my_preferences, update_my_preferences
     versions,  # 4 tools: list_versions, create_version, update_version, delete_version
     views,  # 2 tools: list_views, get_view
     watchers,  # 7 tools: list_watchers, list_available_watchers, add_watcher, remove_watcher, get_activity, update_activity, list_available_assignees
