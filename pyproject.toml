@@ -3,7 +3,7 @@ name = "openproject-mcp-server"
 version = "3.0.0"
 description = "A Model Context Protocol (MCP) server for OpenProject API v3 integration"
 authors = [
-    {name = "Tom Gerke", email = "tom@thomasgerke.com"}
+    {name = "Tom Gerke", email = "tom.n.gerke@gmail.com"}
 ]
 readme = "README.md"
 license = {text = "MIT"}
