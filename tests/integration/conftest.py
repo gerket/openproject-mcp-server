@@ -78,8 +78,8 @@ async def client(live_env: tuple[str, str]) -> OpenProjectClient:
 
 @pytest_asyncio.fixture(scope="session")
 async def project_id(client: OpenProjectClient) -> int:
-    """Return the ID of the 'infrastructure' project (or OPENPROJECT_PROJECT env var)."""
-    slug = os.environ.get("OPENPROJECT_PROJECT", "infrastructure")
+    """Return the ID of the test project (OPENPROJECT_PROJECT env var, default 'mcp-test')."""
+    slug = os.environ.get("OPENPROJECT_PROJECT", "mcp-test")
     result = await client.get_projects()
     projects = result.get("_embedded", {}).get("elements", [])
     for p in projects:

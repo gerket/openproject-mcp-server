@@ -273,11 +273,11 @@ Result: Markdown report (2025-12-02 to 2025-12-08)
 ```
 User: "So sánh 2 tuần gần nhất project 5"
 
-Claude: 
+Claude:
   [Calls get_report_data(5, "2025-11-25", "2025-12-01")]
   [Calls get_report_data(5, "2025-12-02", "2025-12-08")]
   [Compares and creates custom analysis]
-  
+
 Result: Comparison report showing:
   - Velocity trend: ↗️ +20%
   - Bug rate: ↘️ -15%
@@ -288,7 +288,7 @@ Result: Comparison report showing:
 ```
 User: "Tạo executive summary 1 trang cho leadership, project 5 tuần này"
 
-Claude: 
+Claude:
   [Calls generate_this_week_report(5)]
   [Extracts only Phụ lục section]
   [Formats for 1-page view]
@@ -342,6 +342,6 @@ A: Recommend:
 4. 📊 Tích hợp vào sprint ceremonies
 
 Xem thêm:
-- [Prompt Templates](prompts/weekly_report_vi.md)
-- [Examples](examples/weekly_report_example.md)
-- [Cheat Sheet](cheat_sheet_vi.md)
+- [Prompt Templates](../prompts/weekly_report_vi.md)
+- [Examples](../examples/weekly_report_example.md)
+- [Cheat Sheet](../cheat_sheet_vi.md)

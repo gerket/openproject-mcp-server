@@ -24,7 +24,7 @@ async def test_connection() -> str:
         return f"❌ Connection failed: {e!s}"
 
 
-@mcp.tool(tags={"read", "system", "check_permissions"})
+@mcp.tool(tags={"read", "system", "core", "core-read", "check_permissions"})
 async def check_permissions() -> str:
     """Check current user permissions and capabilities.
 

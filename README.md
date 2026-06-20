@@ -2,7 +2,7 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server providing comprehensive integration with the [OpenProject](https://www.openproject.org/) API v3. Enables Claude and other MCP-compatible LLMs to read and manage projects, work packages, users, queries, file links, notifications, time entries, and more.
 
-![status](https://img.shields.io/badge/status-stable-brightgreen) ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![Tests](https://img.shields.io/badge/tests-192%20unit%20%7C%2076%20integration-brightgreen)
+![status](https://img.shields.io/badge/status-stable-brightgreen) ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![Tests](https://img.shields.io/badge/tests-192%20unit%20%7C%2079%20integration-brightgreen)
 
 ---
 
@@ -84,7 +84,7 @@ Add to your project `.mcp.json` or global `~/.claude/settings.json`:
 }
 ```
 
-**Tip:** Start with `OPENPROJECT_MCP_INCLUDE_TAGS=core-read` (~15 tools) for daily use. Expand to `core` or remove the filter for full access.
+**Tip:** Start with `OPENPROJECT_MCP_INCLUDE_TAGS=core-read` (~18 tools) for daily use. Expand to `core` or remove the filter for full access.
 
 ---
 
@@ -119,21 +119,21 @@ Every tool carries up to 5 tags. Setting `OPENPROJECT_MCP_INCLUDE_TAGS` / `OPENP
 
 ### Profile definitions
 
-**`core`** (~20 tools) — every session:
-`list_work_packages`, `search_work_packages`, `create_work_package`, `update_work_package`, `add_work_package_comment`, `list_work_package_activities`, `list_projects`, `get_project`, `list_types`, `list_statuses`, `list_priorities`, `list_principals`, `list_users`, `get_user`, `list_notifications`, `mark_all_notifications_read`, `list_queries`, `get_query`, `create_query`, `list_versions`, `get_my_preferences`, `test_connection`
+**`core`** (~23 tools) — every session:
+`list_work_packages`, `search_work_packages`, `create_work_package`, `update_work_package`, `add_work_package_comment`, `list_work_package_activities`, `list_projects`, `get_project`, `list_types`, `list_statuses`, `list_priorities`, `list_principals`, `list_users`, `get_user`, `list_notifications`, `mark_all_notifications_read`, `list_queries`, `get_query`, `create_query`, `list_versions`, `get_my_preferences`, `test_connection`, `check_permissions`
 
-**`situational`** (~35 tools) — specific tasks:
-relations, hierarchy, watchers, reminders, custom_actions, time entries, attachments, news, documents, storages/file_links, weekly_reports, `list_available_assignees`, `get_activity`, `update_activity`
+**`situational`** (~49 tools) — specific tasks:
+relations, hierarchy, watchers, reminders, time entries, attachments, news, documents, storages/file_links, weekly_reports, `assign_work_package`, `unassign_work_package`, `list_available_assignees`, `get_activity`, `update_activity`, `mark_notification_read`, `generate_this_week_report`, `generate_last_week_report`
 
-**No profile** — admin/niche/module-gated tools (user create/update, placeholder users, memberships, budgets, categories, views, overdue/filter conveniences)
+**No profile** — admin/niche/module-gated tools (user create/update, placeholder users, custom_actions, memberships, budgets, categories, views, overdue/filter conveniences)
 
 ### Filtering examples
 
 ```bash
-# Core reads only — recommended default (~15 tools)
+# Core reads only — recommended default (~18 tools)
 OPENPROJECT_MCP_INCLUDE_TAGS=core-read
 
-# All core tools (read + write, ~22 tools)
+# All core tools (read + write, ~23 tools)
 OPENPROJECT_MCP_INCLUDE_TAGS=core
 
 # Core + situational reads (research/reporting)
@@ -169,7 +169,7 @@ uv run pytest tests/integration -m integration -v
 uv run pytest tests/integration/test_versions.py -m integration -v
 ```
 
-See `docs/integration-test-setup.md` for the full click-ops checklist required to enable all 76 integration test scenarios.
+See `docs/integration-test-setup.md` for the full click-ops checklist required to enable all 79 integration test scenarios.
 
 ---
 
@@ -205,7 +205,7 @@ scripts/
   setup_test_project.py — One-time integration test environment setup
 tests/
   unit/              — 192 network-free unit tests
-  integration/       — 76 live integration tests (pytest -m integration)
+  integration/       — 79 live integration tests (pytest -m integration)
 docs/
   integration-test-setup.md — Click-ops checklist for test environment
   superpowers/plans/ — Phase-by-phase API coverage master plan

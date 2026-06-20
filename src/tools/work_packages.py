@@ -789,7 +789,15 @@ async def list_priorities() -> str:
         return format_error(f"Failed to list work package priorities: {e!s}")
 
 
-@mcp.tool(tags={"write", "work-packages", "assign_work_package"})
+@mcp.tool(
+    tags={
+        "write",
+        "work-packages",
+        "situational",
+        "situational-write",
+        "assign_work_package",
+    }
+)
 async def assign_work_package(work_package_id: int, assignee_id: int) -> str:
     """Assign a work package (task) to a user.
 
@@ -845,7 +853,15 @@ async def assign_work_package(work_package_id: int, assignee_id: int) -> str:
         return format_error(f"Failed to assign work package: {e!s}")
 
 
-@mcp.tool(tags={"write", "work-packages", "unassign_work_package"})
+@mcp.tool(
+    tags={
+        "write",
+        "work-packages",
+        "situational",
+        "situational-write",
+        "unassign_work_package",
+    }
+)
 async def unassign_work_package(work_package_id: int) -> str:
     """Unassign a work package (remove assignee from task).
 

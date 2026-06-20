@@ -87,12 +87,12 @@ Required for `test_get_document`. The Documents module must be enabled first (st
 Projects → `mcp-test` → **Settings → Work packages → Categories** → + Category (any name, e.g. "Test Category").
 Required for `test_get_category`. Note: this is under the project's own Settings, not the global Administration menu.
 
-### 6. Create a budget in the test project
+### 5. Create a budget in the test project
 
 Projects → `mcp-test` → Budgets → + Budget (any name, e.g. "Test Budget").
 Required for `test_get_budget`.
 
-### 7. Enable custom fields on the test project
+### 6. Enable custom fields on the test project
 
 Create missing fields first in Administration → Custom fields → Work packages,
 then enable each at Projects → `mcp-test` → Settings → Custom fields.
@@ -110,7 +110,7 @@ All fields apply to the Task type.
 | `test_text` | Text (String) |
 | `test_longtext` | Long text |
 
-### 8. Create the 'Start work' custom action (if probe above failed)
+### 7. Create the 'Start work' custom action (if probe above failed)
 
 Administration → Work packages → Custom actions → + Custom action:
 - Name: `Start work`
@@ -120,13 +120,7 @@ Administration → Work packages → Custom actions → + Custom action:
 After saving, update `OPENPROJECT_CUSTOM_ACTION_ID` in `tests/integration/.env`
 with the ID from the URL (`/admin/custom_actions/<ID>/edit`).
 
-### 9. Verify cost types (for `test_costs` — optional)
-
-Administration → Cost types → ensure at least one type is configured.
-`GET /cost_types` is not in the OpenProject v3 API spec on standard installs;
-these tests skip automatically via the `api_paths` fixture if unavailable.
-
-### 10. Fix attachments storage (for `test_attachment_lifecycle`)
+### 8. Fix attachments storage (for `test_attachment_lifecycle`)
 
 If uploads return 500, the app's storage path is likely misconfigured:
 ```bash
@@ -161,10 +155,10 @@ test project itself.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `SKIPPED — no actions found` | Custom action not created | Follow click-ops step 5 |
+| `SKIPPED — no actions found` | Custom action not created | Follow click-ops step 7 |
 | `SKIPPED — OPENPROJECT_BOT_API_KEY not set` | Bot token missing | Follow click-ops step 1 |
-| `SKIPPED — No budgets in test project` | No budget created | Follow click-ops step 3 |
+| `SKIPPED — No budgets in test project` | No budget created | Follow click-ops step 5 |
 | `SKIPPED — GET /cost_types not in API spec` | Plugin-only endpoint | Permanent skip on standard installs |
-| Attachment upload 500 | Storage path not writable | Follow click-ops step 7 |
+| Attachment upload 500 | Storage path not writable | Follow click-ops step 8 |
 | `401 Unauthorized` | Wrong or expired API token | Re-generate and set `OPENPROJECT_API_KEY` |
 | `Project 'mcp-test' not found` | Setup script not run | Run `scripts/setup_test_project.py` first |

@@ -61,7 +61,15 @@ async def list_notifications(
         return format_error(f"Failed to list notifications: {e!s}")
 
 
-@mcp.tool(tags={"write", "notifications", "mark_notification_read"})
+@mcp.tool(
+    tags={
+        "write",
+        "notifications",
+        "situational",
+        "situational-write",
+        "mark_notification_read",
+    }
+)
 async def mark_notification_read(notification_id: int) -> str:
     """Mark a single notification as read.
 
