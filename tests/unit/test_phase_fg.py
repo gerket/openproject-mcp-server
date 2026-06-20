@@ -18,6 +18,7 @@ from src.tools.storages import (
     delete_file_link,
     get_file_link,
     get_storage,
+    list_project_storages,
     list_storages,
     list_work_package_file_links,
 )
@@ -28,6 +29,7 @@ get_document = get_document.fn
 update_document = update_document.fn
 list_storages = list_storages.fn
 get_storage = get_storage.fn
+list_project_storages = list_project_storages.fn
 list_work_package_file_links = list_work_package_file_links.fn
 get_file_link = get_file_link.fn
 create_file_links = create_file_links.fn
@@ -38,6 +40,7 @@ list_views = list_views.fn
 get_view = get_view.fn
 
 from src.tools.documents import UpdateDocumentInput
+from src.tools.storages import CreateFileLinksInput
 
 # ── documents ─────────────────────────────────────────────────────────────────
 
@@ -124,6 +127,68 @@ async def test_list_work_package_file_links_empty():
         m.return_value = c
         result = await list_work_package_file_links(42)
         assert "No file links" in result
+
+
+async def test_get_storage():
+    with patch("src.tools.storages.get_client") as m:
+        c = AsyncMock()
+        c.get_storage = AsyncMock(
+            return_value={
+                "id": 1,
+                "name": "OneDrive",
+                "_links": {"type": {"title": "OneDrive"}},
+            }
+        )
+        m.return_value = c
+        result = await get_storage(1)
+        assert "OneDrive" in result
+        assert "✅" in result
+
+
+async def test_list_project_storages_empty():
+    with patch("src.tools.storages.get_client") as m:
+        c = AsyncMock()
+        c.get_project_storages = AsyncMock(return_value={"_embedded": {"elements": []}})
+        m.return_value = c
+        result = await list_project_storages()
+        assert "No project-storage links" in result
+
+
+async def test_get_file_link():
+    with patch("src.tools.storages.get_client") as m:
+        c = AsyncMock()
+        c.get_file_link = AsyncMock(
+            return_value={
+                "id": 5,
+                "originData": {
+                    "name": "report.pdf",
+                    "mimeType": "application/pdf",
+                    "fileSize": 12345,
+                },
+                "_links": {"storage": {"title": "OneDrive"}},
+            }
+        )
+        m.return_value = c
+        result = await get_file_link(5)
+        assert "report.pdf" in result
+        assert "application/pdf" in result
+        assert "OneDrive" in result
+        assert "✅" in result
+
+
+async def test_create_file_links_no_storage():
+    with patch("src.tools.storages.get_client") as m:
+        c = AsyncMock()
+        c.create_file_links = AsyncMock(side_effect=Exception("API Error 404"))
+        m.return_value = c
+        result = await create_file_links(
+            CreateFileLinksInput(
+                work_package_id=42,
+                storage_id=1,
+                files=[{"name": "doc.pdf", "originId": "abc123"}],
+            )
+        )
+        assert "not found" in result.lower() or "storage" in result.lower()
 
 
 async def test_delete_file_link():

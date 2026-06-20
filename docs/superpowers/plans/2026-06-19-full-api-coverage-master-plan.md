@@ -57,7 +57,8 @@ async def list_memberships(...) -> str: ...
 | `projects` | projects, versions |
 | `users` | users, memberships, groups, placeholder_users |
 | `time` | time_entries |
-| `content` | news, wiki, attachments |
+| `content` | news, wiki, attachments, documents |
+| `storage` | storages, project_storages, file_links (external file-server integration) |
 | `notifications` | notifications |
 | `finance` | costs |
 | `reports` | weekly_reports |
@@ -89,6 +90,7 @@ Set `OPENPROJECT_MCP_INCLUDE_TAGS` and/or `OPENPROJECT_MCP_EXCLUDE_TAGS` (comma-
 | Core + situational reads | `OPENPROJECT_MCP_INCLUDE_TAGS=core-read,situational-read` |
 | Everything except finance | `OPENPROJECT_MCP_EXCLUDE_TAGS=finance` |
 | Non-admin token (hide admin-only tools) | `OPENPROJECT_MCP_EXCLUDE_TAGS=admin` |
+| No file storage configured | `OPENPROJECT_MCP_EXCLUDE_TAGS=storage` |
 | Show only admin tools | `OPENPROJECT_MCP_INCLUDE_TAGS=admin` |
 | Full access (default) | *(no env var)* |
 

@@ -29,7 +29,7 @@ async def list_categories(project_id: int) -> str:
         if not categories:
             return (
                 f"No categories defined for project #{project_id}. "
-                "Create them in Administration → Projects → [project] → Categories."
+                "Create them at Project Settings → Work packages → Categories."
             )
 
         text = f"✅ **Categories for Project #{project_id} ({len(categories)}):**\n\n"
