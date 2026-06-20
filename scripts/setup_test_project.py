@@ -306,14 +306,23 @@ async def main() -> None:
 
     clickops = [
         (
-            "Generate an API token for the bot user",
-            "Log in as mcp-test-bot (password: Mcp1Test!2Bot3)\n"
-            "    User menu (top right) → Account settings → Access tokens\n"
-            "    → + API Token → copy the value\n"
-            "    Paste it into tests/integration/.env as:\n"
-            "    OPENPROJECT_BOT_API_KEY=<token>\n"
-            "    This enables test_mark_single_notification_read: bot assigns a WP\n"
-            "    to the admin user, which triggers a real notification.",
+            "Set the bot user's password and generate an API token",
+            "The API cannot set passwords for other users — do this in the web UI:\n"
+            "\n"
+            "    a) Set the password:\n"
+            "       Administration → Users → mcp-test-bot → Edit\n"
+            "       → Password field → enter a password → Save\n"
+            "\n"
+            "    b) Generate an API token:\n"
+            "       Log out, then log in as mcp-test-bot at /login\n"
+            "       User menu (top right) → Account settings → Access tokens\n"
+            "       → + API Token → copy the value\n"
+            "\n"
+            "    c) Paste the token into tests/integration/.env as:\n"
+            "       OPENPROJECT_BOT_API_KEY=<token>\n"
+            "\n"
+            "    This enables test_mark_single_notification_read: bot creates a WP\n"
+            "    assigned to the admin user, triggering a real notification.",
         ),
         (
             "Enable modules on the test project",
