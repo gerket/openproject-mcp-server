@@ -579,7 +579,7 @@ class OpenProjectClient:
         if project_id:
             filters.append({"project": {"operator": "=", "values": [project_id]}})
         if user_id:
-            filters.append({"user": {"operator": "=", "values": [str(user_id)]}})
+            filters.append({"principal": {"operator": "=", "values": [str(user_id)]}})
 
         if filters:
             filter_string = quote(json.dumps(filters))
@@ -956,20 +956,48 @@ class OpenProjectClient:
         await self._request("DELETE", f"/time_entries/{time_entry_id}")
         return True
 
-    async def get_time_entry_activities(self) -> dict:
-        """
-        Retrieve available time entry activities.
+    async def get_time_entry_activities(
+        self, work_package_id: int | None = None
+    ) -> dict:
+        """Retrieve available time entry activities via the form schema.
 
-        Returns:
-            Dict: API response containing activities
+        There is no dedicated collection endpoint (GET /time_entries/activities
+        does not exist in v3). Activities are discovered via the create-form's
+        allowedValues, which requires a work package context to be populated.
+        If no work_package_id is provided, the first work package found is used.
         """
-        result = await self._request("GET", "/time_entries/activities")
-
-        # Ensure proper response structure
-        if "_embedded" not in result:
-            result["_embedded"] = {"elements": []}
-        elif "elements" not in result.get("_embedded", {}):
-            result["_embedded"]["elements"] = []
+        payload: dict = {}
+        wp_id = work_package_id
+        if wp_id is None:
+            # allowedValues is empty without a WP context — fetch any WP
+            wps = await self._request("GET", "/work_packages?pageSize=1")
+            elements = wps.get("_embedded", {}).get("elements", [])
+            if elements:
+                wp_id = elements[0].get("id")
+        if wp_id is not None:
+            payload["_links"] = {
+                "workPackage": {"href": f"/api/v3/work_packages/{wp_id}"}
+            }
+        form = await self._request("POST", "/time_entries/form", payload)
+        raw_allowed = (
+            form.get("_embedded", {})
+            .get("schema", {})
+            .get("activity", {})
+            .get("_embedded", {})
+            .get("allowedValues", [])
+        )
+        # allowedValues may be link objects {href, title} rather than {id, name}.
+        # Normalize to {id, name} so downstream formatting is consistent.
+        elements = []
+        for item in raw_allowed:
+            if "id" in item:
+                elements.append(item)
+            else:
+                href = item.get("href", "")
+                item_id = href.rstrip("/").split("/")[-1] if href else None
+                name = item.get("title") or item.get("name", "Unknown")
+                elements.append({"id": item_id, "name": name, **item})
+        result: dict = {"_embedded": {"elements": elements}}
 
         return result
 
@@ -1849,72 +1877,6 @@ class OpenProjectClient:
             "GET", f"/{container_type}/{container_id}/attachments"
         )
 
-    async def get_cost_types(self) -> dict:
-        """List all defined cost types (admin-level reference data)."""
-        return await self._request("GET", "/cost_types")
-
-    async def get_cost_entries(
-        self,
-        work_package_id: int | None = None,
-        project_id: int | None = None,
-    ) -> dict:
-        """List cost entries, optionally filtered by work package or project."""
-        filters_list = []
-        if work_package_id is not None:
-            filters_list.append(
-                {"work_package_id": {"operator": "=", "values": [str(work_package_id)]}}
-            )
-        if project_id is not None:
-            filters_list.append(
-                {"project_id": {"operator": "=", "values": [str(project_id)]}}
-            )
-        if filters_list:
-            encoded = quote(json.dumps(filters_list))
-            return await self._request("GET", f"/cost_entries?filters={encoded}")
-        return await self._request("GET", "/cost_entries")
-
-    async def create_cost_entry(self, data: dict) -> dict:
-        """Create a cost entry.
-
-        Args:
-            data: Dict with keys:
-                project_id (int), work_package_id (int), cost_type_id (int),
-                units (float), spent_on (str YYYY-MM-DD),
-                optionally comment (str)
-        """
-        payload: dict = {
-            "_links": {
-                "project": {"href": f"/api/v3/projects/{data['project_id']}"},
-                "workPackage": {
-                    "href": f"/api/v3/work_packages/{data['work_package_id']}"
-                },
-                "costType": {"href": f"/api/v3/cost_types/{data['cost_type_id']}"},
-            },
-            "units": str(data["units"]),
-            "spentOn": data["spent_on"],
-        }
-        if data.get("comment"):
-            payload["comment"] = {"raw": data["comment"]}
-        return await self._request("POST", "/cost_entries", payload)
-
-    async def update_cost_entry(self, cost_entry_id: int, data: dict) -> dict:
-        """Update a cost entry (units, spent_on, comment)."""
-        current = await self._request("GET", f"/cost_entries/{cost_entry_id}")
-        lock_version = current.get("lockVersion", 0)
-        payload: dict = {"lockVersion": lock_version}
-        if "units" in data:
-            payload["units"] = str(data["units"])
-        if "spent_on" in data:
-            payload["spentOn"] = data["spent_on"]
-        if "comment" in data:
-            payload["comment"] = {"raw": data["comment"]}
-        return await self._request("PATCH", f"/cost_entries/{cost_entry_id}", payload)
-
-    async def delete_cost_entry(self, cost_entry_id: int) -> bool:
-        """Delete a cost entry by ID."""
-        await self._request("DELETE", f"/cost_entries/{cost_entry_id}")
-        return True
-
     async def get_watchers(self, work_package_id: int) -> dict:
         """List users watching a work package."""
         return await self._request("GET", f"/work_packages/{work_package_id}/watchers")
@@ -1948,11 +1910,15 @@ class OpenProjectClient:
     async def update_activity(
         self, activity_id: int, comment: str, internal: bool = False
     ) -> dict:
-        """Edit the comment on an activity. Requires 'edit journals' permission."""
+        """Edit the comment on an activity.
+
+        The API expects comment as a plain string (not a formattable dict),
+        even though it returns comment as {"format": "markdown", "raw": "..."}.
+        """
         return await self._request(
             "PATCH",
             f"/activities/{activity_id}",
-            {"comment": {"raw": comment}, "internal": internal},
+            {"comment": comment, "internal": internal},
         )
 
     async def get_available_assignees(self, work_package_id: int) -> dict:
@@ -2023,3 +1989,51 @@ class OpenProjectClient:
     async def unstar_query(self, query_id: int) -> dict:
         """Unstar a query."""
         return await self._request("PATCH", f"/queries/{query_id}/unstar")
+
+    async def get_version(self, version_id: int) -> dict:
+        """Get a single version by ID."""
+        return await self._request("GET", f"/versions/{version_id}")
+
+    async def update_version(self, version_id: int, data: dict) -> dict:
+        """Update a version. Auto-fetches lockVersion."""
+        current = await self.get_version(version_id)
+        lock_version = current.get("lockVersion", 0)
+        payload: dict = {"lockVersion": lock_version}
+        if "name" in data:
+            payload["name"] = data["name"]
+        if "description" in data:
+            payload["description"] = {"raw": data["description"]}
+        if "start_date" in data:
+            payload["startDate"] = data["start_date"]
+        if "due_date" in data:
+            payload["endDate"] = data["due_date"]
+        if "status" in data:
+            payload["status"] = data["status"]
+        return await self._request("PATCH", f"/versions/{version_id}", payload)
+
+    async def delete_version(self, version_id: int) -> bool:
+        """Delete a version by ID. Fails if work packages are assigned."""
+        await self._request("DELETE", f"/versions/{version_id}")
+        return True
+
+    async def list_custom_actions(self) -> dict:
+        """List all custom actions defined in the OpenProject instance."""
+        return await self._request("GET", "/custom_actions")
+
+    async def get_custom_action(self, action_id: int) -> dict:
+        """Get a single custom action by ID."""
+        return await self._request("GET", f"/custom_actions/{action_id}")
+
+    async def execute_custom_action(self, action_id: int, work_package_id: int) -> dict:
+        """Execute a custom action against a work package. Auto-fetches lockVersion."""
+        current = await self.get_work_package(work_package_id)
+        lock_version = current.get("lockVersion", 0)
+        payload = {
+            "_links": {
+                "workPackage": {"href": f"/api/v3/work_packages/{work_package_id}"}
+            },
+            "lockVersion": lock_version,
+        }
+        return await self._request(
+            "POST", f"/custom_actions/{action_id}/execute", payload
+        )

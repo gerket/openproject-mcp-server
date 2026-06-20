@@ -76,7 +76,8 @@ try:
     from src.tools import (  # noqa: F401
         attachments,  # 4 tools
         connection,  # 2 tools
-        costs,  # 5 tools
+        costs,  # 2 tools: list_budgets, get_budget (budget read endpoints only — cost entries not in v3 API)
+        custom_actions,  # 3 tools: list_custom_actions, get_custom_action, execute_custom_action
         groups,  # 2 tools
         hierarchy,  # 3 tools
         memberships,  # 5 tools
@@ -88,7 +89,7 @@ try:
         reminders,  # 2 tools: list_reminders, create_reminder
         time_entries,  # 5 tools
         users,  # 6 tools
-        versions,  # 2 tools
+        versions,  # 4 tools: list_versions, create_version, update_version, delete_version
         watchers,  # 7 tools: list_watchers, list_available_watchers, add_watcher, remove_watcher, get_activity, update_activity, list_available_assignees
         weekly_reports,  # 4 tools
         wiki,  # 1 tool (API v3 wiki is a stub — only GET by integer ID)
