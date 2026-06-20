@@ -12,12 +12,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.tools.users import get_user, list_project_members, list_roles, list_users
 
-# Unwrap FunctionTool wrappers so tools are directly callable
-list_users = list_users.fn
-get_user = get_user.fn
-list_roles = list_roles.fn
-list_project_members = list_project_members.fn
-
 
 async def test_list_users():
     with patch("src.tools.users.get_client") as mock_get_client:

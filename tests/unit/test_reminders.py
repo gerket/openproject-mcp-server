@@ -15,7 +15,7 @@ async def test_list_reminders_empty():
     with patch("src.tools.reminders.get_client", return_value=mock):
         from src.tools.reminders import list_reminders
 
-        result = await list_reminders.fn(work_package_id=42)
+        result = await list_reminders(work_package_id=42)
         assert "no reminders" in result.lower()
 
 
@@ -32,7 +32,7 @@ async def test_list_reminders_results():
     with patch("src.tools.reminders.get_client", return_value=mock):
         from src.tools.reminders import list_reminders
 
-        result = await list_reminders.fn(work_package_id=42)
+        result = await list_reminders(work_package_id=42)
         assert "Review this" in result
         assert "2026-06-25" in result
 
@@ -43,7 +43,7 @@ async def test_create_reminder():
     with patch("src.tools.reminders.get_client", return_value=mock):
         from src.tools.reminders import create_reminder
 
-        result = await create_reminder.fn(
+        result = await create_reminder(
             work_package_id=42,
             remind_at="2026-06-25T09:00:00Z",
             note="Don't forget",
@@ -60,7 +60,7 @@ async def test_create_reminder_no_note():
     with patch("src.tools.reminders.get_client", return_value=mock):
         from src.tools.reminders import create_reminder
 
-        result = await create_reminder.fn(
+        result = await create_reminder(
             work_package_id=42,
             remind_at="2026-06-26T09:00:00Z",
         )

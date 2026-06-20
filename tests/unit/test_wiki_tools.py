@@ -37,7 +37,7 @@ async def test_get_wiki_page_found():
         with patch("src.tools.wiki.get_client", return_value=mock):
             from src.tools.wiki import get_wiki_page
 
-            result = await get_wiki_page.fn(wiki_page_id=72)
+            result = await get_wiki_page(wiki_page_id=72)
             assert "Home" in result
             assert "Welcome" in result
             print("✅ PASSED: get_wiki_page found")
@@ -58,6 +58,6 @@ async def test_get_wiki_page_error():
         with patch("src.tools.wiki.get_client", return_value=mock):
             from src.tools.wiki import get_wiki_page
 
-            result = await get_wiki_page.fn(wiki_page_id=999)
+            result = await get_wiki_page(wiki_page_id=999)
             assert "error" in result.lower() or "failed" in result.lower()
             print("✅ PASSED: get_wiki_page error handled")
