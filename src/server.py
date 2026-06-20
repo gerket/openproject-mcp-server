@@ -108,16 +108,18 @@ from src.tools import (  # noqa: F401, E402
 
 try:
     _tools = asyncio.run(mcp.list_tools())
+    _read = sum(1 for t in _tools if "read" in (t.tags or set()))
+    _write = sum(1 for t in _tools if "write" in (t.tags or set()))
+    logger.info(
+        "✅ All %d tools loaded successfully (%d read, %d write)",
+        len(_tools),
+        _read,
+        _write,
+    )
 except RuntimeError:
-    _tools = asyncio.get_event_loop().run_until_complete(mcp.list_tools())
-_read = sum(1 for t in _tools if "read" in (t.tags or set()))
-_write = sum(1 for t in _tools if "write" in (t.tags or set()))
-logger.info(
-    "✅ All %d tools loaded successfully (%d read, %d write)",
-    len(_tools),
-    _read,
-    _write,
-)
+    logger.info(
+        "✅ Tools loaded (count unavailable — imported from running event loop)"
+    )
 
 
 def main() -> None:
