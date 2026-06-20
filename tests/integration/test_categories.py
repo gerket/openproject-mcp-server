@@ -18,7 +18,7 @@ async def test_get_category(client: OpenProjectClient, project_id: int) -> None:
     if not categories:
         pytest.skip(
             f"No categories in project #{project_id} — "
-            "create one via the project's Categories settings"
+            "create one at Project settings → Work packages → Categories → + Category"
         )
     cat_id = categories[0]["id"]
     fetched = await client.get_category(cat_id)
