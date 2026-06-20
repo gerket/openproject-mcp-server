@@ -22,7 +22,7 @@ async def test_list_budgets_with_results():
     with patch("src.tools.costs.get_client", return_value=mock):
         from src.tools.costs import list_budgets
 
-        result = await list_budgets.fn(4)
+        result = await list_budgets(4)
         assert "Q2 Budget" in result
         assert "Q3 Budget" in result
         assert "✅" in result
@@ -35,7 +35,7 @@ async def test_list_budgets_empty():
     with patch("src.tools.costs.get_client", return_value=mock):
         from src.tools.costs import list_budgets
 
-        result = await list_budgets.fn(4)
+        result = await list_budgets(4)
         assert "No budgets found" in result
 
 
@@ -50,7 +50,7 @@ async def test_get_budget():
     with patch("src.tools.costs.get_client", return_value=mock):
         from src.tools.costs import get_budget
 
-        result = await get_budget.fn(1)
+        result = await get_budget(1)
         assert "Q2 Budget" in result
         assert "infrastructure" in result
         assert "✅" in result
@@ -63,5 +63,5 @@ async def test_get_budget_error():
     with patch("src.tools.costs.get_client", return_value=mock):
         from src.tools.costs import get_budget
 
-        result = await get_budget.fn(999)
+        result = await get_budget(999)
         assert "Failed" in result

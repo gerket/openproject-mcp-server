@@ -12,7 +12,8 @@ async def get_tools():
     os.environ.setdefault("OPENPROJECT_API_KEY", "test-key")
     from src.server import mcp
 
-    return await mcp.get_tools()
+    tool_list = await mcp.list_tools()
+    return {t.name: t for t in tool_list}
 
 
 async def test_all_tools_have_tags():

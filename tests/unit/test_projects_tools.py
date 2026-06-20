@@ -18,12 +18,6 @@ from src.tools.projects import (
     list_projects,
 )
 
-# Unwrap FunctionTool wrappers so tools are directly callable
-list_projects = list_projects.fn
-get_project = get_project.fn
-create_project = create_project.fn
-delete_project = delete_project.fn
-
 
 async def test_list_projects_empty():
     with patch("src.tools.projects.get_client") as mock_get_client:

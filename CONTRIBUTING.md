@@ -5,7 +5,7 @@
 ```bash
 git clone https://github.com/gerket/openproject-mcp-server.git
 cd openproject-mcp-server
-uv sync --extra dev
+uv sync --dev
 uv run pre-commit install
 ```
 
@@ -44,7 +44,7 @@ The `test_full_sweep` test in `tests/unit/test_tags.py` enforces that every tool
 
 ## Commit style
 
-Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`
+Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`. Use `feat!:` or `fix!:` (or a `BREAKING CHANGE:` footer) for changes that break the public interface — Release Please uses this to produce a major version bump.
 
 ## Before opening a PR
 

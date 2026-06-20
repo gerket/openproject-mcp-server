@@ -19,12 +19,6 @@ from src.tools.placeholder_users import (
     update_placeholder_user,
 )
 
-list_placeholder_users = list_placeholder_users.fn
-get_placeholder_user = get_placeholder_user.fn
-create_placeholder_user = create_placeholder_user.fn
-update_placeholder_user = update_placeholder_user.fn
-delete_placeholder_user = delete_placeholder_user.fn
-
 
 async def test_list_placeholder_users_empty():
     with patch("src.tools.placeholder_users.get_client") as mock_get_client:
