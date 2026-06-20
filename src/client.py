@@ -979,14 +979,25 @@ class OpenProjectClient:
                 "workPackage": {"href": f"/api/v3/work_packages/{wp_id}"}
             }
         form = await self._request("POST", "/time_entries/form", payload)
-        allowed = (
+        raw_allowed = (
             form.get("_embedded", {})
             .get("schema", {})
             .get("activity", {})
             .get("_embedded", {})
             .get("allowedValues", [])
         )
-        result: dict = {"_embedded": {"elements": allowed}}
+        # allowedValues may be link objects {href, title} rather than {id, name}.
+        # Normalize to {id, name} so downstream formatting is consistent.
+        elements = []
+        for item in raw_allowed:
+            if "id" in item:
+                elements.append(item)
+            else:
+                href = item.get("href", "")
+                item_id = href.rstrip("/").split("/")[-1] if href else None
+                name = item.get("title") or item.get("name", "Unknown")
+                elements.append({"id": item_id, "name": name, **item})
+        result: dict = {"_embedded": {"elements": elements}}
 
         return result
 
