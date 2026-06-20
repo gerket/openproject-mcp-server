@@ -55,7 +55,7 @@ async def list_memberships(...) -> str: ...
 |---|---|
 | `work-packages` | work_packages, hierarchy, relations, watchers, reminders |
 | `projects` | projects, versions |
-| `users` | users, memberships, groups |
+| `users` | users, memberships, groups, placeholder_users |
 | `time` | time_entries |
 | `content` | news, wiki, attachments |
 | `notifications` | notifications |
@@ -63,6 +63,10 @@ async def list_memberships(...) -> str: ...
 | `reports` | weekly_reports |
 | `system` | connection |
 | `queries` | queries |
+
+### Permission tags
+
+- `"admin"` — tools that require OpenProject administrator role to succeed. Callers using a non-admin API token can exclude these with `OPENPROJECT_MCP_EXCLUDE_TAGS=admin` to avoid confusing 403 errors. Applies to: `create_user`, `update_user`, `delete_placeholder_user`, `create_project`, `delete_project`. **Note:** `delete_user` is not implemented — `DELETE /users/{id}` returns 403 even for system admins via API; use `update_user(status="locked")` to disable an account instead.
 
 ### Profile tags
 
@@ -84,6 +88,8 @@ Set `OPENPROJECT_MCP_INCLUDE_TAGS` and/or `OPENPROJECT_MCP_EXCLUDE_TAGS` (comma-
 | All core (read + write, ~20 tools) | `OPENPROJECT_MCP_INCLUDE_TAGS=core` |
 | Core + situational reads | `OPENPROJECT_MCP_INCLUDE_TAGS=core-read,situational-read` |
 | Everything except finance | `OPENPROJECT_MCP_EXCLUDE_TAGS=finance` |
+| Non-admin token (hide admin-only tools) | `OPENPROJECT_MCP_EXCLUDE_TAGS=admin` |
+| Show only admin tools | `OPENPROJECT_MCP_INCLUDE_TAGS=admin` |
 | Full access (default) | *(no env var)* |
 
 All new tools must carry all applicable tags. The `test_full_sweep`
@@ -99,8 +105,8 @@ Phase 0  ✅ COMPLETE  — Read/write + category tags on all tools (PR #2)
 Phase A  ✅ COMPLETE  — CI + pytest + pre-commit + pyproject.toml (PR #2)
 Phase B  ✅ COMPLETE  — WP sub-resources: watchers, activity edit, assignees, reminders (PR #3)
 Phase C  ✅ COMPLETE  — Queries (saved views) + profile tags + env-var filtering (PR #4)
-Phase D  🔲 IN PR #5  — Custom actions + version lifecycle + tests/ reorganisation (99 tools, 162 tests)
-Phase E  🔲           — Users, principals, user preferences
+Phase D  ✅ COMPLETE  — Custom actions + version lifecycle + tests/ reorganisation (PR #5)
+Phase E  🔲 IN PROGRESS — Users, principals, placeholder users, preferences + admin tag
 Phase F  🔲           — Budgets, documents, file links, storages
 Phase G  🔲           — Categories, views
 Phase H  🔲           — README rewrite + integration test setup guide
