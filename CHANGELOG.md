@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.1.0](https://github.com/gerket/openproject-mcp-server/compare/v3.0.0...v3.1.0) (2026-06-20)
+
+
+### Features
+
+* **ci:** require scope in all PR titles, force 4.0.0 release ([#31](https://github.com/gerket/openproject-mcp-server/issues/31)) ([b19be6a](https://github.com/gerket/openproject-mcp-server/commit/b19be6a27883cc9a5810e27bbcce16965326f577))
+
+
+### Bug Fixes
+
+* **ci:** upgrade release-please-action to v5 (node24), drop invalid package-name input ([#28](https://github.com/gerket/openproject-mcp-server/issues/28)) ([af48754](https://github.com/gerket/openproject-mcp-server/commit/af48754aa33134eed0c84e56391d22e161b552bc))
+* **release:** add packages section with include-component-in-tag false ([#34](https://github.com/gerket/openproject-mcp-server/issues/34)) ([49620b5](https://github.com/gerket/openproject-mcp-server/commit/49620b55e90d2e15e23a3e7c9f90379f302fecaa))
+* **release:** set manifest version to 3.0.0 to match last tag ([#33](https://github.com/gerket/openproject-mcp-server/issues/33)) ([bfd04a1](https://github.com/gerket/openproject-mcp-server/commit/bfd04a1a98f07509bf5a0bba71722451c9df0a75))
+
+
+### Documentation
+
+* **docs:** never enable auto-merge when opening a PR ([#35](https://github.com/gerket/openproject-mcp-server/issues/35)) ([c7ab0cd](https://github.com/gerket/openproject-mcp-server/commit/c7ab0cd896a7aaa85240e803d6735aa7ba5a19a8))
+
 ## [3.0.0] — 2026-06-20
 
 Complete rewrite from a single-file monolith to a modular 25-module server.
