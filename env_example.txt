@@ -1,19 +1,48 @@
-# OpenProject Configuration
-# Copy this file to .env and fill in your values
+# OpenProject MCP Server — Environment Variables
+# Copy this file to .env and fill in your values.
 
-# Required: Your OpenProject instance URL
+# ── Required ──────────────────────────────────────────────────────────────────
+
+# Base URL of your OpenProject instance
 OPENPROJECT_URL=https://your-instance.openproject.com
 
-# Required: Your OpenProject API key
-# Get it from: User Menu (top right) -> Account Settings -> Access tokens -> Create new token ("+ Api Token" button)
-OPENPROJECT_API_KEY=your-api-key-here
+# API token — User menu → Account settings → Access tokens → + API Token
+OPENPROJECT_API_KEY=your-api-token-here
 
-# Optional: HTTP proxy URL (leave empty for direct connection)
-# Example: http://proxy.company.com:8080
-OPENPROJECT_PROXY=
+# ── Tool filtering ────────────────────────────────────────────────────────────
 
-# Optional: Log level (DEBUG, INFO, WARNING, ERROR)
-LOG_LEVEL=INFO
+# Expose only tools matching these tags (comma-separated)
+# Examples: core-read | core | core-read,situational-read
+# OPENPROJECT_MCP_INCLUDE_TAGS=core-read
 
-# Optional: Test connection on startup (true/false)
-TEST_CONNECTION_ON_STARTUP=true
+# Hide tools matching these tags (comma-separated)
+# Useful examples:
+#   admin   — hide admin-only tools when using a non-admin token
+#   storage — hide file-link tools on instances without OneDrive/Nextcloud
+# OPENPROJECT_MCP_EXCLUDE_TAGS=admin,storage
+
+# ── Optional ──────────────────────────────────────────────────────────────────
+
+# HTTP proxy URL
+# OPENPROJECT_PROXY=http://proxy.company.com:8080
+
+# Path to custom CA bundle (PEM) for self-signed TLS certificates
+# OPENPROJECT_CA_BUNDLE=/path/to/ca-bundle.pem
+
+# Log level: DEBUG | INFO | WARNING | ERROR (default: INFO)
+# LOG_LEVEL=INFO
+
+# ── Integration tests only ────────────────────────────────────────────────────
+
+# Project slug for integration tests (default: mcp-test)
+# OPENPROJECT_PROJECT=mcp-test
+
+# Bot user API token — required for test_mark_single_notification_read
+# Generate by logging in as mcp-test-bot → Account settings → Access tokens
+# OPENPROJECT_BOT_API_KEY=mcp-test-bot-token-here
+
+# Seed work package ID — set automatically by scripts/setup_test_project.py
+# OPENPROJECT_SEED_WP_ID=142
+
+# Custom action ID for test_execute_custom_action (default: 1)
+# OPENPROJECT_CUSTOM_ACTION_ID=1
