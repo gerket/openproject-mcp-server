@@ -187,13 +187,10 @@ async def test_new_modules_tags():
     for name in ["create_user", "update_user"]:
         await assert_tag(name, "write", tools)
         await assert_tag(name, "admin", tools)
-    for name in [
-        "list_placeholder_users",
-        "get_placeholder_user",
-        "create_placeholder_user",
-        "update_placeholder_user",
-    ]:
-        assert tools.get(name) is not None, f"Tool '{name}' not found"
+    for name in ["list_placeholder_users", "get_placeholder_user"]:
+        await assert_tag(name, "read", tools)
+    for name in ["create_placeholder_user", "update_placeholder_user"]:
+        await assert_tag(name, "write", tools)
     await assert_tag("delete_placeholder_user", "write", tools)
     await assert_tag("delete_placeholder_user", "admin", tools)
     await assert_tag("update_my_preferences", "write", tools)
