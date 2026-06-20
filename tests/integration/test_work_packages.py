@@ -1,0 +1,221 @@
+"""Integration tests: work packages."""
+
+import json
+
+import pytest
+
+from src.client import OpenProjectClient
+from tests.integration.conftest import extract_elements
+
+pytestmark = pytest.mark.integration
+
+
+async def test_list_work_packages(client: OpenProjectClient, project_id: int) -> None:
+    result = await client.get_work_packages(project_id=project_id, page_size=5)
+    assert isinstance(extract_elements(result), list)
+
+
+async def test_create_get_update_delete(
+    client: OpenProjectClient, project_id: int, wp_type_id: int
+) -> None:
+    result = await client.create_work_package(
+        {"project": project_id, "subject": "integration-test-crud", "type": wp_type_id}
+    )
+    wp_id = result.get("id")
+    assert wp_id, f"No id in create response: {result}"
+
+    try:
+        fetched = await client.get_work_package(wp_id)
+        assert fetched["id"] == wp_id
+        assert fetched["subject"] == "integration-test-crud"
+
+        updated = await client.update_work_package(
+            wp_id, {"description": "integration test update"}
+        )
+        assert updated.get("id") == wp_id
+    finally:
+        await client.delete_work_package(wp_id)
+
+
+async def test_search_work_packages(
+    client: OpenProjectClient, project_id: int, wp_type_id: int
+) -> None:
+    result = await client.create_work_package(
+        {
+            "project": project_id,
+            "subject": "search-target-unique-xyz",
+            "type": wp_type_id,
+        }
+    )
+    wp_id = result["id"]
+    try:
+        filters = json.dumps(
+            [
+                {
+                    "subjectOrId": {
+                        "operator": "**",
+                        "values": ["search-target-unique-xyz"],
+                    }
+                }
+            ]
+        )
+        found = await client.get_work_packages(filters=filters)
+        ids = [e["id"] for e in extract_elements(found)]
+        assert wp_id in ids, f"Created WP {wp_id} not found in search results: {ids}"
+    finally:
+        await client.delete_work_package(wp_id)
+
+
+async def test_list_types(client: OpenProjectClient, project_id: int) -> None:
+    result = await client.get_types(project_id)
+    types = extract_elements(result)
+    assert types, "Expected at least one WP type"
+    assert all("id" in t and "name" in t for t in types)
+
+
+async def test_list_statuses(client: OpenProjectClient) -> None:
+    result = await client.get_statuses()
+    statuses = extract_elements(result)
+    assert statuses, "Expected at least one status"
+    assert all("id" in s and "name" in s for s in statuses)
+
+
+async def test_list_priorities(client: OpenProjectClient) -> None:
+    result = await client.get_priorities()
+    priorities = extract_elements(result)
+    assert priorities, "Expected at least one priority"
+    assert all("id" in p and "name" in p for p in priorities)
+
+
+async def test_add_comment_and_activities(
+    client: OpenProjectClient, fresh_wp: int
+) -> None:
+    await client.add_work_package_comment(fresh_wp, "integration test comment")
+    result = await client.get_work_package_activities(fresh_wp)
+    activities = result.get("_embedded", {}).get("elements", [])
+    assert any(
+        "integration test comment" in str(a.get("comment", {}).get("raw", ""))
+        for a in activities
+    ), f"Comment not found in activities: {activities}"
+
+
+async def test_assign_and_unassign(
+    client: OpenProjectClient, fresh_wp: int, current_user_id: int
+) -> None:
+    # Use an available assignee from the WP's project rather than the current user,
+    # since the current user may not have an assignable role in this project.
+    available = await client.get_available_assignees(fresh_wp)
+    assignees = available.get("_embedded", {}).get("elements", [])
+    if not assignees:
+        pytest.skip("No assignable users for this work package")
+
+    assignee_id = assignees[0]["id"]
+    updated = await client.update_work_package(fresh_wp, {"assignee_id": assignee_id})
+    assignee_href = updated.get("_links", {}).get("assignee", {}).get("href", "")
+    assert (
+        str(assignee_id) in assignee_href
+    ), f"Expected user {assignee_id} as assignee, got href: {assignee_href}"
+
+    unassigned = await client.update_work_package(fresh_wp, {"assignee_id": None})
+    assignee_href_after = (
+        unassigned.get("_links", {}).get("assignee", {}).get("href") or ""
+    )
+    assert not assignee_href_after or assignee_href_after.endswith(
+        "null"
+    ), f"Expected null assignee after unassign, got: {assignee_href_after}"
+
+
+async def test_list_overdue(client: OpenProjectClient, project_id: int) -> None:
+    result = await client.get_work_packages(
+        project_id=project_id,
+        filters=json.dumps([{"dueDate": {"operator": "<t-", "values": ["0"]}}]),
+    )
+    assert isinstance(extract_elements(result), list)
+
+
+async def test_list_due_soon(client: OpenProjectClient, project_id: int) -> None:
+    result = await client.get_work_packages(
+        project_id=project_id,
+        filters=json.dumps([{"dueDate": {"operator": "w", "values": []}}]),
+    )
+    assert isinstance(extract_elements(result), list)
+
+
+async def test_list_unassigned(client: OpenProjectClient, project_id: int) -> None:
+    result = await client.get_work_packages(
+        project_id=project_id,
+        filters=json.dumps([{"assignee": {"operator": "!*", "values": []}}]),
+    )
+    assert isinstance(extract_elements(result), list)
+
+
+async def test_list_recently_created(
+    client: OpenProjectClient, project_id: int
+) -> None:
+    result = await client.get_work_packages(
+        project_id=project_id,
+        filters=json.dumps([{"createdAt": {"operator": "w", "values": []}}]),
+    )
+    assert isinstance(extract_elements(result), list)
+
+
+async def test_list_high_priority(client: OpenProjectClient, project_id: int) -> None:
+    # Discover the "High" or equivalent priority ID dynamically
+    priorities_result = await client.get_priorities()
+    priorities = extract_elements(priorities_result)
+    high = next((p for p in priorities if "high" in p.get("name", "").lower()), None)
+    if not high:
+        pytest.skip("No 'high' priority configured on this instance")
+    result = await client.get_work_packages(
+        project_id=project_id,
+        filters=json.dumps(
+            [{"priority": {"operator": "=", "values": [str(high["id"])]}}]
+        ),
+    )
+    assert isinstance(extract_elements(result), list)
+
+
+async def test_list_nearly_complete(client: OpenProjectClient, project_id: int) -> None:
+    result = await client.get_work_packages(
+        project_id=project_id,
+        filters=json.dumps([{"percentageDone": {"operator": ">=", "values": ["80"]}}]),
+    )
+    assert isinstance(extract_elements(result), list)
+
+
+async def test_custom_fields(client: OpenProjectClient, fresh_wp: int) -> None:
+    """Write + read each supported custom field type."""
+    import datetime
+
+    today = datetime.date.today().isoformat()
+
+    cases: list[tuple[str, object, object]] = [
+        ("customField2", "cf2-test-string", "cf2-test-string"),
+        (
+            "customField3",
+            {"format": "markdown", "raw": "cf3 text"},
+            None,
+        ),  # checked below
+        ("customField4", True, True),
+        ("customField5", today, today),
+        ("customField6", 3.14, 3.14),
+        ("customField8", 42, 42),
+        ("customField9", "https://example.com", "https://example.com"),
+        ("customField11", "cf11-test", "cf11-test"),
+        ("customField15", {"format": "markdown", "raw": "cf15 text"}, None),
+    ]
+
+    for cf_key, write_val, expected in cases:
+        await client.update_work_package(
+            fresh_wp, {"custom_fields": {cf_key: write_val}}
+        )
+        result = await client.get_work_package(fresh_wp)
+        actual = result.get(cf_key)
+        if expected is None:
+            # Formattable: check raw text is present
+            raw = actual.get("raw", "") if isinstance(actual, dict) else str(actual)
+            assert "text" in raw, f"{cf_key}: expected text in raw, got {actual!r}"
+        else:
+            assert (
+                actual == expected
+            ), f"{cf_key}: expected {expected!r}, got {actual!r}"
