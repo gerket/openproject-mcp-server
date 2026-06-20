@@ -17,8 +17,6 @@ from src.tools.relations import (
     list_work_package_relations,
 )
 
-# Unwrap FunctionTool wrappers so tools are directly callable
-
 
 async def test_list_relations_empty():
     with patch("src.tools.relations.get_client") as mock_get_client:

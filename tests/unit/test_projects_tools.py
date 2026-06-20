@@ -18,8 +18,6 @@ from src.tools.projects import (
     list_projects,
 )
 
-# Unwrap FunctionTool wrappers so tools are directly callable
-
 
 async def test_list_projects_empty():
     with patch("src.tools.projects.get_client") as mock_get_client:

@@ -18,8 +18,6 @@ from src.tools.time_entries import (
     list_time_entry_activities,
 )
 
-# Unwrap FunctionTool wrappers so tools are directly callable
-
 
 async def test_list_time_entries_empty():
     with patch("src.tools.time_entries.get_client") as mock_get_client:

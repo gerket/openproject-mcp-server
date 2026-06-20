@@ -12,8 +12,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.tools.connection import check_permissions, test_connection
 
-# Unwrap FunctionTool wrappers so tools are directly callable
-
 
 async def test_test_connection():
     with patch("src.tools.connection.get_client") as mock_get_client:

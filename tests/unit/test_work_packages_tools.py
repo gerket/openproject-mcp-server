@@ -21,8 +21,6 @@ from src.tools.work_packages import (
     search_work_packages,
 )
 
-# Unwrap FunctionTool wrappers so tools are directly callable
-
 
 async def test_list_work_packages_empty():
     with patch("src.tools.work_packages.get_client") as mock_get_client:
