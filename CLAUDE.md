@@ -72,7 +72,7 @@ See `env_example.txt` for the full list. Required at runtime: `OPENPROJECT_URL`,
 
 - **Unit tests** (`tests/unit/`): mock `get_client` at the tool module level (`patch("src.tools.<module>.get_client")`). Set `OPENPROJECT_URL` and `OPENPROJECT_API_KEY` env vars at module top before importing from `src`.
 - **Integration tests** (`tests/integration/`): marked `@pytest.mark.integration`, use live fixtures from `conftest.py`. Never hardcode IDs — use the session-scoped fixtures (`project_id`, `wp_type_id`, etc.).
-- The CI `test` job runs `uv sync --extra dev` (legacy optional-deps key); locally use `uv sync --dev` (dependency-groups key) — both install pytest.
+- CI and local both use `uv sync --dev` (dependency-groups key).
 
 ## Git workflow
 
