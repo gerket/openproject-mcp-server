@@ -2,12 +2,12 @@
 
 __all__ = [
     "format_error",
-    "format_success",
-    "format_project_list",
-    "format_work_package_list",
-    "format_news_list",
     "format_news_detail",
+    "format_news_list",
+    "format_project_list",
+    "format_success",
     "format_wiki_page_detail",
+    "format_work_package_list",
 ]
 
 

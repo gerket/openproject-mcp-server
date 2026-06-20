@@ -105,7 +105,7 @@ async def test_delete_project():
         mock_get_client.return_value = mock_client
         result = await delete_project(99)
         assert "✅" in result, f"Expected success emoji, got: {result}"
-        assert (
-            "deleted" in result.lower()
-        ), f"Expected 'deleted' in result, got: {result}"
+        assert "deleted" in result.lower(), (
+            f"Expected 'deleted' in result, got: {result}"
+        )
         print("✅ test_delete_project passed")

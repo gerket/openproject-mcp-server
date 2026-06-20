@@ -60,9 +60,9 @@ async def test_list_memberships_empty():
         )
         mock_get_client.return_value = mock_client
         result = await list_memberships(project_id=4)
-        assert (
-            "No memberships found" in result
-        ), f"Expected empty message, got: {result}"
+        assert "No memberships found" in result, (
+            f"Expected empty message, got: {result}"
+        )
         print("✅ test_list_memberships_empty passed")
 
 
@@ -95,7 +95,7 @@ async def test_delete_membership():
         mock_get_client.return_value = mock_client
         result = await delete_membership(42)
         assert "✅" in result, f"Expected success emoji, got: {result}"
-        assert (
-            "deleted" in result.lower()
-        ), f"Expected 'deleted' in result, got: {result}"
+        assert "deleted" in result.lower(), (
+            f"Expected 'deleted' in result, got: {result}"
+        )
         print("✅ test_delete_membership passed")

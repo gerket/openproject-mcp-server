@@ -63,7 +63,7 @@ def test_update_merges_custom_fields_as_top_level_keys():
             },
         )
     )
-    method, endpoint, payload = calls[-1]
+    method, _endpoint, payload = calls[-1]
     assert method == "PATCH"
     assert payload["customField12"] == "JIRA-999"
     assert payload["lockVersion"] == 5  # echoed from get_work_package
@@ -79,7 +79,7 @@ def test_no_custom_fields_leaves_payload_clean():
 def test_invalid_custom_field_key_rejected_on_create():
     # Regression for PR review: only customField<N> keys may be merged, so a
     # stray/typo'd key can't inject an arbitrary top-level property.
-    c, calls = _client_recording()
+    c, _calls = _client_recording()
     with pytest.raises(ValueError, match="customField"):
         asyncio.run(
             c.create_work_package(
@@ -94,7 +94,7 @@ def test_invalid_custom_field_key_rejected_on_create():
 
 
 def test_invalid_custom_field_key_rejected_on_update():
-    c, calls = _client_recording()
+    c, _calls = _client_recording()
     with pytest.raises(ValueError, match="customField"):
         asyncio.run(
             c.update_work_package(

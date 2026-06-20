@@ -27,16 +27,16 @@ async def test_set_and_remove_parent(
         # same PATCH endpoint; update_work_package handles _links correctly)
         result = await client.update_work_package(child_id, {"parent_id": parent_id})
         parent_href = result.get("_links", {}).get("parent", {}).get("href", "")
-        assert (
-            str(parent_id) in parent_href
-        ), f"Expected parent {parent_id} in href, got: {parent_href}"
+        assert str(parent_id) in parent_href, (
+            f"Expected parent {parent_id} in href, got: {parent_href}"
+        )
 
         # List children of parent
         children = await client.list_work_package_children(parent_id)
         child_ids = [c["id"] for c in children.get("_embedded", {}).get("elements", [])]
-        assert (
-            child_id in child_ids
-        ), f"Child {child_id} not in parent {parent_id} children: {child_ids}"
+        assert child_id in child_ids, (
+            f"Child {child_id} not in parent {parent_id} children: {child_ids}"
+        )
 
         # Remove parent
         result_after = await client.update_work_package(child_id, {"parent_id": None})
