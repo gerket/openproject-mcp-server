@@ -1,6 +1,7 @@
 """Connection and permission checking tools."""
 
 from src.server import get_client, mcp
+from src.utils.formatting import format_error
 
 
 @mcp.tool(tags={"read", "system", "core", "core-read", "test_connection"})
@@ -21,7 +22,7 @@ async def test_connection() -> str:
         return text
 
     except Exception as e:
-        return f"❌ Connection failed: {e!s}"
+        return format_error(f"Connection failed: {e!s}")
 
 
 @mcp.tool(tags={"read", "system", "core", "core-read", "check_permissions"})
@@ -48,4 +49,4 @@ async def check_permissions() -> str:
         return text
 
     except Exception as e:
-        return f"❌ Failed to check permissions: {e!s}"
+        return format_error(f"Failed to check permissions: {e!s}")

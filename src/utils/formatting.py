@@ -1,5 +1,15 @@
 """Response formatting utilities for consistent output across all tools."""
 
+__all__ = [
+    "format_error",
+    "format_success",
+    "format_project_list",
+    "format_work_package_list",
+    "format_news_list",
+    "format_news_detail",
+    "format_wiki_page_detail",
+]
+
 
 def format_project_list(projects: list[dict]) -> str:
     """Format project list with consistent styling.
