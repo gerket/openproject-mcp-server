@@ -75,9 +75,11 @@ logger.info("Loading tool modules...")
 try:
     from src.tools import (  # noqa: F401
         attachments,  # 4 tools
+        categories,  # 2 tools: list_categories, get_category
         connection,  # 2 tools
         costs,  # 2 tools: list_budgets, get_budget (budget read endpoints only — cost entries not in v3 API)
         custom_actions,  # 3 tools: list_custom_actions, get_custom_action, execute_custom_action
+        documents,  # 3 tools: list_documents, get_document, update_document
         groups,  # 2 tools
         hierarchy,  # 3 tools
         memberships,  # 5 tools
@@ -88,9 +90,11 @@ try:
         queries,  # 8 tools: list_queries, get_query, get_default_query, create_query, update_query, delete_query, star_query, unstar_query
         relations,  # 5 tools
         reminders,  # 2 tools: list_reminders, create_reminder
+        storages,  # 7 tools: list_storages, get_storage, list_project_storages, list/get/create/delete file links
         time_entries,  # 5 tools
         users,  # 12 tools: list_users, get_user, list_roles, get_role, list_project_members, list_user_projects, list_principals, create_user[admin], update_user[admin], get_my_preferences, update_my_preferences
         versions,  # 4 tools: list_versions, create_version, update_version, delete_version
+        views,  # 2 tools: list_views, get_view
         watchers,  # 7 tools: list_watchers, list_available_watchers, add_watcher, remove_watcher, get_activity, update_activity, list_available_assignees
         weekly_reports,  # 4 tools
         wiki,  # 1 tool (API v3 wiki is a stub — only GET by integer ID)
