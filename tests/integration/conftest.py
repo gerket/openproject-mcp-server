@@ -26,6 +26,30 @@ def pytest_configure(config: pytest.Config) -> None:
         "markers",
         "integration: live tests that require OPENPROJECT_URL and OPENPROJECT_API_KEY",
     )
+    config.addinivalue_line(
+        "markers",
+        "needs_module_time_costs: requires 'Time and costs' module enabled in Administration → Modules. "
+        "Set OPENPROJECT_MODULE_TIME_COSTS=1 to run.",
+    )
+    config.addinivalue_line(
+        "markers",
+        "needs_module_budgets: requires 'Budgets' module enabled in Administration → Modules. "
+        "Set OPENPROJECT_MODULE_BUDGETS=1 to run.",
+    )
+
+
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    """Skip module-gated tests unless the corresponding env var is set."""
+    _MODULE_MARKERS = {
+        "needs_module_time_costs": "OPENPROJECT_MODULE_TIME_COSTS",
+        "needs_module_budgets": "OPENPROJECT_MODULE_BUDGETS",
+    }
+    for marker_name, env_var in _MODULE_MARKERS.items():
+        if item.get_closest_marker(marker_name) and not os.environ.get(env_var):
+            pytest.skip(
+                f"Requires '{marker_name.replace('needs_module_', '').replace('_', ' ')}' "
+                f"module — enable it in Administration → Modules, then set {env_var}=1"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -80,15 +104,12 @@ async def wp_type_id(client: OpenProjectClient, project_id: int) -> int:
 
 @pytest_asyncio.fixture(scope="session")
 async def activity_id(client: OpenProjectClient) -> int:
-    """Return the first available time entry activity ID, or skip if unavailable."""
-    try:
-        result = await client.get_time_entry_activities()
-    except Exception as e:
-        if "404" in str(e) or "403" in str(e):
-            pytest.skip(
-                "Time entry activities endpoint unavailable — enable 'Time and costs' module"
-            )
-        raise
+    """Return the first available time entry activity ID.
+
+    Only used by tests marked needs_module_time_costs — the marker skips those
+    tests before this fixture runs if the module is disabled.
+    """
+    result = await client.get_time_entry_activities()
     activities = result.get("_embedded", {}).get("elements", [])
     if not activities:
         pytest.skip(

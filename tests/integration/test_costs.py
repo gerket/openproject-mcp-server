@@ -2,6 +2,7 @@
 
 Requires the "Time and costs" and "Budgets" modules enabled:
 Administration → Modules → enable both.
+Set OPENPROJECT_MODULE_TIME_COSTS=1 to run these tests.
 """
 
 import datetime
@@ -10,32 +11,19 @@ import pytest
 
 from src.client import OpenProjectClient
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.needs_module_time_costs]
 
 
 async def test_list_cost_types(client: OpenProjectClient) -> None:
-    try:
-        result = await client.get_cost_types()
-        cost_types = result.get("_embedded", {}).get("elements", [])
-        assert isinstance(cost_types, list)
-    except Exception as e:
-        if "404" in str(e) or "403" in str(e):
-            pytest.skip(
-                "Cost types endpoint unavailable — enable 'Time and costs' module in Administration → Modules"
-            )
-        raise
+    result = await client.get_cost_types()
+    cost_types = result.get("_embedded", {}).get("elements", [])
+    assert isinstance(cost_types, list)
 
 
 async def test_cost_entry_lifecycle(
     client: OpenProjectClient, fresh_wp: int, project_id: int
 ) -> None:
-    # Discover a cost type ID first
-    try:
-        types_result = await client.get_cost_types()
-    except Exception as e:
-        if "404" in str(e) or "403" in str(e):
-            pytest.skip("Cost types unavailable — enable 'Time and costs' module")
-        raise
+    types_result = await client.get_cost_types()
 
     cost_types = types_result.get("_embedded", {}).get("elements", [])
     if not cost_types:

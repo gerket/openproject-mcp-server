@@ -1,4 +1,8 @@
-"""Integration tests: time entries."""
+"""Integration tests: time entries.
+
+Requires the "Time and costs" module enabled in Administration → Modules.
+Set OPENPROJECT_MODULE_TIME_COSTS=1 to run these tests.
+"""
 
 import datetime
 import json
@@ -7,7 +11,7 @@ import pytest
 
 from src.client import OpenProjectClient
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.needs_module_time_costs]
 
 
 async def test_time_entry_lifecycle(
@@ -45,14 +49,7 @@ async def test_time_entry_lifecycle(
 
 
 async def test_list_time_entry_activities(client: OpenProjectClient) -> None:
-    try:
-        result = await client.get_time_entry_activities()
-    except Exception as e:
-        if "404" in str(e) or "403" in str(e):
-            pytest.skip(
-                "Time entry activities unavailable — enable 'Time and costs' module"
-            )
-        raise
+    result = await client.get_time_entry_activities()
     activities = result.get("_embedded", {}).get("elements", [])
-    assert activities, "Expected at least one time entry activity"
+    assert activities, "Expected at least one time entry activity configured"
     assert all("id" in a and "name" in a for a in activities)

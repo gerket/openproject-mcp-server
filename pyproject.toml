@@ -64,6 +64,8 @@ python_functions = "test_*"
 addopts = "--ignore=tests/test_live_integration.py --ignore=tests/test_tools.py --ignore=tests/integration -m 'not integration'"
 markers = [
     "integration: live tests requiring OPENPROJECT_URL and OPENPROJECT_API_KEY",
+    "needs_module_time_costs: requires Time and costs module — set OPENPROJECT_MODULE_TIME_COSTS=1",
+    "needs_module_budgets: requires Budgets module — set OPENPROJECT_MODULE_BUDGETS=1",
 ]
 
 [dependency-groups]
