@@ -6,6 +6,17 @@ from src.server import get_client, mcp
 from src.utils.formatting import format_error, format_success
 
 
+class UpdateVersionInput(BaseModel):
+    """Input model for updating a version."""
+
+    version_id: int = Field(..., description="Version ID to update", gt=0)
+    name: str | None = Field(None, description="New version name")
+    description: str | None = Field(None, description="New description")
+    start_date: str | None = Field(None, description="Start date (YYYY-MM-DD)")
+    due_date: str | None = Field(None, description="Due date (YYYY-MM-DD)")
+    status: str | None = Field(None, description="Status: open, locked, or closed")
+
+
 class CreateVersionInput(BaseModel):
     """Input model for creating versions."""
 
@@ -117,3 +128,68 @@ async def create_version(input: CreateVersionInput) -> str:
 
     except Exception as e:
         return format_error(f"Failed to create version: {e!s}")
+
+
+@mcp.tool(tags={"write", "projects", "update_version"})
+async def update_version(input: UpdateVersionInput) -> str:
+    """Update an existing version/milestone.
+
+    Automatically fetches the current lockVersion before patching.
+
+    Args:
+        input: Version ID and optional fields to update (name, description,
+               start_date, due_date, status)
+
+    Returns:
+        Success message with updated version details
+    """
+    try:
+        client = get_client()
+
+        data: dict = {}
+        if input.name is not None:
+            data["name"] = input.name
+        if input.description is not None:
+            data["description"] = input.description
+        if input.start_date is not None:
+            data["start_date"] = input.start_date
+        if input.due_date is not None:
+            data["due_date"] = input.due_date
+        if input.status is not None:
+            data["status"] = input.status
+
+        result = await client.update_version(input.version_id, data)
+
+        text = format_success("Version updated successfully!\n\n")
+        text += f"**ID**: #{result.get('id', 'N/A')}\n"
+        text += f"**Name**: {result.get('name', 'N/A')}\n"
+        text += f"**Status**: {result.get('status', 'N/A')}\n"
+        if result.get("startDate"):
+            text += f"**Start Date**: {result['startDate']}\n"
+        if result.get("endDate"):
+            text += f"**End Date**: {result['endDate']}\n"
+        return text
+
+    except Exception as e:
+        return format_error(f"Failed to update version: {e!s}")
+
+
+@mcp.tool(tags={"write", "projects", "delete_version"})
+async def delete_version(version_id: int) -> str:
+    """Delete a version/milestone by ID.
+
+    Note: This will fail if any work packages are still assigned to the version.
+    Reassign or unset the version on those work packages first.
+
+    Args:
+        version_id: The version ID to delete
+
+    Returns:
+        Success or error message
+    """
+    try:
+        client = get_client()
+        await client.delete_version(version_id)
+        return format_success(f"Version #{version_id} deleted successfully.")
+    except Exception as e:
+        return format_error(f"Failed to delete version #{version_id}: {e!s}")

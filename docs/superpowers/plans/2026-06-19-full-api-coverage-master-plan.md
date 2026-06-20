@@ -20,9 +20,10 @@ documentation thorough enough for a stranger to deploy and test it.
 
 - **PR #2 merged** (Phase 0 + Phase A): 94 tools, all tagged, CI green, pytest 153 tests, pre-commit enforced.
 - **PR #3 merged** (Phase B): watchers, activity edit, available assignees, reminders — 86 tools on main.
-- **PR #4 open** (Phase C): queries (8 tools) + profile tags + env-var filtering — 94 tools when merged.
-- **Main branch** is at the Phase B merge commit (86 tools, 153 tests).
-- **Next phase after PR #4 merges:** Phase D (Custom actions + version update/delete).
+- **PR #4 merged** (Phase C): queries (8 tools) + profile tags + env-var filtering — 94 tools on main.
+- **PR #5 open** (Phase D): custom actions (3 tools) + version update/delete (2 tools) + tests/ reorganisation — 99 tools, 162 tests when merged.
+- **Main branch** is at the Phase C merge (94 tools, 153 tests).
+- **Next phase after PR #5 merges:** Phase E (Users, principals, user preferences — ~10 tools).
 
 ---
 
@@ -97,8 +98,8 @@ to enforce the two-tag contract as well.
 Phase 0  ✅ COMPLETE  — Read/write + category tags on all tools (PR #2)
 Phase A  ✅ COMPLETE  — CI + pytest + pre-commit + pyproject.toml (PR #2)
 Phase B  ✅ COMPLETE  — WP sub-resources: watchers, activity edit, assignees, reminders (PR #3)
-Phase C  🔲 IN PR #4  — Queries (saved views) + profile tags + env-var filtering
-Phase D  🔲           — Custom actions + version update/delete
+Phase C  ✅ COMPLETE  — Queries (saved views) + profile tags + env-var filtering (PR #4)
+Phase D  🔲 IN PR #5  — Custom actions + version lifecycle + tests/ reorganisation (99 tools, 162 tests)
 Phase E  🔲           — Users, principals, user preferences
 Phase F  🔲           — Budgets, documents, file links, storages
 Phase G  🔲           — Categories, views
