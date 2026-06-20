@@ -75,13 +75,24 @@ Projects → `mcp-test` → Settings → Modules → check:
 - ☐ Time and costs (required for `test_time_entries`)
 - ☐ Wiki (required for `test_wiki`)
 - ☐ News (required for `test_news`)
+- ☐ Documents (required for `test_get_document`)
 
-### 3. Create a budget in the test project
+### 3. Create a document in the test project
+
+Projects → `mcp-test` → Documents → + New document (any name, e.g. "Test Document").
+Required for `test_get_document`. The Documents module must be enabled first (step 2 above).
+
+### 4. Create a work package category in the test project
+
+Projects → `mcp-test` → **Settings → Work packages → Categories** → + Category (any name, e.g. "Test Category").
+Required for `test_get_category`. Note: this is under the project's own Settings, not the global Administration menu.
+
+### 6. Create a budget in the test project
 
 Projects → `mcp-test` → Budgets → + Budget (any name, e.g. "Test Budget").
 Required for `test_get_budget`.
 
-### 4. Enable custom fields on the test project
+### 7. Enable custom fields on the test project
 
 Create missing fields first in Administration → Custom fields → Work packages,
 then enable each at Projects → `mcp-test` → Settings → Custom fields.
@@ -99,7 +110,7 @@ All fields apply to the Task type.
 | `test_text` | Text (String) |
 | `test_longtext` | Long text |
 
-### 5. Create the 'Start work' custom action (if probe above failed)
+### 8. Create the 'Start work' custom action (if probe above failed)
 
 Administration → Work packages → Custom actions → + Custom action:
 - Name: `Start work`
@@ -109,13 +120,13 @@ Administration → Work packages → Custom actions → + Custom action:
 After saving, update `OPENPROJECT_CUSTOM_ACTION_ID` in `tests/integration/.env`
 with the ID from the URL (`/admin/custom_actions/<ID>/edit`).
 
-### 6. Verify cost types (for `test_costs` — optional)
+### 9. Verify cost types (for `test_costs` — optional)
 
 Administration → Cost types → ensure at least one type is configured.
 `GET /cost_types` is not in the OpenProject v3 API spec on standard installs;
 these tests skip automatically via the `api_paths` fixture if unavailable.
 
-### 7. Fix attachments storage (for `test_attachment_lifecycle`)
+### 10. Fix attachments storage (for `test_attachment_lifecycle`)
 
 If uploads return 500, the app's storage path is likely misconfigured:
 ```bash
