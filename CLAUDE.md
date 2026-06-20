@@ -91,6 +91,8 @@ git branch -d feature/<name>
 
 `.worktrees/` is gitignored.
 
+**Never enable auto-merge when opening a PR.** PRs must be reviewed and merged manually by the user.
+
 ## Commit / PR title style
 
 All PR titles must follow Conventional Commits with a required scope: `type(scope): description`. Enforced by `pr-title.yml`.
