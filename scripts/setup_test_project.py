@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """One-time setup script: provision the integration test project on a live OpenProject instance.
 
-Creates everything that can be done via API. Prints a checklist of remaining
-click-ops steps that cannot be automated.
+Creates everything that can be automated via API, then prints a numbered
+click-ops checklist for the remainder. Writes tests/integration/.env so
+the test suite can be run without any manual env-var juggling.
 
 Usage:
     uv run python scripts/setup_test_project.py
@@ -15,12 +16,13 @@ Optional env vars:
     OPENPROJECT_PROJECT   project identifier slug (default: mcp-test)
     OPENPROJECT_CA_BUNDLE path to PEM bundle for private CAs
 
-Run this script once before running the integration test suite. It is
-idempotent — re-running it is safe.
+Idempotent — safe to re-run at any time.
 """
 
 import asyncio
+import json as _json
 import os
+import pathlib
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -83,17 +85,6 @@ async def find_or_create_version(
     return int(created["id"])
 
 
-async def find_membership(
-    client: OpenProjectClient, project_id: int, user_id: int
-) -> dict | None:
-    result = await client.get_memberships(project_id=project_id)
-    for m in result.get("_embedded", {}).get("elements", []):
-        href = m.get("_links", {}).get("principal", {}).get("href", "")
-        if href.endswith(f"/{user_id}"):
-            return m
-    return None
-
-
 # ── main setup ────────────────────────────────────────────────────────────────
 
 
@@ -123,7 +114,7 @@ async def main() -> None:
         sys.exit(1)
 
     me = await client.check_permissions()
-    my_id = me.get("id")
+    my_id = int(me.get("id"))
     my_name = me.get("name", "?")
     ok(f"authenticated as {my_name} (id={my_id})")
 
@@ -138,14 +129,17 @@ async def main() -> None:
             {
                 "name": "MCP Integration Tests",
                 "identifier": project_slug,
-                "description": "Dedicated project for openproject-mcp-server integration tests. Safe to delete.",
+                "description": (
+                    "Dedicated project for openproject-mcp-server integration tests. "
+                    "Safe to delete."
+                ),
                 "public": False,
             }
         )
         project_id = int(created["id"])
         ok(f"created project '{project_slug}' (id={project_id})")
 
-    # ── 2. Work package types ─────────────────────────────────────────────────
+    # ── 2. WP types ───────────────────────────────────────────────────────────
     section("WP types — discover available")
     types_result = await client.get_types(project_id)
     types = types_result.get("_embedded", {}).get("elements", [])
@@ -158,9 +152,7 @@ async def main() -> None:
         first_type_id = 1
 
     # ── 3. Seed work package ──────────────────────────────────────────────────
-    section("Seed work package (WP #46 equivalent)")
-    import json as _json
-
+    section("Seed work package")
     filters = _json.dumps([{"project": {"operator": "=", "values": [str(project_id)]}}])
     wps = (
         (await client.get_work_packages(filters=filters))
@@ -178,54 +170,12 @@ async def main() -> None:
         seed_wp_id = int(created_wp["id"])
         ok(f"created seed WP (id={seed_wp_id})")
 
-    print(
-        f"\n  {BOLD}→ Set OPENPROJECT_SEED_WP_ID={seed_wp_id} when running tests{RESET}"
-    )
-
-    # ── 4. Member ─────────────────────────────────────────────────────────────
-    section("Project membership")
-    existing_membership = await find_membership(client, project_id, my_id)
-    if existing_membership:
-        roles = [
-            r.get("title")
-            for r in existing_membership.get("_links", {}).get("roles", [])
-        ]
-        skip(f"already a member with roles: {roles}")
-    else:
-        # Find the 'Member' role (or 'Project admin' as fallback)
-        roles_result = await client.get_roles()
-        all_roles = roles_result.get("_embedded", {}).get("elements", [])
-        system_names = {"anonymous", "non member", "non-member"}
-        assignable_roles = [
-            r for r in all_roles if r.get("name", "").lower() not in system_names
-        ]
-        member_role = next(
-            (r for r in assignable_roles if r.get("name", "").lower() == "member"),
-            assignable_roles[0] if assignable_roles else None,
-        )
-        if not member_role:
-            fail("no assignable roles found — cannot create membership")
-        else:
-            try:
-                created_m = await client.create_membership(
-                    {
-                        "project_id": project_id,
-                        "user_id": my_id,
-                        "role_ids": [member_role["id"]],
-                    }
-                )
-                ok(
-                    f"added as '{member_role['name']}' (membership id={created_m.get('id')})"
-                )
-            except Exception as e:
-                fail(f"create membership: {e}")
-
-    # ── 5. Version ────────────────────────────────────────────────────────────
-    section("Version (for CF13 / version-type custom fields)")
+    # ── 4. Version ────────────────────────────────────────────────────────────
+    section("Version (for version-type custom field tests)")
     await find_or_create_version(client, project_id, "v1.0-test")
 
-    # ── 6. Query ──────────────────────────────────────────────────────────────
-    section("Saved query (smoke-test for query tools)")
+    # ── 5. Saved query ────────────────────────────────────────────────────────
+    section("Saved query")
     queries = (
         (await client.get_queries(project_id)).get("_embedded", {}).get("elements", [])
     )
@@ -244,93 +194,90 @@ async def main() -> None:
         except Exception as e:
             fail(f"create query: {e}")
 
-    # ── 7. Custom action ──────────────────────────────────────────────────────
-    section("Custom action")
+    # ── 6. Custom action probe ────────────────────────────────────────────────
+    section("Custom action probe")
+    custom_action_id_env = os.environ.get("OPENPROJECT_CUSTOM_ACTION_ID", "1")
     try:
-        action = await client.get_custom_action(1)
-        ok(f"custom action id=1 exists: '{action.get('name')}'")
+        action = await client.get_custom_action(int(custom_action_id_env))
+        ok(f"custom action id={custom_action_id_env} exists: '{action.get('name')}'")
     except Exception:
         fail(
-            "custom action id=1 not found — must be created via click-ops "
-            "(see 'Click-ops checklist' below)"
+            f"custom action id={custom_action_id_env} not found — "
+            "see click-ops checklist item 3 below"
         )
 
-    # ── 8. Print env block ────────────────────────────────────────────────────
-    section("Environment variables for test run")
-    print(f"""
-  Copy this block to your shell before running the integration tests:
+    # ── 7. Write tests/integration/.env ──────────────────────────────────────
+    section("Writing tests/integration/.env")
+    env_path = pathlib.Path(__file__).parent.parent / "tests" / "integration" / ".env"
+    env_content = (
+        f"# Written by scripts/setup_test_project.py — gitignored, safe to re-generate\n"
+        f"OPENPROJECT_URL={url}\n"
+        f"OPENPROJECT_PROJECT={project_slug}\n"
+        f"OPENPROJECT_SEED_WP_ID={seed_wp_id}\n"
+        f"OPENPROJECT_CUSTOM_ACTION_ID={custom_action_id_env}\n"
+        f"# Set OPENPROJECT_API_KEY here or keep it in your shell (never commit it)\n"
+        f"# OPENPROJECT_API_KEY=your-token-here\n"
+        f"# Uncomment after enabling 'Time and costs' module on the project:\n"
+        f"# OPENPROJECT_MODULE_TIME_COSTS=1\n"
+    )
+    env_path.write_text(env_content)
+    ok(f"wrote {env_path}")
+    print(
+        f"\n  {YELLOW}Note:{RESET} OPENPROJECT_API_KEY is intentionally not written "
+        f"to .env.\n  Set it in your shell before running tests.\n"
+    )
 
-  export OPENPROJECT_URL="{url}"
-  export OPENPROJECT_API_KEY="<your-token>"
-  export OPENPROJECT_PROJECT="{project_slug}"
-  export OPENPROJECT_SEED_WP_ID="{seed_wp_id}"
-""")
-
-    # ── 9. Click-ops checklist ────────────────────────────────────────────────
+    # ── 8. Click-ops checklist ────────────────────────────────────────────────
     heading("Click-ops checklist (cannot be automated)")
     print(
-        "  These steps require the OpenProject web UI. Do them once after running\n"
-        "  this script. Check each one off before running the integration suite.\n"
+        "  These require the OpenProject web UI. Do them once and they persist.\n"
+        "  Check each off before running the full integration suite.\n"
     )
 
     clickops = [
         (
             "Enable modules on the test project",
             f"Projects → {project_slug} → Settings → Modules\n"
-            "    ☐ Work packages (required — enables WP tracking)\n"
+            "    ☐ Work packages  (required)\n"
             "    ☐ Time and costs (required for test_costs + test_time_entries)\n"
-            "    ☐ Wiki (required for test_wiki)\n"
-            "    ☐ News (required for test_news)\n"
-            "    ☐ Boards / Backlogs (optional — not tested)\n"
-            f"    Then set env var: OPENPROJECT_MODULE_TIME_COSTS=1",
+            "    ☐ Wiki           (required for test_wiki)\n"
+            "    ☐ News           (required for test_news)\n"
+            f"\n    Then uncomment OPENPROJECT_MODULE_TIME_COSTS=1 in tests/integration/.env",
         ),
         (
             "Enable custom fields on the test project",
             f"Projects → {project_slug} → Settings → Custom fields\n"
-            "    Check each custom field in the list below. Create them first\n"
-            "    in Administration → Custom fields → Work packages if missing:\n"
-            "    ☐ CF2 / jira_key     — Text (String)     — types: Task\n"
-            "    ☐ CF3 / trigger      — Long text          — types: Task\n"
-            "    ☐ CF4 / test_bool    — Boolean            — types: Task\n"
-            "    ☐ CF5 / test_date    — Date               — types: Task\n"
-            "    ☐ CF6 / test_float   — Float              — types: Task\n"
-            "    ☐ CF8 / test_int     — Integer            — types: Task\n"
-            "    ☐ CF9 / test_link    — URL                — types: Task\n"
-            "    ☐ CF11 / test_text   — Text (String)      — types: Task\n"
-            "    ☐ CF15 / test_longtext — Long text        — types: Task",
+            "    Create missing fields first in Administration → Custom fields → Work packages,\n"
+            "    then enable each on this project. All apply to the Task type.\n"
+            "    ☐ jira_key      — Text (String)\n"
+            "    ☐ trigger       — Long text\n"
+            "    ☐ test_bool     — Boolean\n"
+            "    ☐ test_date     — Date\n"
+            "    ☐ test_float    — Float\n"
+            "    ☐ test_int      — Integer\n"
+            "    ☐ test_link     — URL\n"
+            "    ☐ test_text     — Text (String)\n"
+            "    ☐ test_longtext — Long text",
         ),
         (
-            "Create the 'Start work' custom action",
+            "Create the 'Start work' custom action (if id=1 probe above failed)",
             "Administration → Work packages → Custom actions → + Custom action\n"
-            "    Name:       Start work\n"
-            "    Condition:  Status = New\n"
-            "    Action:     Status → In Progress\n"
-            "    Note the ID from the URL (/admin/custom_actions/<ID>/edit)\n"
-            "    Then set: OPENPROJECT_CUSTOM_ACTION_ID=<ID>",
+            "    Name:      Start work\n"
+            "    Condition: Status = New\n"
+            "    Action:    Status → In Progress\n"
+            "    After saving, update OPENPROJECT_CUSTOM_ACTION_ID in tests/integration/.env\n"
+            "    with the ID from the URL: /admin/custom_actions/<ID>/edit",
         ),
         (
-            "Configure time entry activities",
-            "Administration → Time and costs → Activities\n"
-            "    Create at least one activity (e.g. 'Development')\n"
-            "    Required for test_time_entries and test_costs",
+            "Verify cost types exist (for test_costs)",
+            "Administration → Cost types → ensure at least one type is configured\n"
+            "    (e.g. 'Consulting', unit = hour). The test will skip if none exist.",
         ),
         (
-            "Create a cost type",
-            "Administration → Cost types → + Cost type\n"
-            "    Create at least one cost type (e.g. 'Consulting', unit=hour)\n"
-            "    Required for test_costs",
-        ),
-        (
-            "Grant 'edit journals' permission (for test_get_and_update_activity)",
-            "Administration → Roles and permissions → Member\n"
-            "    Work packages section → check 'Edit work package journals'\n"
-            "    Without this, update_activity returns 400",
-        ),
-        (
-            "Configure attachments storage (for test_attachment_lifecycle)",
-            "Administration → Attachments\n"
-            "    Verify 'Attachment storage' path is writable by the app user.\n"
-            "    The upload endpoint currently returns 500 — check server logs.",
+            "Fix attachments storage (for test_attachment_lifecycle)",
+            "The upload endpoint returns 500 on this instance.\n"
+            "    Check: docker exec <container> ls -la /app/attachments\n"
+            "    The directory must exist and be writable by the app user.",
         ),
     ]
 
@@ -340,25 +287,27 @@ async def main() -> None:
             print(f"     {line}")
         print()
 
-    # ── 10. Run command ───────────────────────────────────────────────────────
+    # ── 9. Run commands ───────────────────────────────────────────────────────
     heading("Run the integration tests")
-    print(f"""  # Minimum (no optional modules):
+    print("""\
+  export OPENPROJECT_API_KEY="<your-token>"
+
+  # Core suite (no optional modules):
   uv run pytest tests/integration -m integration -v
 
-  # With Time and costs module enabled:
-  OPENPROJECT_MODULE_TIME_COSTS=1 \\
-  OPENPROJECT_SEED_WP_ID={seed_wp_id} \\
+  # Full suite (after enabling Time and costs on the project):
   uv run pytest tests/integration -m integration -v
+  # (OPENPROJECT_MODULE_TIME_COSTS=1 is already in .env once you uncomment it)
 
-  # Run a single module:
+  # Single module:
   uv run pytest tests/integration/test_versions.py -m integration -v
 
-  # See all available markers:
+  # Available markers:
   uv run pytest tests/integration --markers
 """)
 
     print(
-        f"{GREEN}{BOLD}Setup complete.{RESET} Work through the click-ops checklist above, then run the tests.\n"
+        f"{GREEN}{BOLD}Setup complete.{RESET} Work through the click-ops checklist, then run the tests.\n"
     )
 
 

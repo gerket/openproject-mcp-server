@@ -3,22 +3,42 @@
 Run with:
     uv run pytest tests/integration -m integration -v
 
-Required environment variables:
-    OPENPROJECT_URL      e.g. https://openproject.thomasgerke.com
-    OPENPROJECT_API_KEY  API token for an admin user
-
-Optional:
-    OPENPROJECT_PROJECT  project identifier (slug) — defaults to "infrastructure"
-    OPENPROJECT_CA_BUNDLE  path to PEM bundle for private CAs
+Configuration is loaded from tests/integration/.env (written by
+scripts/setup_test_project.py), with env var overrides taking precedence.
+The .env file is gitignored. See docs/integration-test-setup.md for details.
 """
 
 import json
 import os
+import pathlib
 
 import pytest
 import pytest_asyncio
 
 from src.client import OpenProjectClient
+
+# ---------------------------------------------------------------------------
+# Load tests/integration/.env if present (env vars take precedence)
+# ---------------------------------------------------------------------------
+
+_ENV_FILE = pathlib.Path(__file__).parent / ".env"
+
+
+def _load_env_file() -> None:
+    if not _ENV_FILE.exists():
+        return
+    for line in _ENV_FILE.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:  # env var overrides file
+            os.environ[key] = value
+
+
+_load_env_file()
 
 
 def pytest_configure(config: pytest.Config) -> None:

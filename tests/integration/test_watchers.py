@@ -63,17 +63,10 @@ async def test_get_and_update_activity(
     act_id = comment_act.get("id")
     assert act_id
 
-    try:
-        updated = await client.update_activity(act_id, "activity-test-comment-updated")
-        updated_raw = (
-            updated.get("comment", {}).get("raw", "")
-            if isinstance(updated, dict)
-            else ""
-        )
-        assert (
-            "activity-test-comment-updated" in updated_raw
-        ), f"Activity not updated: {updated_raw!r}"
-    except Exception as e:
-        if "400" in str(e) or "403" in str(e):
-            pytest.skip(f"update_activity requires 'edit journals' permission: {e}")
-        raise
+    updated = await client.update_activity(act_id, "activity-test-comment-updated")
+    updated_raw = (
+        updated.get("comment", {}).get("raw", "") if isinstance(updated, dict) else ""
+    )
+    assert (
+        "activity-test-comment-updated" in updated_raw
+    ), f"Activity not updated: {updated_raw!r}"

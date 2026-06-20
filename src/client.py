@@ -1948,11 +1948,15 @@ class OpenProjectClient:
     async def update_activity(
         self, activity_id: int, comment: str, internal: bool = False
     ) -> dict:
-        """Edit the comment on an activity. Requires 'edit journals' permission."""
+        """Edit the comment on an activity.
+
+        The API expects comment as a plain string (not a formattable dict),
+        even though it returns comment as {"format": "markdown", "raw": "..."}.
+        """
         return await self._request(
             "PATCH",
             f"/activities/{activity_id}",
-            {"comment": {"raw": comment}, "internal": internal},
+            {"comment": comment, "internal": internal},
         )
 
     async def get_available_assignees(self, work_package_id: int) -> dict:

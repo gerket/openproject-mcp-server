@@ -70,7 +70,7 @@ async def test_update_activity(client):
         req.assert_called_once_with(
             "PATCH",
             "/activities/7",
-            {"comment": {"raw": "updated"}, "internal": False},
+            {"comment": "updated", "internal": False},
         )
         assert result == mock
 
