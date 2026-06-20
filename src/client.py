@@ -1185,29 +1185,6 @@ class OpenProjectClient:
         )
         return await self.get_projects(filters)
 
-    async def validate_parent_project(
-        self, parent_id: int, child_id: int | None = None
-    ) -> bool:
-        """
-        Validate if a project can be a parent.
-        Uses the available_parent_projects endpoint.
-
-        Args:
-            parent_id: The parent project ID to validate
-            child_id: Optional child project ID (for existing projects)
-
-        Returns:
-            bool: True if valid parent
-        """
-        endpoint = "/projects/available_parent_projects"
-        if child_id:
-            endpoint += f"?of={child_id}"
-
-        result = await self._request("GET", endpoint)
-        candidates = result.get("_embedded", {}).get("elements", [])
-
-        return any(p.get("id") == parent_id for p in candidates)
-
     async def get_roles(self) -> dict:
         """
         Retrieve available roles.
@@ -1336,60 +1313,6 @@ class OpenProjectClient:
         """
         return await self._request("GET", f"/memberships/{membership_id}")
 
-    async def set_work_package_parent(
-        self, work_package_id: int, parent_id: int
-    ) -> dict:
-        """
-        Set a parent for a work package (create parent-child relationship).
-
-        Args:
-            work_package_id: The work package ID to become a child
-            parent_id: The work package ID to become the parent
-
-        Returns:
-            Dict: Updated work package data
-        """
-        # First get current work package to get lock version
-        try:
-            current_wp = await self.get_work_package(work_package_id)
-            lock_version = current_wp.get("lockVersion", 0)
-        except Exception:
-            lock_version = 0
-
-        # Prepare payload with parent link
-        payload = {
-            "lockVersion": lock_version,
-            "_links": {"parent": {"href": f"/api/v3/work_packages/{parent_id}"}},
-        }
-
-        return await self._request(
-            "PATCH", f"/work_packages/{work_package_id}", payload
-        )
-
-    async def remove_work_package_parent(self, work_package_id: int) -> dict:
-        """
-        Remove parent relationship from a work package (make it top-level).
-
-        Args:
-            work_package_id: The work package ID to remove parent from
-
-        Returns:
-            Dict: Updated work package data
-        """
-        # First get current work package to get lock version
-        try:
-            current_wp = await self.get_work_package(work_package_id)
-            lock_version = current_wp.get("lockVersion", 0)
-        except Exception:
-            lock_version = 0
-
-        # Prepare payload with null parent link
-        payload = {"lockVersion": lock_version, "_links": {"parent": None}}
-
-        return await self._request(
-            "PATCH", f"/work_packages/{work_package_id}", payload
-        )
-
     async def list_work_package_children(
         self,
         parent_id: int,
@@ -1437,19 +1360,6 @@ class OpenProjectClient:
             result["_embedded"]["elements"] = []
 
         return result
-
-    # Alias for backward compatibility and consistency with tool naming
-    async def get_work_package_children(
-        self,
-        parent_id: int,
-        include_descendants: bool = False,
-        offset: int | None = None,
-        page_size: int | None = None,
-    ) -> dict:
-        """Alias for list_work_package_children."""
-        return await self.list_work_package_children(
-            parent_id, include_descendants, offset, page_size
-        )
 
     async def create_work_package_relation(self, data: dict) -> dict:
         """
