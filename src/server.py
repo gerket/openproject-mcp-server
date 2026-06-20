@@ -116,7 +116,8 @@ try:
         _read,
         _write,
     )
-except RuntimeError:
+except RuntimeError as e:
+    logger.warning("⚠️ Could not count loaded tools: %s", e)
     logger.info("✅ Tools loaded (count unavailable)")
 
 
