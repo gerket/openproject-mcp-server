@@ -58,7 +58,7 @@ async def test_list_groups_tool():
     with patch("src.tools.groups.get_client", return_value=mock):
         from src.tools.groups import list_groups
 
-        result = await list_groups.fn()
+        result = await list_groups()
         assert "Devs" in result
         assert "QA" in result
         print("✅ PASSED: list_groups tool")
@@ -70,6 +70,6 @@ async def test_get_group_tool():
     with patch("src.tools.groups.get_client", return_value=mock):
         from src.tools.groups import get_group
 
-        result = await get_group.fn(group_id=1)
+        result = await get_group(group_id=1)
         assert "Devs" in result
         print("✅ PASSED: get_group tool")

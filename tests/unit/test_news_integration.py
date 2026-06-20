@@ -25,7 +25,8 @@ async def test_news_tools_integration():
     client = get_client()
 
     # Get registered tools
-    tools = await mcp.get_tools()
+    tool_list = await mcp.list_tools()
+    tool_names = {t.name for t in tool_list}
 
     # Find news tools
     expected_tools = [
@@ -38,8 +39,9 @@ async def test_news_tools_integration():
 
     # Verify all expected tools are registered
     for tool_name in expected_tools:
-        found = any(tool_name in str(t).lower() for t in tools)
-        assert found, f"Expected tool '{tool_name}' not registered in server"
+        assert tool_name in tool_names, (
+            f"Expected tool '{tool_name}' not registered in server"
+        )
 
     # Test formatting functions
     from src.utils.formatting import format_news_detail, format_news_list

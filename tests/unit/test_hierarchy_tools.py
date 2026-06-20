@@ -16,11 +16,6 @@ from src.tools.hierarchy import (
     set_work_package_parent,
 )
 
-# Unwrap FunctionTool wrappers so tools are directly callable
-list_work_package_children = list_work_package_children.fn
-set_work_package_parent = set_work_package_parent.fn
-remove_work_package_parent = remove_work_package_parent.fn
-
 
 async def test_list_work_package_children_empty():
     with patch("src.tools.hierarchy.get_client") as mock_get_client:
