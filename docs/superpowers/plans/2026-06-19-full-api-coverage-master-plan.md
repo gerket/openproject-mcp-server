@@ -108,10 +108,10 @@ Phase A  ✅ COMPLETE  — CI + pytest + pre-commit + pyproject.toml (PR #2)
 Phase B  ✅ COMPLETE  — WP sub-resources: watchers, activity edit, assignees, reminders (PR #3)
 Phase C  ✅ COMPLETE  — Queries (saved views) + profile tags + env-var filtering (PR #4)
 Phase D  ✅ COMPLETE  — Custom actions + version lifecycle + tests/ reorganisation (PR #5)
-Phase E  🔲 IN PROGRESS — Users, principals, placeholder users, preferences + admin tag
-Phase F  🔲           — Budgets, documents, file links, storages
-Phase G  🔲           — Categories, views
-Phase H  🔲           — README rewrite + integration test setup guide
+Phase E  ✅ COMPLETE  — Users, principals, placeholder users, preferences + admin tag (PR #6)
+Phase F  ✅ COMPLETE  — Documents, storages, file links + budget read tools (PR #7)
+Phase G  ✅ COMPLETE  — Categories, views (PR #7, shipped with Phase F)
+Phase H  🔲 IN PROGRESS — README rewrite + master plan update
 ```
 
 ---
