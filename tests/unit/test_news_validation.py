@@ -103,13 +103,10 @@ def test_file_structure():
 
 
 def test_documentation():
-    """Test that documentation files exist."""
-    doc_files = [
-        "docs/guides/how_to_use_news.md",
-    ]
-
-    for doc_file in doc_files:
-        assert os.path.exists(doc_file), f"Documentation file missing: {doc_file}"
+    """Test that integration test setup doc exists."""
+    assert os.path.exists(
+        "docs/integration-test-setup.md"
+    ), "docs/integration-test-setup.md missing"
 
 
 def test_server_integration():

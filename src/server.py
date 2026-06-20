@@ -72,47 +72,45 @@ def get_client():
 # Import ALL tool modules (decorators auto-register tools)
 logger.info("Loading tool modules...")
 
-try:
-    from src.tools import (  # noqa: F401
-        attachments,  # 4 tools
-        categories,  # 2 tools: list_categories, get_category
-        connection,  # 2 tools
-        costs,  # 2 tools: list_budgets, get_budget (budget read endpoints only — cost entries not in v3 API)
-        custom_actions,  # 3 tools: list_custom_actions, get_custom_action, execute_custom_action
-        documents,  # 3 tools: list_documents, get_document, update_document
-        groups,  # 2 tools
-        hierarchy,  # 3 tools
-        memberships,  # 5 tools
-        news,  # 5 tools
-        notifications,  # 3 tools
-        placeholder_users,  # 5 tools: list, get, create, update, delete_placeholder_user
-        projects,  # 7 tools (list, get, create[admin], add_subproject, get_subprojects, update, delete[admin])
-        queries,  # 8 tools: list_queries, get_query, get_default_query, create_query, update_query, delete_query, star_query, unstar_query
-        relations,  # 5 tools
-        reminders,  # 2 tools: list_reminders, create_reminder
-        storages,  # 7 tools: list_storages, get_storage, list_project_storages, list/get/create/delete file links
-        time_entries,  # 5 tools
-        users,  # 12 tools: list_users, get_user, list_roles, get_role, list_project_members, list_user_projects, list_principals, create_user[admin], update_user[admin], get_my_preferences, update_my_preferences
-        versions,  # 4 tools: list_versions, create_version, update_version, delete_version
-        views,  # 2 tools: list_views, get_view
-        watchers,  # 7 tools: list_watchers, list_available_watchers, add_watcher, remove_watcher, get_activity, update_activity, list_available_assignees
-        weekly_reports,  # 4 tools
-        wiki,  # 1 tool (API v3 wiki is a stub — only GET by integer ID)
-        work_packages,  # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
-    )
+# Import all tool modules — decorators auto-register tools with the MCP server.
+# Any ImportError propagates immediately; no silent partial loading.
+from src.tools import (  # noqa: F401, E402
+    attachments,  # 4 tools
+    categories,  # 2 tools: list_categories, get_category
+    connection,  # 2 tools
+    costs,  # 2 tools: list_budgets, get_budget (budget read endpoints only — cost entries not in v3 API)
+    custom_actions,  # 3 tools: list_custom_actions, get_custom_action, execute_custom_action
+    documents,  # 3 tools: list_documents, get_document, update_document
+    groups,  # 2 tools
+    hierarchy,  # 3 tools
+    memberships,  # 5 tools
+    news,  # 5 tools
+    notifications,  # 3 tools
+    placeholder_users,  # 5 tools: list, get, create, update, delete_placeholder_user
+    projects,  # 7 tools (list, get, create[admin], add_subproject, get_subprojects, update, delete[admin])
+    queries,  # 8 tools: list_queries, get_query, get_default_query, create_query, update_query, delete_query, star_query, unstar_query
+    relations,  # 5 tools
+    reminders,  # 2 tools: list_reminders, create_reminder
+    storages,  # 7 tools: list_storages, get_storage, list_project_storages, list/get/create/delete file links
+    time_entries,  # 5 tools
+    users,  # 12 tools: list_users, get_user, list_roles, get_role, list_project_members, list_user_projects, list_principals, create_user[admin], update_user[admin], get_my_preferences, update_my_preferences
+    versions,  # 4 tools: list_versions, create_version, update_version, delete_version
+    views,  # 2 tools: list_views, get_view
+    watchers,  # 7 tools: list_watchers, list_available_watchers, add_watcher, remove_watcher, get_activity, update_activity, list_available_assignees
+    weekly_reports,  # 4 tools
+    wiki,  # 1 tool (API v3 wiki is a stub — only GET by integer ID)
+    work_packages,  # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
+)
 
-    _tool_map: dict = getattr(getattr(mcp, "_tool_manager", None), "_tools", {})
-    _read = sum(1 for t in _tool_map.values() if "read" in (t.tags or set()))
-    _write = sum(1 for t in _tool_map.values() if "write" in (t.tags or set()))
-    logger.info(
-        "✅ All %d tools loaded successfully (%d read, %d write)",
-        len(_tool_map),
-        _read,
-        _write,
-    )
-except ImportError as e:
-    logger.warning(f"⚠️  Some tool modules failed to import: {e}")
-    raise
+_tool_map: dict = getattr(getattr(mcp, "_tool_manager", None), "_tools", {})
+_read = sum(1 for t in _tool_map.values() if "read" in (t.tags or set()))
+_write = sum(1 for t in _tool_map.values() if "write" in (t.tags or set()))
+logger.info(
+    "✅ All %d tools loaded successfully (%d read, %d write)",
+    len(_tool_map),
+    _read,
+    _write,
+)
 
 
 def main() -> None:
