@@ -106,7 +106,10 @@ from src.tools import (  # noqa: F401, E402
     work_packages,  # 18 tools (list, search, create, update, delete, assign, unassign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete)
 )
 
-_tools = asyncio.run(mcp.list_tools())
+try:
+    _tools = asyncio.run(mcp.list_tools())
+except RuntimeError:
+    _tools = asyncio.get_event_loop().run_until_complete(mcp.list_tools())
 _read = sum(1 for t in _tools if "read" in (t.tags or set()))
 _write = sum(1 for t in _tools if "write" in (t.tags or set()))
 logger.info(
