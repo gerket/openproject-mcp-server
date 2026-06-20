@@ -20,10 +20,6 @@ from src.tools.versions import (
 )
 
 # Unwrap FunctionTool wrappers so tools are directly callable
-list_versions = list_versions.fn
-create_version = create_version.fn
-update_version = update_version.fn
-delete_version = delete_version.fn
 
 
 async def test_list_versions_empty():

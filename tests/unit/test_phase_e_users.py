@@ -23,12 +23,6 @@ from src.tools.users import (
     update_user,
 )
 
-create_user = create_user.fn
-update_user = update_user.fn
-list_principals = list_principals.fn
-get_my_preferences = get_my_preferences.fn
-update_my_preferences = update_my_preferences.fn
-
 
 async def test_create_user():
     with patch("src.tools.users.get_client") as mock_get_client:

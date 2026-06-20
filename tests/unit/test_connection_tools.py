@@ -13,8 +13,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.tools.connection import check_permissions, test_connection
 
 # Unwrap FunctionTool wrappers so tools are directly callable
-test_connection = test_connection.fn
-check_permissions = check_permissions.fn
 
 
 async def test_test_connection():

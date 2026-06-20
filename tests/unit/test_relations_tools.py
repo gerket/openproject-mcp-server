@@ -18,9 +18,6 @@ from src.tools.relations import (
 )
 
 # Unwrap FunctionTool wrappers so tools are directly callable
-list_work_package_relations = list_work_package_relations.fn
-create_work_package_relation = create_work_package_relation.fn
-delete_work_package_relation = delete_work_package_relation.fn
 
 
 async def test_list_relations_empty():

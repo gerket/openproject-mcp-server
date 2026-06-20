@@ -17,9 +17,6 @@ from src.tools.hierarchy import (
 )
 
 # Unwrap FunctionTool wrappers so tools are directly callable
-list_work_package_children = list_work_package_children.fn
-set_work_package_parent = set_work_package_parent.fn
-remove_work_package_parent = remove_work_package_parent.fn
 
 
 async def test_list_work_package_children_empty():

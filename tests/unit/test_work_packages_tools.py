@@ -22,13 +22,6 @@ from src.tools.work_packages import (
 )
 
 # Unwrap FunctionTool wrappers so tools are directly callable
-list_work_packages = list_work_packages.fn
-search_work_packages = search_work_packages.fn
-create_work_package = create_work_package.fn
-delete_work_package = delete_work_package.fn
-list_types = list_types.fn
-list_statuses = list_statuses.fn
-list_priorities = list_priorities.fn
 
 
 async def test_list_work_packages_empty():

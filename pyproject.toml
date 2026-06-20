@@ -1,6 +1,6 @@
 [project]
 name = "openproject-mcp-server"
-version = "3.0.0"
+version = "3.1.0"
 description = "A Model Context Protocol (MCP) server for OpenProject API v3 integration"
 authors = [
     {name = "Tom Gerke", email = "tom@thomasgerke.com"}
@@ -24,7 +24,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastmcp>=2.0.0,<3.0.0",
+    "fastmcp>=3.0.0",
     "mcp>=1.0.0,<2.0.0",
     "aiohttp>=3.8.0,<4.0.0",
     "python-dotenv>=1.0.0",

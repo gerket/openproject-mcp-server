@@ -19,10 +19,6 @@ from src.tools.time_entries import (
 )
 
 # Unwrap FunctionTool wrappers so tools are directly callable
-list_time_entries = list_time_entries.fn
-create_time_entry = create_time_entry.fn
-delete_time_entry = delete_time_entry.fn
-list_time_entry_activities = list_time_entry_activities.fn
 
 
 async def test_list_time_entries_empty():
