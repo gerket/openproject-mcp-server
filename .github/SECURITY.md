@@ -4,7 +4,7 @@
 
 Please **do not** open a public GitHub issue for security vulnerabilities.
 
-Email: tom.n.gerke@gmail.com
+Email: security@thomasgerke.com
 
 Include:
 - Description of the vulnerability
