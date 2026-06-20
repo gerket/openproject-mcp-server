@@ -76,7 +76,7 @@ try:
     from src.tools import (  # noqa: F401
         attachments,  # 4 tools
         connection,  # 2 tools
-        costs,  # 5 tools
+        costs,  # 2 tools: list_budgets, get_budget (budget read endpoints only — cost entries not in v3 API)
         custom_actions,  # 3 tools: list_custom_actions, get_custom_action, execute_custom_action
         groups,  # 2 tools
         hierarchy,  # 3 tools

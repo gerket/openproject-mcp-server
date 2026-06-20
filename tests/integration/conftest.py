@@ -108,6 +108,25 @@ async def current_user_id(client: OpenProjectClient) -> int:
 
 
 @pytest_asyncio.fixture(scope="session")
+async def api_paths(client: OpenProjectClient) -> set[str]:
+    """Fetch the live OpenProject API spec and return the set of available paths.
+
+    Used by tests to skip gracefully when an endpoint isn't present on this
+    instance rather than catching 404s at runtime.
+
+    Example usage in a test:
+        async def test_something(client, api_paths):
+            if "/api/v3/cost_types" not in api_paths:
+                pytest.skip("GET /cost_types not available on this instance")
+    """
+    try:
+        spec = await client._request("GET", "/spec.json")
+        return set(spec.get("paths", {}).keys())
+    except Exception:
+        return set()
+
+
+@pytest_asyncio.fixture(scope="session")
 async def bot_client(live_env: tuple[str, str]) -> OpenProjectClient | None:
     """Client authenticated as the mcp-test-bot user.
 

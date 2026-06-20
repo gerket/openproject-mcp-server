@@ -178,12 +178,10 @@ async def test_new_modules_tags():
         await assert_tag(name, "read", tools)
     for name in ["upload_attachment", "delete_attachment"]:
         await assert_tag(name, "write", tools)
-    # costs
-    for name in ["list_cost_types", "list_cost_entries"]:
+    # budgets (cost entry endpoints don't exist in v3 API; tools removed)
+    for name in ["list_budgets", "get_budget"]:
         await assert_tag(name, "read", tools)
-    for name in ["create_cost_entry", "update_cost_entry", "delete_cost_entry"]:
-        await assert_tag(name, "write", tools)
-    print("✅ new module tags correct (wiki/groups/notifications/attachments/costs)")
+    print("✅ new module tags correct (wiki/groups/notifications/attachments/budgets)")
 
 
 async def test_full_sweep():
