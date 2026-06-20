@@ -193,7 +193,7 @@ class UpdateProjectInput(BaseModel):
     parent_id: int | None = Field(None, description="New parent project ID", gt=0)
 
 
-@mcp.tool(tags={"write", "projects", "create_project"})
+@mcp.tool(tags={"write", "projects", "admin", "create_project"})
 async def create_project(input: CreateProjectInput) -> str:
     """Create a new project.
 
@@ -402,7 +402,7 @@ async def update_project(input: UpdateProjectInput) -> str:
         return format_error(f"Failed to update project: {e!s}")
 
 
-@mcp.tool(tags={"write", "projects", "delete_project"})
+@mcp.tool(tags={"write", "projects", "admin", "delete_project"})
 async def delete_project(project_id: int) -> str:
     """Delete a project.
 

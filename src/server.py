@@ -83,12 +83,13 @@ try:
         memberships,  # 5 tools
         news,  # 5 tools
         notifications,  # 3 tools
-        projects,  # 7 tools (list, get, create, add_subproject, get_subprojects, update, delete)
+        placeholder_users,  # 5 tools: list, get, create, update, delete_placeholder_user
+        projects,  # 7 tools (list, get, create[admin], add_subproject, get_subprojects, update, delete[admin])
         queries,  # 8 tools: list_queries, get_query, get_default_query, create_query, update_query, delete_query, star_query, unstar_query
         relations,  # 5 tools
         reminders,  # 2 tools: list_reminders, create_reminder
         time_entries,  # 5 tools
-        users,  # 6 tools
+        users,  # 12 tools: list_users, get_user, list_roles, get_role, list_project_members, list_user_projects, list_principals, create_user[admin], update_user[admin], get_my_preferences, update_my_preferences
         versions,  # 4 tools: list_versions, create_version, update_version, delete_version
         watchers,  # 7 tools: list_watchers, list_available_watchers, add_watcher, remove_watcher, get_activity, update_activity, list_available_assignees
         weekly_reports,  # 4 tools
