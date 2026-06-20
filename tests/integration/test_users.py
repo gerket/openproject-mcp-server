@@ -49,3 +49,52 @@ async def test_list_user_projects(
 ) -> None:
     result = await client.get_memberships(user_id=current_user_id)
     assert isinstance(extract_elements(result), list)
+
+
+async def test_list_principals(client: OpenProjectClient) -> None:
+    result = await client.get_principals()
+    principals = extract_elements(result)
+    assert principals, "Expected at least one principal"
+    assert all("id" in p and "name" in p for p in principals)
+
+
+async def test_list_principals_project_scoped(
+    client: OpenProjectClient, project_id: int
+) -> None:
+    result = await client.get_principals(project_id)
+    assert isinstance(extract_elements(result), list)
+
+
+async def test_create_and_update_user(
+    client: OpenProjectClient,
+    api_paths: set,
+) -> None:
+    import time
+
+    login = f"mcp-test-user-{int(time.time())}"
+    created = await client.create_user(
+        {
+            "login": login,
+            "first_name": "MCP",
+            "last_name": "TestUser",
+            "email": f"{login}@example.invalid",
+            "password": "Temporary1!Pass",  # some instances require this field
+        }
+    )
+    uid = created.get("id")
+    assert uid, f"No id in created user: {created}"
+    assert created.get("status") == "active"
+
+    try:
+        updated = await client.update_user(uid, {"first_name": "Updated"})
+        assert updated.get("id") == uid
+
+        # Lock the user (closest thing to delete via API)
+        locked = await client.update_user(uid, {"status": "locked"})
+        assert locked.get("status") == "locked"
+    finally:
+        # Best-effort cleanup: lock ensures the account can't be used
+        try:
+            await client.update_user(uid, {"status": "locked"})
+        except Exception:
+            pass

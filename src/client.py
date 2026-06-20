@@ -2041,9 +2041,10 @@ class OpenProjectClient:
     async def create_user(self, data: dict) -> dict:
         """Create a new user (admin only).
 
-        The account is immediately active but the user cannot authenticate until
-        they set a password via email confirmation or an admin sets it in the web UI.
-        The API silently ignores any password field — do not pass one.
+        Some OpenProject instances require a password field; others do not.
+        Even when accepted, the password does not enable basic-auth login —
+        the user must authenticate via SSO or a web-confirmed password reset.
+        Pass password only if your instance requires it (you'll get a 422 if so).
         """
         payload = {
             "login": data["login"],
@@ -2054,6 +2055,8 @@ class OpenProjectClient:
         }
         if data.get("admin") is not None:
             payload["admin"] = data["admin"]
+        if data.get("password"):
+            payload["password"] = data["password"]
         return await self._request("POST", "/users", payload)
 
     async def update_user(self, user_id: int, data: dict) -> dict:

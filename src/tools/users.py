@@ -13,6 +13,14 @@ class CreateUserInput(BaseModel):
     first_name: str = Field(..., description="First name")
     last_name: str = Field(..., description="Last name")
     email: str = Field(..., description="Email address")
+    password: str | None = Field(
+        None,
+        description=(
+            "Initial password. Some instances require this field; others don't. "
+            "Even when set, the password may not enable basic-auth login on SSO-only "
+            "instances — check your instance configuration."
+        ),
+    )
     admin: bool = Field(False, description="Grant administrator privileges")
 
 
@@ -317,10 +325,10 @@ async def list_principals(project_id: int | None = None) -> str:
 async def create_user(input: CreateUserInput) -> str:
     """Create a new user account (admin only).
 
-    The account is created with 'active' status immediately, but the user
-    cannot log in until they set a password. OpenProject ignores any password
-    passed via the API — the user must set one via email confirmation or an
-    admin must set it manually in Administration → Users → Edit.
+    The account is created with 'active' status immediately. Some OpenProject
+    instances require the `password` field; others do not (you'll get a 422 if
+    yours does and you omit it). Even when a password is supplied, the user may
+    still need to authenticate via SSO depending on your instance's auth configuration.
 
     Args:
         input: User details — login, first_name, last_name, email, and optional admin flag
@@ -337,6 +345,7 @@ async def create_user(input: CreateUserInput) -> str:
                 "last_name": input.last_name,
                 "email": input.email,
                 "admin": input.admin,
+                "password": input.password,
             }
         )
         text = format_success("User created successfully.\n\n")
@@ -345,8 +354,8 @@ async def create_user(input: CreateUserInput) -> str:
         text += f"**Name**: {user.get('name', 'N/A')}\n"
         text += f"**Email**: {user.get('email', 'N/A')}\n"
         text += f"**Status**: {user.get('status', 'N/A')}\n"
-        text += "\n⚠️ The user cannot log in yet — a password must be set via "
-        text += "email confirmation or Administration → Users → Edit."
+        text += "\n⚠️ If no password was provided and your instance requires one, "
+        text += "set it via Administration → Users → Edit before the user can log in."
         return text
 
     except Exception as e:
