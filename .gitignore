@@ -212,5 +212,8 @@ CLAUDE.md.worktrees/
 # Git worktrees
 .worktrees/
 
+# Superpowers scratch (task briefs, diffs, progress ledger — ephemeral)
+.superpowers/
+
 # Claude Code MCP config — contains API keys; never commit
 .mcp.json
