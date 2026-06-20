@@ -20,7 +20,7 @@ import aiohttp
 logger = logging.getLogger(__name__)
 
 # Version information
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 # OpenProject custom-field properties are always named customField<N> (e.g.
 # customField12). We restrict the custom_fields dict to this pattern before
