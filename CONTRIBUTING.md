@@ -44,7 +44,22 @@ The `test_full_sweep` test in `tests/unit/test_tags.py` enforces that every tool
 
 ## Commit style
 
-Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`. Use `feat!:` or `fix!:` (or a `BREAKING CHANGE:` footer) for changes that break the public interface — Release Please uses this to produce a major version bump.
+Conventional commits with a required scope: `feat(scope):`, `fix(scope):`, `chore(scope):`, etc. Use `feat(scope)!:` or `fix(scope)!:` (or a `BREAKING CHANGE:` footer) for changes that break the public interface — Release Please uses this to produce a major version bump.
+
+**Scopes:**
+
+| Scope | When to use |
+|---|---|
+| `server` | FastMCP server init, tag filtering, startup |
+| `api` | OpenProject API client (`src/client.py`) |
+| `tools` | Any tool module in `src/tools/` |
+| `ci` | GitHub Actions workflows |
+| `deps` | Dependency bumps, `pyproject.toml`, `uv.lock` |
+| `config` | Environment variables, configuration |
+| `docs` | README, CONTRIBUTING, CLAUDE.md |
+| `tests` | Test suite changes |
+| `release` | Release tooling, versioning |
+| `auth` | Authentication, API key handling |
 
 ## Before opening a PR
 
