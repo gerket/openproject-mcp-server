@@ -325,6 +325,12 @@ async def main() -> None:
             "    assigned to the admin user, triggering a real notification.",
         ),
         (
+            "Create a budget in the test project",
+            f"Projects → {project_slug} → Budgets → + Budget\n"
+            "    Create at least one budget (any name, e.g. 'Test Budget').\n"
+            "    Required for test_get_budget (test_list_budgets passes even without one).",
+        ),
+        (
             "Enable modules on the test project",
             f"Projects → {project_slug} → Settings → Modules\n"
             "    ☐ Work packages  (required)\n"

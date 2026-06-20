@@ -956,14 +956,29 @@ class OpenProjectClient:
         await self._request("DELETE", f"/time_entries/{time_entry_id}")
         return True
 
-    async def get_time_entry_activities(self) -> dict:
+    async def get_time_entry_activities(
+        self, work_package_id: int | None = None
+    ) -> dict:
         """Retrieve available time entry activities via the form schema.
 
         There is no dedicated collection endpoint (GET /time_entries/activities
         does not exist in v3). Activities are discovered via the create-form's
-        allowedValues for the activity field.
+        allowedValues, which requires a work package context to be populated.
+        If no work_package_id is provided, the first work package found is used.
         """
-        form = await self._request("POST", "/time_entries/form", {})
+        payload: dict = {}
+        wp_id = work_package_id
+        if wp_id is None:
+            # allowedValues is empty without a WP context — fetch any WP
+            wps = await self._request("GET", "/work_packages?pageSize=1")
+            elements = wps.get("_embedded", {}).get("elements", [])
+            if elements:
+                wp_id = elements[0].get("id")
+        if wp_id is not None:
+            payload["_links"] = {
+                "workPackage": {"href": f"/api/v3/work_packages/{wp_id}"}
+            }
+        form = await self._request("POST", "/time_entries/form", payload)
         allowed = (
             form.get("_embedded", {})
             .get("schema", {})
