@@ -74,8 +74,7 @@ class UpdateWorkPackageInput(BaseModel):
     custom_fields: dict[str, Any] | None = Field(
         None,
         description=(
-            "Custom field values keyed by API name, e.g. "
-            '{"customField12": "JIRA-123"}.'
+            'Custom field values keyed by API name, e.g. {"customField12": "JIRA-123"}.'
         ),
     )
     validate_status_transition: bool = Field(

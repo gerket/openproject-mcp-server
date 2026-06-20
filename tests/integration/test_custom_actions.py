@@ -35,6 +35,6 @@ async def test_execute_custom_action(client: OpenProjectClient, fresh_wp: int) -
     status_title = wp_after.get("_links", {}).get("status", {}).get("title", "")
     assert status_title, f"No status title in response: {result}"
     # The 'Start work' action transitions to 'In Progress' (or 'In progress')
-    assert (
-        "progress" in status_title.lower() or "in" in status_title.lower()
-    ), f"Expected 'In Progress' after executing action, got: {status_title!r}"
+    assert "progress" in status_title.lower() or "in" in status_title.lower(), (
+        f"Expected 'In Progress' after executing action, got: {status_title!r}"
+    )

@@ -62,9 +62,9 @@ def test_file_structure():
         "delete_news",
     ]
     for func in required_functions:
-        assert (
-            func in async_functions
-        ), f"Async function {func} missing from src/tools/news.py"
+        assert func in async_functions, (
+            f"Async function {func} missing from src/tools/news.py"
+        )
 
     # Test client.py for news methods
     with open("src/client.py", encoding="utf-8") as f:
@@ -97,16 +97,16 @@ def test_file_structure():
 
     required_formatting = ["format_news_list", "format_news_detail"]
     for func in required_formatting:
-        assert (
-            func in functions
-        ), f"Function {func} missing from src/utils/formatting.py"
+        assert func in functions, (
+            f"Function {func} missing from src/utils/formatting.py"
+        )
 
 
 def test_documentation():
     """Test that integration test setup doc exists."""
-    assert os.path.exists(
-        "docs/integration-test-setup.md"
-    ), "docs/integration-test-setup.md missing"
+    assert os.path.exists("docs/integration-test-setup.md"), (
+        "docs/integration-test-setup.md missing"
+    )
 
 
 def test_server_integration():
@@ -114,9 +114,9 @@ def test_server_integration():
     with open("src/server.py", encoding="utf-8") as f:
         content = f.read()
 
-    assert (
-        "news," in content or "import news" in content
-    ), "News import missing in server.py"
+    assert "news," in content or "import news" in content, (
+        "News import missing in server.py"
+    )
 
 
 def test_docstrings():
@@ -128,4 +128,6 @@ def test_docstrings():
     for node in ast.walk(tree):
         if isinstance(node, ast.AsyncFunctionDef):
             docstring = ast.get_docstring(node)
-            assert docstring, f"Async function '{node.name}' in src/tools/news.py is missing a docstring"
+            assert docstring, (
+                f"Async function '{node.name}' in src/tools/news.py is missing a docstring"
+            )

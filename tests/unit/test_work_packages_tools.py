@@ -39,9 +39,9 @@ async def test_list_work_packages_empty():
         )
         mock_get_client.return_value = mock_client
         result = await list_work_packages()
-        assert (
-            "No work packages found" in result
-        ), f"Expected empty message, got: {result}"
+        assert "No work packages found" in result, (
+            f"Expected empty message, got: {result}"
+        )
         print("✅ test_list_work_packages_empty passed")
 
 
@@ -78,9 +78,9 @@ async def test_list_work_packages_results():
         mock_get_client.return_value = mock_client
         result = await list_work_packages()
         assert "Fix bug" in result, f"Expected 'Fix bug' in result, got: {result}"
-        assert (
-            "Add feature" in result
-        ), f"Expected 'Add feature' in result, got: {result}"
+        assert "Add feature" in result, (
+            f"Expected 'Add feature' in result, got: {result}"
+        )
         print("✅ test_list_work_packages_results passed")
 
 
@@ -119,9 +119,9 @@ async def test_search_work_packages_empty():
         )
         mock_get_client.return_value = mock_client
         result = await search_work_packages(query="nonexistent")
-        assert (
-            "No work packages found" in result or "nonexistent" in result
-        ), f"Expected empty-search message, got: {result}"
+        assert "No work packages found" in result or "nonexistent" in result, (
+            f"Expected empty-search message, got: {result}"
+        )
         print("✅ test_search_work_packages_empty passed")
 
 
@@ -155,9 +155,9 @@ async def test_delete_work_package():
         mock_get_client.return_value = mock_client
         result = await delete_work_package(55)
         assert "✅" in result, f"Expected success emoji, got: {result}"
-        assert (
-            "deleted" in result.lower()
-        ), f"Expected 'deleted' in result, got: {result}"
+        assert "deleted" in result.lower(), (
+            f"Expected 'deleted' in result, got: {result}"
+        )
         print("✅ test_delete_work_package passed")
 
 
@@ -194,9 +194,9 @@ async def test_list_statuses():
         mock_get_client.return_value = mock_client
         result = await list_statuses()
         assert "New" in result, f"Expected 'New' in result, got: {result}"
-        assert (
-            "In Progress" in result
-        ), f"Expected 'In Progress' in result, got: {result}"
+        assert "In Progress" in result, (
+            f"Expected 'In Progress' in result, got: {result}"
+        )
         print("✅ test_list_statuses passed")
 
 

@@ -24,9 +24,9 @@ async def test_add_remove_watcher(
     watchers = client.get_watchers(fresh_wp)
     result = await watchers
     ids = [int(w.get("id", 0)) for w in result.get("_embedded", {}).get("elements", [])]
-    assert (
-        current_user_id in ids
-    ), f"User {current_user_id} not in watchers after add: {ids}"
+    assert current_user_id in ids, (
+        f"User {current_user_id} not in watchers after add: {ids}"
+    )
 
     await client.remove_watcher(fresh_wp, current_user_id)
     result_after = await client.get_watchers(fresh_wp)
@@ -34,9 +34,9 @@ async def test_add_remove_watcher(
         int(w.get("id", 0))
         for w in result_after.get("_embedded", {}).get("elements", [])
     ]
-    assert (
-        current_user_id not in ids_after
-    ), f"User {current_user_id} still in watchers after remove: {ids_after}"
+    assert current_user_id not in ids_after, (
+        f"User {current_user_id} still in watchers after remove: {ids_after}"
+    )
 
 
 async def test_available_assignees(client: OpenProjectClient, fresh_wp: int) -> None:
@@ -67,6 +67,6 @@ async def test_get_and_update_activity(
     updated_raw = (
         updated.get("comment", {}).get("raw", "") if isinstance(updated, dict) else ""
     )
-    assert (
-        "activity-test-comment-updated" in updated_raw
-    ), f"Activity not updated: {updated_raw!r}"
+    assert "activity-test-comment-updated" in updated_raw, (
+        f"Activity not updated: {updated_raw!r}"
+    )
