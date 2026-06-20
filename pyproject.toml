@@ -61,7 +61,7 @@ asyncio_mode = "auto"
 testpaths = ["tests/unit"]
 python_files = "test_*.py"
 python_functions = "test_*"
-addopts = "--ignore=tests/unit/test_tools.py -m 'not integration'"
+addopts = "-m 'not integration'"
 markers = [
     "integration: live tests requiring OPENPROJECT_URL and OPENPROJECT_API_KEY",
 ]
