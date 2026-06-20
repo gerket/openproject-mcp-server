@@ -1,5 +1,30 @@
 # Changelog
 
+## [4.0.0](https://github.com/gerket/openproject-mcp-server/compare/v3.0.0...v4.0.0) (2026-06-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* **server:** fastmcp 3.0 removed the include_tags and exclude_tags constructor arguments, changed the mcp.tool decorator to return plain functions instead of FunctionTool wrappers, and replaced the get_tools method with list_tools. All call sites and test patterns were migrated to the new API.
+
+### Features
+
+* **ci:** require scope in all PR titles, force 4.0.0 release ([#31](https://github.com/gerket/openproject-mcp-server/issues/31)) ([eef1ca2](https://github.com/gerket/openproject-mcp-server/commit/eef1ca2966c262fbc7f478890222b6e5c3c42f93))
+* **server:** upgrade to fastmcp 3.x ([#22](https://github.com/gerket/openproject-mcp-server/issues/22)) ([46329d8](https://github.com/gerket/openproject-mcp-server/commit/46329d8d9064b35bc5854051f9ab3bca8179749f))
+
+
+### Bug Fixes
+
+* **ci:** upgrade release-please-action to v5 (node24), drop invalid package-name input ([#28](https://github.com/gerket/openproject-mcp-server/issues/28)) ([70a85d0](https://github.com/gerket/openproject-mcp-server/commit/70a85d0467b404471a0c718d7bbfe294f9466eab))
+* **release:** add packages section with include-component-in-tag false ([#34](https://github.com/gerket/openproject-mcp-server/issues/34)) ([2a22cda](https://github.com/gerket/openproject-mcp-server/commit/2a22cdaf0d3564ad01fb2396f2a6a94b14309ce8))
+* **release:** set manifest version to 3.0.0 to match last tag ([#33](https://github.com/gerket/openproject-mcp-server/issues/33)) ([d080c15](https://github.com/gerket/openproject-mcp-server/commit/d080c15ce02c1b65b666478692ebf4bd08a6db81))
+
+
+### Documentation
+
+* **docs:** document BREAKING CHANGE footer convention for major releases ([#46](https://github.com/gerket/openproject-mcp-server/issues/46)) ([f30b3dd](https://github.com/gerket/openproject-mcp-server/commit/f30b3dd629e338ee37d71d4323819b195f1e4ac3))
+* **docs:** never enable auto-merge when opening a PR ([#35](https://github.com/gerket/openproject-mcp-server/issues/35)) ([02384b0](https://github.com/gerket/openproject-mcp-server/commit/02384b04eadd4d45c7911de69c67a8e8424948e6))
+
 ## [3.0.0] — 2026-06-20
 
 Complete rewrite from a single-file monolith to a modular 25-module server.
