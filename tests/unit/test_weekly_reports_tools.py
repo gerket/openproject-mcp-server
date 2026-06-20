@@ -15,10 +15,6 @@ from src.tools.weekly_reports import (
     generate_this_week_report,
 )
 
-# Unwrap FunctionTool wrappers so tools are directly callable
-generate_this_week_report = generate_this_week_report.fn
-generate_last_week_report = generate_last_week_report.fn
-
 
 def make_mock_client():
     """Build a mock client that satisfies all calls made by _generate_weekly_report_impl."""

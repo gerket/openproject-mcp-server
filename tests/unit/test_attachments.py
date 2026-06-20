@@ -96,7 +96,7 @@ async def test_upload_attachment_tool_invalid_container():
                 file_content_base64="aGVsbG8=",
                 filename="test.txt",
             )
-            result = await upload_attachment.fn(inp)
+            result = await upload_attachment(inp)
             assert "error" in result.lower() or "invalid" in result.lower()
             print("✅ PASSED: upload_attachment rejects invalid container_type")
 
@@ -123,7 +123,7 @@ async def test_upload_attachment_tool_valid():
                 file_content_base64=base64.b64encode(b"hello").decode(),
                 filename="test.txt",
             )
-            result = await upload_attachment.fn(inp)
+            result = await upload_attachment(inp)
             assert "test.txt" in result or "99" in result
             print("✅ PASSED: upload_attachment tool valid")
 
@@ -148,7 +148,7 @@ async def test_list_attachments_tool():
         with patch("src.tools.attachments.get_client", return_value=mock):
             from src.tools.attachments import list_attachments
 
-            result = await list_attachments.fn(
+            result = await list_attachments(
                 container_type="work_packages", container_id=5
             )
             assert "doc.pdf" in result

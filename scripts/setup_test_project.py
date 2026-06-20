@@ -287,8 +287,6 @@ async def main() -> None:
         f"# Bot token — log in as mcp-test-bot, go to User menu → Account settings\n"
         f"# → Access tokens → + API Token, paste value below:\n"
         f"# OPENPROJECT_BOT_API_KEY=mcp-test-bot-token-here\n"
-        f"# Uncomment after enabling 'Time and costs' module on the project:\n"
-        f"# OPENPROJECT_MODULE_TIME_COSTS=1\n"
     )
     env_path.write_text(env_content)
     ok(f"wrote {env_path}")
@@ -337,7 +335,7 @@ async def main() -> None:
             "    ☐ Time and costs (required for test_costs + test_time_entries)\n"
             "    ☐ Wiki           (required for test_wiki)\n"
             "    ☐ News           (required for test_news)\n"
-            f"\n    Then uncomment OPENPROJECT_MODULE_TIME_COSTS=1 in tests/integration/.env",
+            "    Tests skip automatically when a module's endpoints are absent from the API spec.",
         ),
         (
             "Enable custom fields on the test project",
@@ -389,10 +387,6 @@ async def main() -> None:
 
   # Core suite (no optional modules):
   uv run pytest tests/integration -m integration -v
-
-  # Full suite (after enabling Time and costs on the project):
-  uv run pytest tests/integration -m integration -v
-  # (OPENPROJECT_MODULE_TIME_COSTS=1 is already in .env once you uncomment it)
 
   # Single module:
   uv run pytest tests/integration/test_versions.py -m integration -v

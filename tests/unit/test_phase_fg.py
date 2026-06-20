@@ -12,8 +12,14 @@ sys.path.insert(
 )
 
 from src.tools.categories import get_category, list_categories
-from src.tools.documents import get_document, list_documents, update_document
+from src.tools.documents import (
+    UpdateDocumentInput,
+    get_document,
+    list_documents,
+    update_document,
+)
 from src.tools.storages import (
+    CreateFileLinksInput,
     create_file_links,
     delete_file_link,
     get_file_link,
@@ -23,24 +29,6 @@ from src.tools.storages import (
     list_work_package_file_links,
 )
 from src.tools.views import get_view, list_views
-
-list_documents = list_documents.fn
-get_document = get_document.fn
-update_document = update_document.fn
-list_storages = list_storages.fn
-get_storage = get_storage.fn
-list_project_storages = list_project_storages.fn
-list_work_package_file_links = list_work_package_file_links.fn
-get_file_link = get_file_link.fn
-create_file_links = create_file_links.fn
-delete_file_link = delete_file_link.fn
-list_categories = list_categories.fn
-get_category = get_category.fn
-list_views = list_views.fn
-get_view = get_view.fn
-
-from src.tools.documents import UpdateDocumentInput
-from src.tools.storages import CreateFileLinksInput
 
 # ── documents ─────────────────────────────────────────────────────────────────
 

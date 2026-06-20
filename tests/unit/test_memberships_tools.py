@@ -17,11 +17,6 @@ from src.tools.memberships import (
     list_memberships,
 )
 
-# Unwrap FunctionTool wrappers so tools are directly callable
-list_memberships = list_memberships.fn
-create_membership = create_membership.fn
-delete_membership = delete_membership.fn
-
 
 async def test_list_memberships():
     with patch("src.tools.memberships.get_client") as mock_get_client:
