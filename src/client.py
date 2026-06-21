@@ -33,6 +33,7 @@ def _merge_custom_fields(
     payload: dict,
     custom_fields: dict | None,
     reference: dict | None = None,
+    schema: dict | None = None,
 ) -> None:
     """Merge validated custom-field values into a work-package payload in place.
 
@@ -43,17 +44,26 @@ def _merge_custom_fields(
     as ``{"raw": "...", "html": "..."}`` objects rather than bare strings.
     Passing a bare string for a Formattable field is silently ignored by the API
     (the write succeeds but the value is discarded).  This function auto-wraps
-    bare strings for Formattable fields by inspecting ``reference`` — the
-    current work-package dict or a form payload — where the existing field value
-    reveals its type.  Callers may also pass the value pre-wrapped as
-    ``{"raw": "..."}`` and it will be forwarded as-is.
+    bare strings for Formattable fields, detecting the field type from (in order):
+
+    1. ``schema`` — the form/WP schema, where the field entry has
+       ``{"type": "Formattable"}``.  Authoritative even when the field has no
+       current value (e.g. on create), so this is the reliable signal.
+    2. ``reference`` — the current WP or form payload, where an existing
+       ``{"raw": ...}`` value reveals the field is Formattable.  A fallback for
+       when no schema is available.
+
+    Callers may also pass the value pre-wrapped as ``{"raw": "..."}`` and it
+    will be forwarded as-is.
 
     Args:
         payload: The request body being built (mutated in place).
         custom_fields: Caller-supplied ``{customField<N>: value}`` dict.
         reference: Optional dict (current WP or form payload) used to detect
-            Formattable fields.  When None, bare strings are forwarded as-is and
-            a warning is logged.
+            Formattable fields by an existing ``{"raw": ...}`` value.
+        schema: Optional WP/form schema dict (``_embedded.schema``) used to
+            detect Formattable fields by their declared ``type``.  Preferred
+            over ``reference`` because it works even with no current value.
     """
     if not custom_fields:
         return
@@ -66,15 +76,21 @@ def _merge_custom_fields(
             )
         # Auto-wrap bare strings for Formattable (long-text/markdown) fields.
         if isinstance(cf_value, str):
+            schema_entry = (schema or {}).get(cf_name)
+            schema_type = (
+                schema_entry.get("type") if isinstance(schema_entry, dict) else None
+            )
             ref_value = (reference or {}).get(cf_name)
-            if isinstance(ref_value, dict) and "raw" in ref_value:
+            if schema_type == "Formattable":
                 cf_value = {"raw": cf_value}
-            elif ref_value is None and reference is not None:
-                # Field exists in schema but has no current value — can't detect
-                # type from a null; log and forward as-is.
+            elif isinstance(ref_value, dict) and "raw" in ref_value:
+                cf_value = {"raw": cf_value}
+            elif schema_type is None and (ref_value is None and reference is not None):
+                # No schema and no current value to infer from — forward as-is.
                 logger.debug(
-                    "custom field %s has null reference value; forwarding bare string. "
-                    "If this is a long-text field, pass {'raw': <value>} explicitly.",
+                    "custom field %s type unknown (no schema, null reference); "
+                    "forwarding bare string. If this is a long-text field, pass "
+                    "{'raw': <value>} explicitly.",
                     cf_name,
                 )
         payload[cf_name] = cf_value
@@ -488,9 +504,15 @@ class OpenProjectClient:
             payload["date"] = data["date"]
 
         # Custom fields: merge validated customField<N> keys as top-level payload
-        # entries.  Pass the form payload as reference so Formattable fields are
-        # auto-wrapped correctly.
-        _merge_custom_fields(payload, data.get("custom_fields"), reference=payload)
+        # entries.  Pass the form schema so Formattable fields are auto-wrapped
+        # correctly — on create the payload has no existing values to infer from,
+        # so the schema's declared type is the only reliable signal.
+        _merge_custom_fields(
+            payload,
+            data.get("custom_fields"),
+            reference=payload,
+            schema=form.get("_embedded", {}).get("schema", {}),
+        )
 
         # Create work package
         result = await self._request("POST", "/work_packages", payload)
@@ -783,8 +805,29 @@ class OpenProjectClient:
             payload["date"] = data["date"]
 
         # Custom fields: merge validated customField<N> keys as top-level entries.
-        # Pass current_wp as reference so Formattable fields are auto-wrapped.
-        _merge_custom_fields(payload, data.get("custom_fields"), reference=current_wp)
+        # Fetch the WP form schema so Formattable fields are auto-wrapped by their
+        # declared type — current_wp only reveals the type when the field already
+        # has a {"raw": ...} value, so an empty long-text field would otherwise be
+        # forwarded as a bare string and silently dropped.
+        cf_schema: dict = {}
+        if data.get("custom_fields"):
+            try:
+                wp_form = await self._request(
+                    "POST", f"/work_packages/{work_package_id}/form", {}
+                )
+                cf_schema = wp_form.get("_embedded", {}).get("schema", {})
+            except Exception as e:
+                logger.debug(
+                    "could not fetch WP %s form schema for custom-field typing: %s",
+                    work_package_id,
+                    e,
+                )
+        _merge_custom_fields(
+            payload,
+            data.get("custom_fields"),
+            reference=current_wp,
+            schema=cf_schema,
+        )
 
         result = await self._request(
             "PATCH", f"/work_packages/{work_package_id}", payload

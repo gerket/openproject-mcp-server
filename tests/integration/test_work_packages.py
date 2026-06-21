@@ -231,3 +231,40 @@ async def test_custom_fields(
             assert actual == expected, (
                 f"{cf_key}: expected {expected!r}, got {actual!r}"
             )
+
+
+async def test_long_text_custom_field_bare_string(
+    client: OpenProjectClient, project_id: int, wp_type_id: int
+) -> None:
+    """A bare string written to a Formattable (long-text) custom field must be
+    auto-wrapped from the form schema — on both create and update.
+
+    Regression: previously a bare string on create was forwarded as-is (no
+    existing value to infer the type from), and OpenProject silently dropped
+    the write. The fix detects the field type from the form schema.
+    """
+    # CREATE: bare string into an empty long-text field (customField3).
+    created = await client.create_work_package(
+        {
+            "project": project_id,
+            "subject": "longtext-bare-string-create",
+            "type": wp_type_id,
+            "custom_fields": {"customField3": "created via bare string"},
+        }
+    )
+    wp_id = created["id"]
+    try:
+        cf = created.get("customField3")
+        assert isinstance(cf, dict), f"expected wrapped dict, got {cf!r}"
+        assert cf.get("raw") == "created via bare string", cf
+
+        # UPDATE: bare string overwriting the existing long-text value.
+        await client.update_work_package(
+            wp_id, {"custom_fields": {"customField3": "updated via bare string"}}
+        )
+        refreshed = await client.get_work_package(wp_id)
+        cf = refreshed.get("customField3")
+        assert isinstance(cf, dict), f"expected wrapped dict, got {cf!r}"
+        assert cf.get("raw") == "updated via bare string", cf
+    finally:
+        await client.delete_work_package(wp_id)
