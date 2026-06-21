@@ -86,11 +86,12 @@ def _merge_custom_fields(
             elif isinstance(ref_value, dict) and "raw" in ref_value:
                 cf_value = {"raw": cf_value}
             elif schema_type is None and (ref_value is None and reference is not None):
-                # No schema and no current value to infer from — forward as-is.
+                # Field type not in schema and no current value to infer from —
+                # forward as-is.
                 logger.debug(
-                    "custom field %s type unknown (no schema, null reference); "
-                    "forwarding bare string. If this is a long-text field, pass "
-                    "{'raw': <value>} explicitly.",
+                    "custom field %s type undetermined (not in schema, null "
+                    "reference); forwarding bare string. If this is a long-text "
+                    "field, pass {'raw': <value>} explicitly.",
                     cf_name,
                 )
         payload[cf_name] = cf_value
@@ -812,8 +813,12 @@ class OpenProjectClient:
         cf_schema: dict = {}
         if data.get("custom_fields"):
             try:
+                # The /form endpoint is optimistic-locked and 409s without the
+                # current lockVersion, so pass it through.
                 wp_form = await self._request(
-                    "POST", f"/work_packages/{work_package_id}/form", {}
+                    "POST",
+                    f"/work_packages/{work_package_id}/form",
+                    {"lockVersion": lock_version},
                 )
                 cf_schema = wp_form.get("_embedded", {}).get("schema", {})
             except Exception as e:

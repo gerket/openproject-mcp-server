@@ -268,3 +268,26 @@ async def test_long_text_custom_field_bare_string(
         assert cf.get("raw") == "updated via bare string", cf
     finally:
         await client.delete_work_package(wp_id)
+
+    # UPDATE an initially-EMPTY long-text field: the schema must be fetched from
+    # the optimistic-locked /form endpoint (which 409s without lockVersion), so
+    # this exercises that the lockVersion is threaded through correctly.
+    blank = await client.create_work_package(
+        {
+            "project": project_id,
+            "subject": "longtext-bare-string-update-empty",
+            "type": wp_type_id,
+        }
+    )
+    blank_id = blank["id"]
+    try:
+        await client.update_work_package(
+            blank_id,
+            {"custom_fields": {"customField3": "set on empty field via bare string"}},
+        )
+        refreshed = await client.get_work_package(blank_id)
+        cf = refreshed.get("customField3")
+        assert isinstance(cf, dict), f"expected wrapped dict, got {cf!r}"
+        assert cf.get("raw") == "set on empty field via bare string", cf
+    finally:
+        await client.delete_work_package(blank_id)
