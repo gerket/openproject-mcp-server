@@ -1068,7 +1068,7 @@ async def get_work_package(work_package_id: int) -> str:
             client._request(
                 "POST",
                 f"/work_packages/{work_package_id}/form",
-                {"lockVersion": 0},
+                {"lockVersion": wp.get("lockVersion", 0)},
             ),
             client.list_work_package_relations(relations_filter),
             client.get_work_package_activities(work_package_id),
