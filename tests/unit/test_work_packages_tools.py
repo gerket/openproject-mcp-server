@@ -20,6 +20,7 @@ from src.tools.work_packages import (
     list_work_packages,
     search_work_packages,
 )
+from src.utils.formatting import format_work_package_detail
 
 
 async def test_list_work_packages_empty():
@@ -209,3 +210,135 @@ async def test_list_priorities():
         assert "Low" in result, f"Expected 'Low' in result, got: {result}"
         assert "Normal" in result, f"Expected 'Normal' in result, got: {result}"
         print("✅ test_list_priorities passed")
+
+
+def _make_wp(*, custom_fields=None, description="A description.", parent=True):
+    wp = {
+        "id": 929,
+        "subject": "Phase J — tool catalog",
+        "lockVersion": 3,
+        "startDate": "2026-06-01",
+        "dueDate": "2026-06-30",
+        "percentageDone": 10,
+        "createdAt": "2026-06-01T10:00:00Z",
+        "updatedAt": "2026-06-20T12:00:00Z",
+        "_embedded": {
+            "status": {"name": "New", "isClosed": False},
+            "type": {"name": "Feature"},
+            "priority": {"name": "High"},
+        },
+        "_links": {
+            "assignee": {"title": "Tom Gerke"},
+            "author": {"title": "Tom Gerke"},
+            "project": {
+                "title": "openproject-mcp-server",
+                "href": "/api/v3/projects/50",
+            },
+        },
+    }
+    if parent:
+        wp["_links"]["parent"] = {
+            "title": "OpenProject MCP server — tool build-out",
+            "href": "/api/v3/work_packages/916",
+        }
+    if description is None:
+        pass  # no description key
+    else:
+        wp["description"] = {"raw": description}
+    if custom_fields:
+        wp.update(custom_fields)
+    return wp
+
+
+def _make_form(labels=None):
+    schema = {}
+    if labels:
+        for key, label in labels.items():
+            schema[key] = {"name": label}
+    return {"_embedded": {"schema": schema}}
+
+
+def _make_relation(rel_type, to_id, to_subject):
+    return {
+        "type": rel_type,
+        "_embedded": {
+            "from": {"id": 929, "subject": "Phase J — tool catalog"},
+            "to": {"id": to_id, "subject": to_subject},
+        },
+    }
+
+
+def _make_activity(user, comment, created_at="2026-06-20T09:00:00Z"):
+    return {
+        "id": 1,
+        "_type": "Activity::Comment",
+        "createdAt": created_at,
+        "comment": {"raw": comment},
+        "_links": {"user": {"title": user}},
+    }
+
+
+def test_format_full_response():
+    wp = _make_wp(custom_fields={"customField3": "5"})
+    form = _make_form({"customField3": "Story Points"})
+    relations = [_make_relation("blocks", 930, "get_work_package tool")]
+    activities = [_make_activity("Tom Gerke", "Scoped out the approach.")]
+    result = format_work_package_detail(wp, form, relations, activities)
+
+    assert "## WP #929:" in result
+    assert "Phase J" in result
+    assert "**Status**: New" in result
+    assert "**Type**: Feature" in result
+    assert "**Priority**:" in result
+    assert "High" in result
+    assert "Tom Gerke" in result
+    assert "#916" in result
+    assert "### Description" in result
+    assert "A description." in result
+    assert "### Custom Fields" in result
+    assert "Story Points" in result
+    assert "customField3" in result
+    assert "### Relations" in result
+    assert "blocks" in result
+    assert "#930" in result
+    assert "### Activity" in result
+    assert "Scoped out the approach." in result
+
+
+def test_format_empty_sections():
+    wp = _make_wp(description=None, parent=False)
+    wp.pop("description", None)
+    form = _make_form()
+    result = format_work_package_detail(wp, form, [], [])
+
+    assert "### Description" in result
+    assert "_No description._" in result
+    assert "### Custom Fields" in result
+    assert "_None._" in result
+    assert "### Relations" in result
+    assert "_None._" in result
+    assert "### Activity" in result
+    assert "_No comments._" in result
+
+
+def test_format_form_fetch_failed():
+    wp = _make_wp(custom_fields={"customField3": "5"})
+    result = format_work_package_detail(wp, None, [], [])
+    assert "### Custom Fields" in result
+    assert "_Unavailable (fetch error)._" in result
+
+
+def test_format_relations_fetch_failed():
+    wp = _make_wp()
+    form = _make_form()
+    result = format_work_package_detail(wp, form, None, [])
+    assert "### Relations" in result
+    assert "_Unavailable (fetch error)._" in result
+
+
+def test_format_activities_fetch_failed():
+    wp = _make_wp()
+    form = _make_form()
+    result = format_work_package_detail(wp, form, [], None)
+    assert "### Activity" in result
+    assert "_Unavailable (fetch error)._" in result
