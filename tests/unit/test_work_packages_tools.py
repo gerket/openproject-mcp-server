@@ -14,6 +14,7 @@ from src.tools.work_packages import (
     CreateWorkPackageInput,
     create_work_package,
     delete_work_package,
+    get_work_package,
     list_priorities,
     list_statuses,
     list_types,
@@ -342,3 +343,160 @@ def test_format_activities_fetch_failed():
     result = format_work_package_detail(wp, form, [], None)
     assert "### Activity" in result
     assert "_Unavailable (fetch error)._" in result
+
+
+def _wp_payload():
+    return {
+        "id": 929,
+        "subject": "Phase J — tool catalog",
+        "lockVersion": 3,
+        "description": {"raw": "A description."},
+        "startDate": None,
+        "dueDate": None,
+        "percentageDone": 0,
+        "customField3": "5",
+        "_embedded": {
+            "status": {"name": "New", "isClosed": False},
+            "type": {"name": "Feature"},
+            "priority": {"name": "High"},
+        },
+        "_links": {
+            "assignee": {"title": "Tom Gerke"},
+            "author": {"title": "Tom Gerke"},
+            "project": {
+                "title": "openproject-mcp-server",
+                "href": "/api/v3/projects/50",
+            },
+            "parent": {"title": "Epic #916", "href": "/api/v3/work_packages/916"},
+        },
+    }
+
+
+def _form_payload():
+    return {"_embedded": {"schema": {"customField3": {"name": "Story Points"}}}}
+
+
+def _relations_payload():
+    return {
+        "_embedded": {
+            "elements": [
+                {
+                    "type": "blocks",
+                    "_embedded": {
+                        "from": {"id": 929, "subject": "Phase J"},
+                        "to": {"id": 930, "subject": "get_work_package tool"},
+                    },
+                }
+            ]
+        }
+    }
+
+
+def _activities_payload():
+    return {
+        "_embedded": {
+            "elements": [
+                {
+                    "id": 1,
+                    "_type": "Activity::Comment",
+                    "createdAt": "2026-06-20T09:00:00Z",
+                    "comment": {"raw": "Scoped out the approach."},
+                    "_links": {"user": {"title": "Tom Gerke"}},
+                }
+            ]
+        }
+    }
+
+
+async def test_get_work_package_full():
+    with patch("src.tools.work_packages.get_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.get_work_package = AsyncMock(return_value=_wp_payload())
+        mock_client._request = AsyncMock(return_value=_form_payload())
+        mock_client.list_work_package_relations = AsyncMock(
+            return_value=_relations_payload()
+        )
+        mock_client.get_work_package_activities = AsyncMock(
+            return_value=_activities_payload()
+        )
+        mock_get_client.return_value = mock_client
+
+        result = await get_work_package(929)
+
+        assert "## WP #929:" in result
+        assert "Phase J" in result
+        assert "Story Points" in result
+        assert "customField3" in result
+        assert "blocks" in result
+        assert "#930" in result
+        assert "Scoped out the approach." in result
+
+
+async def test_get_work_package_form_fails():
+    with patch("src.tools.work_packages.get_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.get_work_package = AsyncMock(return_value=_wp_payload())
+        mock_client._request = AsyncMock(side_effect=Exception("form fetch failed"))
+        mock_client.list_work_package_relations = AsyncMock(
+            return_value=_relations_payload()
+        )
+        mock_client.get_work_package_activities = AsyncMock(
+            return_value=_activities_payload()
+        )
+        mock_get_client.return_value = mock_client
+
+        result = await get_work_package(929)
+
+        assert "## WP #929:" in result
+        assert "_Unavailable (fetch error)._" in result
+        assert "blocks" in result  # relations still present
+
+
+async def test_get_work_package_relations_fail():
+    with patch("src.tools.work_packages.get_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.get_work_package = AsyncMock(return_value=_wp_payload())
+        mock_client._request = AsyncMock(return_value=_form_payload())
+        mock_client.list_work_package_relations = AsyncMock(
+            side_effect=Exception("relations failed")
+        )
+        mock_client.get_work_package_activities = AsyncMock(
+            return_value=_activities_payload()
+        )
+        mock_get_client.return_value = mock_client
+
+        result = await get_work_package(929)
+
+        assert "## WP #929:" in result
+        assert "### Relations\n_Unavailable (fetch error)._" in result
+
+
+async def test_get_work_package_activities_fail():
+    with patch("src.tools.work_packages.get_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.get_work_package = AsyncMock(return_value=_wp_payload())
+        mock_client._request = AsyncMock(return_value=_form_payload())
+        mock_client.list_work_package_relations = AsyncMock(
+            return_value=_relations_payload()
+        )
+        mock_client.get_work_package_activities = AsyncMock(
+            side_effect=Exception("activities failed")
+        )
+        mock_get_client.return_value = mock_client
+
+        result = await get_work_package(929)
+
+        assert "## WP #929:" in result
+        assert "### Activity\n_Unavailable (fetch error)._" in result
+
+
+async def test_get_work_package_not_found():
+    with patch("src.tools.work_packages.get_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.get_work_package = AsyncMock(side_effect=Exception("404 Not Found"))
+        mock_get_client.return_value = mock_client
+
+        result = await get_work_package(9999)
+
+        assert "❌" in result
+        assert "9999" in result or "Not Found" in result
