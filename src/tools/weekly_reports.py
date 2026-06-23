@@ -88,7 +88,7 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
     """Internal implementation of weekly report generation.
 
     This function does the actual work of generating the report.
-    It is called by the @mcp.tool wrapper.
+    It is called by the @tracked_tool wrapper.
     """
     try:
         client = get_client()
