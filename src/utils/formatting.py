@@ -274,7 +274,14 @@ def format_work_package_detail(
             for key in sorted(cf_keys):
                 label = schema.get(key, {}).get("name", key)
                 value = wp[key]
-                display_value = str(value) if value not in (None, "", []) else "—"
+                if value in (None, "", []):
+                    display_value = "—"
+                elif isinstance(value, dict):
+                    display_value = value.get("raw") or value.get("html") or str(value)
+                else:
+                    display_value = str(value)
+                # Escape pipes and collapse newlines so the table cell stays intact
+                display_value = display_value.replace("|", "\\|").replace("\n", " ")
                 text += f"| {label} | {key} | {display_value} |\n"
 
     # --- Relations ---
@@ -311,7 +318,8 @@ def format_work_package_detail(
             comment_raw = activity.get("comment", {}).get("raw", "").strip()
             text += f"**{user}** ({date_part}):\n"
             if comment_raw:
-                text += f"> {comment_raw}\n"
+                quoted = "\n".join(f"> {line}" for line in comment_raw.splitlines())
+                text += f"{quoted}\n"
             text += "\n"
 
     return text

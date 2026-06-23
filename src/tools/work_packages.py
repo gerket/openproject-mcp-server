@@ -1080,16 +1080,16 @@ async def get_work_package(work_package_id: int) -> str:
         activities_result = results[2]
 
         form: dict[str, Any] | None = None
-        if not isinstance(form_result, Exception):
-            form = form_result  # type: ignore
+        if isinstance(form_result, dict):
+            form = form_result
 
         relations: list[dict[str, Any]] | None = None
-        if not isinstance(relations_result, Exception):
-            relations = relations_result.get("_embedded", {}).get("elements", [])  # type: ignore
+        if isinstance(relations_result, dict):
+            relations = relations_result.get("_embedded", {}).get("elements", [])
 
         activities: list[dict[str, Any]] | None = None
-        if not isinstance(activities_result, Exception):
-            activities = activities_result.get("_embedded", {}).get("elements", [])  # type: ignore
+        if isinstance(activities_result, dict):
+            activities = activities_result.get("_embedded", {}).get("elements", [])
 
         return format_work_package_detail(wp, form, relations, activities)
 
