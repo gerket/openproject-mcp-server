@@ -1,10 +1,11 @@
 """Connection and permission checking tools."""
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error
 
 
-@mcp.tool(tags={"read", "system", "core", "core-read", "test_connection"})
+@tracked_tool(tags={"read", "system", "core", "core-read", "test_connection"})
 async def test_connection() -> str:
     """Test the connection to the OpenProject API.
 
@@ -25,7 +26,7 @@ async def test_connection() -> str:
         return format_error(f"Connection failed: {e!s}")
 
 
-@mcp.tool(tags={"read", "system", "core", "core-read", "check_permissions"})
+@tracked_tool(tags={"read", "system", "core", "core-read", "check_permissions"})
 async def check_permissions() -> str:
     """Check current user permissions and capabilities.
 

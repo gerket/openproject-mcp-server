@@ -7,7 +7,8 @@ configured and allow linking/unlinking files on work packages.
 
 from pydantic import BaseModel, Field
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error, format_success
 
 
@@ -26,7 +27,9 @@ class CreateFileLinksInput(BaseModel):
     )
 
 
-@mcp.tool(tags={"read", "storage", "situational", "situational-read", "list_storages"})
+@tracked_tool(
+    tags={"read", "storage", "situational", "situational-read", "list_storages"}
+)
 async def list_storages() -> str:
     """List configured file storages (OneDrive, Nextcloud, etc.).
 
@@ -57,7 +60,9 @@ async def list_storages() -> str:
         return format_error(f"Failed to list storages: {e!s}")
 
 
-@mcp.tool(tags={"read", "storage", "situational", "situational-read", "get_storage"})
+@tracked_tool(
+    tags={"read", "storage", "situational", "situational-read", "get_storage"}
+)
 async def get_storage(storage_id: int) -> str:
     """Get details of a specific file storage.
 
@@ -83,7 +88,7 @@ async def get_storage(storage_id: int) -> str:
         return format_error(f"Failed to get storage #{storage_id}: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={"read", "storage", "situational", "situational-read", "list_project_storages"}
 )
 async def list_project_storages(project_id: int | None = None) -> str:
@@ -115,7 +120,7 @@ async def list_project_storages(project_id: int | None = None) -> str:
         return format_error(f"Failed to list project storages: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "read",
         "storage",
@@ -158,7 +163,9 @@ async def list_work_package_file_links(work_package_id: int) -> str:
         )
 
 
-@mcp.tool(tags={"read", "storage", "situational", "situational-read", "get_file_link"})
+@tracked_tool(
+    tags={"read", "storage", "situational", "situational-read", "get_file_link"}
+)
 async def get_file_link(file_link_id: int) -> str:
     """Get details of a specific file link.
 
@@ -188,7 +195,7 @@ async def get_file_link(file_link_id: int) -> str:
         return format_error(f"Failed to get file link #{file_link_id}: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={"write", "storage", "situational", "situational-write", "create_file_links"}
 )
 async def create_file_links(input: CreateFileLinksInput) -> str:
@@ -222,7 +229,7 @@ async def create_file_links(input: CreateFileLinksInput) -> str:
         return format_error(f"Failed to create file links: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={"write", "storage", "situational", "situational-write", "delete_file_link"}
 )
 async def delete_file_link(file_link_id: int) -> str:

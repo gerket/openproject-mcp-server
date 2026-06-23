@@ -5,11 +5,12 @@ Placeholder users are non-login stub identities (e.g. "External Consultant",
 but cannot authenticate. They have no email or login — only a name.
 """
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error, format_success
 
 
-@mcp.tool(tags={"read", "users", "list_placeholder_users"})
+@tracked_tool(tags={"read", "users", "list_placeholder_users"})
 async def list_placeholder_users() -> str:
     """List all placeholder users in the OpenProject instance.
 
@@ -36,7 +37,7 @@ async def list_placeholder_users() -> str:
         return format_error(f"Failed to list placeholder users: {e!s}")
 
 
-@mcp.tool(tags={"read", "users", "get_placeholder_user"})
+@tracked_tool(tags={"read", "users", "get_placeholder_user"})
 async def get_placeholder_user(placeholder_id: int) -> str:
     """Get details of a specific placeholder user.
 
@@ -60,7 +61,7 @@ async def get_placeholder_user(placeholder_id: int) -> str:
         return format_error(f"Failed to get placeholder user #{placeholder_id}: {e!s}")
 
 
-@mcp.tool(tags={"write", "users", "create_placeholder_user"})
+@tracked_tool(tags={"write", "users", "create_placeholder_user"})
 async def create_placeholder_user(name: str) -> str:
     """Create a placeholder user.
 
@@ -85,7 +86,7 @@ async def create_placeholder_user(name: str) -> str:
         return format_error(f"Failed to create placeholder user: {e!s}")
 
 
-@mcp.tool(tags={"write", "users", "update_placeholder_user"})
+@tracked_tool(tags={"write", "users", "update_placeholder_user"})
 async def update_placeholder_user(placeholder_id: int, name: str) -> str:
     """Update a placeholder user's name.
 
@@ -109,7 +110,7 @@ async def update_placeholder_user(placeholder_id: int, name: str) -> str:
         )
 
 
-@mcp.tool(tags={"write", "users", "admin", "delete_placeholder_user"})
+@tracked_tool(tags={"write", "users", "admin", "delete_placeholder_user"})
 async def delete_placeholder_user(placeholder_id: int) -> str:
     """Delete a placeholder user permanently (admin only).
 

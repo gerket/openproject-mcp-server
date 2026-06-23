@@ -4,11 +4,12 @@ Categories are project-scoped labels that can be applied to work packages.
 They are distinct from work package types. All endpoints are read-only in v3.
 """
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error
 
 
-@mcp.tool(tags={"read", "projects", "list_categories"})
+@tracked_tool(tags={"read", "projects", "list_categories"})
 async def list_categories(project_id: int) -> str:
     """List work package categories for a project.
 
@@ -43,7 +44,7 @@ async def list_categories(project_id: int) -> str:
         )
 
 
-@mcp.tool(tags={"read", "projects", "get_category"})
+@tracked_tool(tags={"read", "projects", "get_category"})
 async def get_category(category_id: int) -> str:
     """Get details of a specific work package category.
 

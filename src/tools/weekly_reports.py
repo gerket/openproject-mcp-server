@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 
 from pydantic import BaseModel, Field
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error
 from src.utils.report_formatter import (
     format_report_data_json,
@@ -269,7 +270,7 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
         return format_error(f"Failed to generate weekly report: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "read",
         "reports",
@@ -318,7 +319,7 @@ async def generate_weekly_report(input: GenerateWeeklyReportInput) -> str:
     return await _generate_weekly_report_impl(input)
 
 
-@mcp.tool(
+@tracked_tool(
     tags={"read", "reports", "situational", "situational-read", "get_report_data"}
 )
 async def get_report_data(input: GetReportDataInput) -> str:
@@ -491,7 +492,7 @@ async def get_report_data(input: GetReportDataInput) -> str:
         return format_error(f"Failed to get report data: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "read",
         "reports",
@@ -549,7 +550,7 @@ async def generate_this_week_report(
         return format_error(f"Failed to generate this week's report: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "read",
         "reports",

@@ -5,11 +5,12 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error, format_project_list, format_success
 
 
-@mcp.tool(tags={"read", "projects", "core", "core-read", "list_projects"})
+@tracked_tool(tags={"read", "projects", "core", "core-read", "list_projects"})
 async def list_projects(active_only: bool = True, show_hierarchy: bool = False) -> str:
     """List all OpenProject projects.
 
@@ -104,7 +105,7 @@ def _format_project_hierarchy(projects: list) -> str:
     return text
 
 
-@mcp.tool(tags={"read", "projects", "core", "core-read", "get_project"})
+@tracked_tool(tags={"read", "projects", "core", "core-read", "get_project"})
 async def get_project(project_id: int) -> str:
     """Get detailed information about a specific project.
 
@@ -193,7 +194,7 @@ class UpdateProjectInput(BaseModel):
     parent_id: int | None = Field(None, description="New parent project ID", gt=0)
 
 
-@mcp.tool(tags={"write", "projects", "admin", "create_project"})
+@tracked_tool(tags={"write", "projects", "admin", "create_project"})
 async def create_project(input: CreateProjectInput) -> str:
     """Create a new project.
 
@@ -243,7 +244,7 @@ async def create_project(input: CreateProjectInput) -> str:
         return format_error(f"Failed to create project: {e!s}")
 
 
-@mcp.tool(tags={"write", "projects", "add_subproject"})
+@tracked_tool(tags={"write", "projects", "add_subproject"})
 async def add_subproject(input: AddSubprojectInput) -> str:
     """Add a subproject to an existing project.
 
@@ -306,7 +307,7 @@ async def add_subproject(input: AddSubprojectInput) -> str:
         return format_error(f"Failed to create subproject: {e!s}")
 
 
-@mcp.tool(tags={"read", "projects", "get_subprojects"})
+@tracked_tool(tags={"read", "projects", "get_subprojects"})
 async def get_subprojects(parent_id: int) -> str:
     """Get direct subprojects of a parent project.
 
@@ -357,7 +358,7 @@ async def get_subprojects(parent_id: int) -> str:
         return format_error(f"Failed to get subprojects: {e!s}")
 
 
-@mcp.tool(tags={"write", "projects", "update_project"})
+@tracked_tool(tags={"write", "projects", "update_project"})
 async def update_project(input: UpdateProjectInput) -> str:
     """Update an existing project.
 
@@ -402,7 +403,7 @@ async def update_project(input: UpdateProjectInput) -> str:
         return format_error(f"Failed to update project: {e!s}")
 
 
-@mcp.tool(tags={"write", "projects", "admin", "delete_project"})
+@tracked_tool(tags={"write", "projects", "admin", "delete_project"})
 async def delete_project(project_id: int) -> str:
     """Delete a project.
 

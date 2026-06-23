@@ -6,7 +6,8 @@ Existing documents can be listed, retrieved, and their metadata updated.
 
 from pydantic import BaseModel, Field
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error, format_success
 
 
@@ -16,7 +17,9 @@ class UpdateDocumentInput(BaseModel):
     description: str | None = Field(None, description="New description (markdown)")
 
 
-@mcp.tool(tags={"read", "content", "situational", "situational-read", "list_documents"})
+@tracked_tool(
+    tags={"read", "content", "situational", "situational-read", "list_documents"}
+)
 async def list_documents() -> str:
     """List all documents in OpenProject.
 
@@ -48,7 +51,9 @@ async def list_documents() -> str:
         return format_error(f"Failed to list documents: {e!s}")
 
 
-@mcp.tool(tags={"read", "content", "situational", "situational-read", "get_document"})
+@tracked_tool(
+    tags={"read", "content", "situational", "situational-read", "get_document"}
+)
 async def get_document(document_id: int) -> str:
     """Get details of a specific document.
 
@@ -74,7 +79,7 @@ async def get_document(document_id: int) -> str:
         return format_error(f"Failed to get document #{document_id}: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={"write", "content", "situational", "situational-write", "update_document"}
 )
 async def update_document(input: UpdateDocumentInput) -> str:

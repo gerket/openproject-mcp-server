@@ -2,7 +2,8 @@
 
 from pydantic import BaseModel, Field
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error, format_success
 
 
@@ -58,7 +59,7 @@ class UpdateMyPreferencesInput(BaseModel):
     )
 
 
-@mcp.tool(tags={"read", "users", "core", "core-read", "list_users"})
+@tracked_tool(tags={"read", "users", "core", "core-read", "list_users"})
 async def list_users(name: str | None = None, status: str | None = None) -> str:
     """List users in OpenProject.
 
@@ -106,7 +107,7 @@ async def list_users(name: str | None = None, status: str | None = None) -> str:
         return format_error(f"Failed to list users: {e!s}")
 
 
-@mcp.tool(tags={"read", "users", "core", "core-read", "get_user"})
+@tracked_tool(tags={"read", "users", "core", "core-read", "get_user"})
 async def get_user(user_id: int) -> str:
     """Get detailed information about a specific user.
 
@@ -138,7 +139,7 @@ async def get_user(user_id: int) -> str:
         return format_error(f"Failed to get user: {e!s}")
 
 
-@mcp.tool(tags={"read", "users", "list_roles"})
+@tracked_tool(tags={"read", "users", "list_roles"})
 async def list_roles() -> str:
     """List available user roles in OpenProject.
 
@@ -166,7 +167,7 @@ async def list_roles() -> str:
         return format_error(f"Failed to list roles: {e!s}")
 
 
-@mcp.tool(tags={"read", "users", "get_role"})
+@tracked_tool(tags={"read", "users", "get_role"})
 async def get_role(role_id: int) -> str:
     """Get detailed information about a specific role.
 
@@ -199,7 +200,7 @@ async def get_role(role_id: int) -> str:
         return format_error(f"Failed to get role: {e!s}")
 
 
-@mcp.tool(tags={"read", "users", "list_project_members"})
+@tracked_tool(tags={"read", "users", "list_project_members"})
 async def list_project_members(project_id: int) -> str:
     """List all members of a specific project.
 
@@ -245,7 +246,7 @@ async def list_project_members(project_id: int) -> str:
         return format_error(f"Failed to list project members: {e!s}")
 
 
-@mcp.tool(tags={"read", "users", "list_user_projects"})
+@tracked_tool(tags={"read", "users", "list_user_projects"})
 async def list_user_projects(user_id: int) -> str:
     """List all projects a user is a member of.
 
@@ -290,7 +291,7 @@ async def list_user_projects(user_id: int) -> str:
         return format_error(f"Failed to list user projects: {e!s}")
 
 
-@mcp.tool(tags={"read", "users", "core", "core-read", "list_principals"})
+@tracked_tool(tags={"read", "users", "core", "core-read", "list_principals"})
 async def list_principals(project_id: int | None = None) -> str:
     """List principals (users, groups, and placeholder users) in one call.
 
@@ -321,7 +322,7 @@ async def list_principals(project_id: int | None = None) -> str:
         return format_error(f"Failed to list principals: {e!s}")
 
 
-@mcp.tool(tags={"write", "users", "admin", "create_user"})
+@tracked_tool(tags={"write", "users", "admin", "create_user"})
 async def create_user(input: CreateUserInput) -> str:
     """Create a new user account (admin only).
 
@@ -365,7 +366,7 @@ async def create_user(input: CreateUserInput) -> str:
         return format_error(f"Failed to create user: {e!s}")
 
 
-@mcp.tool(tags={"write", "users", "admin", "update_user"})
+@tracked_tool(tags={"write", "users", "admin", "update_user"})
 async def update_user(input: UpdateUserInput) -> str:
     """Update an existing user account (admin only).
 
@@ -405,7 +406,7 @@ async def update_user(input: UpdateUserInput) -> str:
         return format_error(f"Failed to update user #{input.user_id}: {e!s}")
 
 
-@mcp.tool(tags={"read", "users", "core", "core-read", "get_my_preferences"})
+@tracked_tool(tags={"read", "users", "core", "core-read", "get_my_preferences"})
 async def get_my_preferences() -> str:
     """Get the authenticated user's notification and UI preferences.
 
@@ -437,7 +438,7 @@ async def get_my_preferences() -> str:
         return format_error(f"Failed to get preferences: {e!s}")
 
 
-@mcp.tool(tags={"write", "users", "update_my_preferences"})
+@tracked_tool(tags={"write", "users", "update_my_preferences"})
 async def update_my_preferences(input: UpdateMyPreferencesInput) -> str:
     """Update the authenticated user's preferences.
 

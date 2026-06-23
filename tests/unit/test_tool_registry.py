@@ -46,3 +46,17 @@ def test_tracked_tool_returns_callable():
     # mcp.tool returns a FunctionTool; the decorated object must be truthy
     # and not None (i.e. delegation happened).
     assert registry_probe_two is not None
+
+
+def test_registry_covers_all_active_tools():
+    import asyncio
+
+    from src.server import mcp
+
+    active = {t.name for t in asyncio.run(mcp.list_tools())}
+    registry = set(all_tools().keys())
+    # With no tag filter set, every active tool must be in the registry.
+    missing = active - registry
+    assert not missing, f"Active tools not tracked: {sorted(missing)}"
+    # Spot-check a known tool came through conversion.
+    assert "list_work_packages" in registry
