@@ -148,6 +148,12 @@ OPENPROJECT_MCP_EXCLUDE_TAGS=storage
 # Full access — default when no env var is set
 ```
 
+### Discovery tools
+
+Two `system` tools help you inspect what's available:
+- **`list_capabilities`** — returns a filter-aware summary of active tools (grouped by category, one-line descriptions) and inactive tools (when tag filters are applied). Includes the tag reference and configuration examples.
+- **`describe_tool(tool_names: list[str])`** — returns full documentation for one or more tools by name, including inactive/filtered-out tools. The only way to inspect a tool that's been disabled.
+
 ---
 
 ## Running tests
