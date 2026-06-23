@@ -1,5 +1,6 @@
 """Work package management tools - Priority CRITICAL tools for 12 users."""
 
+import asyncio
 import json
 from typing import Any
 
@@ -9,6 +10,7 @@ from src.server import get_client, mcp
 from src.utils.formatting import (
     format_error,
     format_success,
+    format_work_package_detail,
     format_work_package_list,
 )
 
@@ -1033,6 +1035,66 @@ async def list_work_package_activities(work_package_id: int) -> str:
 
     except Exception as e:
         return format_error(f"Failed to list activities: {e!s}")
+
+
+@mcp.tool(tags={"read", "work-packages", "core", "core-read", "get_work_package"})
+async def get_work_package(work_package_id: int) -> str:
+    """Get full details of a single work package by ID.
+
+    Returns all fields the AI needs to understand and act on a work package:
+    header fields, description, custom fields (with human-readable labels and
+    API keys for updates), relations, and comment history. All sections are
+    always present — empty state is explicit so you know the data was fetched.
+
+    Args:
+        work_package_id: ID of the work package to retrieve
+
+    Returns:
+        Full detail formatted as markdown
+    """
+    try:
+        client = get_client()
+
+        # Fetch WP first — if this fails the whole call fails
+        wp = await client.get_work_package(work_package_id)
+
+        # Build relations filter
+        relations_filter = json.dumps(
+            [{"involved": {"operator": "=", "values": [str(work_package_id)]}}]
+        )
+
+        # Fetch form schema, relations, and activities in parallel
+        results = await asyncio.gather(
+            client._request(
+                "POST",
+                f"/work_packages/{work_package_id}/form",
+                {"lockVersion": wp.get("lockVersion", 0)},
+            ),
+            client.list_work_package_relations(relations_filter),
+            client.get_work_package_activities(work_package_id),
+            return_exceptions=True,
+        )
+
+        form_result = results[0]
+        relations_result = results[1]
+        activities_result = results[2]
+
+        form: dict[str, Any] | None = None
+        if isinstance(form_result, dict):
+            form = form_result
+
+        relations: list[dict[str, Any]] | None = None
+        if isinstance(relations_result, dict):
+            relations = relations_result.get("_embedded", {}).get("elements", [])
+
+        activities: list[dict[str, Any]] | None = None
+        if isinstance(activities_result, dict):
+            activities = activities_result.get("_embedded", {}).get("elements", [])
+
+        return format_work_package_detail(wp, form, relations, activities)
+
+    except Exception as e:
+        return format_error(f"Failed to get work package #{work_package_id}: {e!s}")
 
 
 # ============================================================================

@@ -1,5 +1,7 @@
 """Response formatting utilities for consistent output across all tools."""
 
+import re as _re
+
 __all__ = [
     "format_error",
     "format_news_detail",
@@ -7,8 +9,11 @@ __all__ = [
     "format_project_list",
     "format_success",
     "format_wiki_page_detail",
+    "format_work_package_detail",
     "format_work_package_list",
 ]
+
+_CUSTOM_FIELD_RE = _re.compile(r"^customField\d+$")
 
 
 def format_project_list(projects: list[dict]) -> str:
@@ -164,6 +169,159 @@ def format_work_package_list(
                 text += f"  Due: {due_date}\n"
 
         text += "\n"
+    return text
+
+
+def format_work_package_detail(
+    wp: dict,
+    form: dict | None,
+    relations: list[dict] | None,
+    activities: list[dict] | None,
+) -> str:
+    """Format a single work package's full detail for AI consumption.
+
+    Args:
+        wp: Raw WP API dict.
+        form: Raw form API response for custom field label resolution, or None if fetch failed.
+        relations: List of relation dicts, or None if fetch failed (empty list = no relations).
+        activities: List of activity dicts, or None if fetch failed (empty list = no activity).
+
+    Returns:
+        Formatted markdown string. All sections always present.
+    """
+    wp_id = wp.get("id", "N/A")
+    subject = wp.get("subject", "No title")
+    embedded = wp.get("_embedded", {})
+    links = wp.get("_links", {})
+
+    # --- Status ---
+    status_data = embedded.get("status", {})
+    status_name = status_data.get("name") or links.get("status", {}).get(
+        "title", "Unknown"
+    )
+
+    # --- Type ---
+    type_data = embedded.get("type", {})
+    type_name = type_data.get("name") or links.get("type", {}).get("title", "Unknown")
+
+    # --- Priority ---
+    priority_data = embedded.get("priority", {})
+    priority_name = priority_data.get("name") or links.get("priority", {}).get(
+        "title", "Unknown"
+    )
+    if "immediate" in priority_name.lower() or "urgent" in priority_name.lower():
+        priority_display = f"🔴 {priority_name}"
+    elif "high" in priority_name.lower():
+        priority_display = f"🟠 {priority_name}"
+    elif "low" in priority_name.lower():
+        priority_display = f"🟢 {priority_name}"
+    else:
+        priority_display = priority_name
+
+    # --- Assignee / Author ---
+    assignee = links.get("assignee", {}).get("title", "Unassigned")
+    author = links.get("author", {}).get("title", "Unknown")
+
+    # --- Project ---
+    project_link = links.get("project", {})
+    project_name = project_link.get("title", "Unknown")
+    project_href = project_link.get("href", "")
+    project_id = project_href.rstrip("/").split("/")[-1] if project_href else "?"
+
+    # --- Parent ---
+    parent_link = links.get("parent", {})
+    parent_title = parent_link.get("title")
+    parent_href = parent_link.get("href", "")
+    parent_id = parent_href.rstrip("/").split("/")[-1] if parent_href else None
+
+    # --- Dates / progress ---
+    start_date = wp.get("startDate", "—") or "—"
+    due_date = wp.get("dueDate", "—") or "—"
+    pct_done = wp.get("percentageDone", 0)
+
+    # Header
+    text = f"## WP #{wp_id}: {subject}\n\n"
+    text += f"**Status**: {status_name}  |  **Type**: {type_name}  |  **Priority**: {priority_display}\n"
+    text += f"**Assignee**: {assignee}  |  **Author**: {author}\n"
+    text += f"**Project**: {project_name} (#{project_id})\n"
+    if parent_id and parent_title:
+        text += f"**Parent**: #{parent_id} {parent_title}\n"
+    else:
+        text += "**Parent**: None\n"
+    text += (
+        f"**Start**: {start_date}  |  **Due**: {due_date}  |  **% Done**: {pct_done}\n"
+    )
+
+    # --- Description ---
+    text += "\n### Description\n"
+    desc = wp.get("description")
+    raw_desc = desc.get("raw", "").strip() if isinstance(desc, dict) else ""
+    text += raw_desc if raw_desc else "_No description._"
+    text += "\n"
+
+    # --- Custom Fields ---
+    text += "\n### Custom Fields\n"
+    if form is None:
+        text += "_Unavailable (fetch error)._\n"
+    else:
+        schema = form.get("_embedded", {}).get("schema", {})
+        cf_keys = [k for k in wp if _CUSTOM_FIELD_RE.match(k)]
+        if not cf_keys:
+            text += "_None._\n"
+        else:
+            text += "| Field | Key | Value |\n"
+            text += "|-------|-----|-------|\n"
+            for key in sorted(cf_keys):
+                label = schema.get(key, {}).get("name", key)
+                value = wp[key]
+                if value in (None, "", []):
+                    display_value = "—"
+                elif isinstance(value, dict):
+                    display_value = value.get("raw") or value.get("html") or str(value)
+                else:
+                    display_value = str(value)
+                # Escape pipes and collapse newlines so the table cell stays intact
+                display_value = display_value.replace("|", "\\|").replace("\n", " ")
+                text += f"| {label} | {key} | {display_value} |\n"
+
+    # --- Relations ---
+    text += "\n### Relations\n"
+    if relations is None:
+        text += "_Unavailable (fetch error)._\n"
+    elif not relations:
+        text += "_None._\n"
+    else:
+        for rel in relations:
+            rel_type = rel.get("type", "relates")
+            rel_embedded = rel.get("_embedded", {})
+            from_wp = rel_embedded.get("from", {})
+            to_wp = rel_embedded.get("to", {})
+            if from_wp.get("id") == wp_id:
+                other = to_wp
+                direction = f"**{rel_type}** →"
+            else:
+                other = from_wp
+                direction = f"← **{rel_type}**"
+            text += f"- {direction} #{other.get('id', '?')}: {other.get('subject', 'Unknown')}\n"
+
+    # --- Activity ---
+    text += "\n### Activity\n"
+    if activities is None:
+        text += "_Unavailable (fetch error)._\n"
+    elif not activities:
+        text += "_No comments._\n"
+    else:
+        for activity in activities:
+            user = activity.get("_links", {}).get("user", {}).get("title", "Unknown")
+            created_at = activity.get("createdAt", "")
+            date_part = created_at.split("T")[0] if created_at else "Unknown"
+            comment_raw = activity.get("comment", {}).get("raw", "").strip()
+            text += f"**{user}** ({date_part}):\n"
+            if comment_raw:
+                quoted = "\n".join(f"> {line}" for line in comment_raw.splitlines())
+                text += f"{quoted}\n"
+            text += "\n"
+
     return text
 
 
