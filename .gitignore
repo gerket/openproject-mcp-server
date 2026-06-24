@@ -215,6 +215,8 @@ CLAUDE.md.worktrees/
 # Superpowers scratch and design docs (ephemeral / local tooling artifacts)
 .superpowers/
 docs/superpowers/
+docs/generated_prompts/
+docs/research/
 
 # Claude Code MCP config — contains API keys; never commit
 .mcp.json
