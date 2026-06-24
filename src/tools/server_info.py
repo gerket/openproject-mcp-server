@@ -10,8 +10,9 @@ from src.server import mcp
 from src.tool_registry import all_tools, tracked_tool
 from src.utils.formatting import format_error
 
-# Resource tags in domain order; a tool is grouped under the first one it
-# carries. Anything else falls into "other".
+# Resource tags in domain order. Each tool carries exactly one resource tag
+# and is grouped under it; this list controls the display order. A tool with
+# no recognized resource tag falls into "other".
 _CATEGORY_ORDER = [
     # Work packages
     "work-packages",

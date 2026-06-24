@@ -204,8 +204,8 @@ async def test_new_modules_tags():
 
 
 async def test_full_sweep():
-    """Every tool: exactly one access tag, >=1 resource tag, >=1 matching
-    composite, and every composite's prefix equals one of the tool's resources."""
+    """Every tool: exactly one access tag, exactly one resource tag, >=1 matching
+    composite, and every composite's prefix equals the tool's resource."""
     tools = await get_tools()
 
     ACCESS = {"read", "write"}
@@ -234,9 +234,12 @@ async def test_full_sweep():
             if x not in ACCESS and not is_composite(x) and x != "admin" and x != name
         }
 
-        # >=1 resource tag
-        if not resources:
-            bad.append(f"{name}: no resource tag in {sorted(tags)}")
+        # exactly one resource tag
+        if len(resources) != 1:
+            bad.append(
+                f"{name}: expected exactly one resource tag, found "
+                f"{sorted(resources)} in {sorted(tags)}"
+            )
             continue
 
         # >=1 composite whose suffix matches the access tag
