@@ -213,8 +213,26 @@ async def test_full_sweep():
     def is_composite(t: str) -> bool:
         return t.endswith("-read") or t.endswith("-write")
 
+    # The retired profile tags must never reappear. The retag grep guards
+    # caught them once; this keeps the prohibition enforced in CI.
+    BANNED = {
+        "core",
+        "core-read",
+        "core-write",
+        "situational",
+        "situational-read",
+        "situational-write",
+    }
+
     missing = [name for name, t in tools.items() if not getattr(t, "tags", None)]
     assert not missing, f"Tools without tags: {sorted(missing)}"
+
+    banned_present = [
+        f"{name}:{sorted(t.tags & BANNED)}"
+        for name, t in tools.items()
+        if t.tags & BANNED
+    ]
+    assert not banned_present, f"Tools carrying retired profile tags: {banned_present}"
 
     wrong_access = [
         f"{name}:{sorted(t.tags)}"
