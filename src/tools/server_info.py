@@ -10,19 +10,50 @@ from src.server import mcp
 from src.tool_registry import all_tools, tracked_tool
 from src.utils.formatting import format_error
 
-# Category tags in priority order; a tool is grouped under the first one
-# it carries. Anything else falls into "other".
+# Resource tags in domain order; a tool is grouped under the first one it
+# carries. Anything else falls into "other".
 _CATEGORY_ORDER = [
+    # Work packages
     "work-packages",
+    "activities",
+    "relations",
+    "hierarchy",
+    "watchers",
+    "types",
+    "statuses",
+    "priorities",
+    # Projects
     "projects",
-    "users",
+    "categories",
+    "versions",
+    # Views & queries
     "queries",
-    "storage",
-    "time",
-    "content",
+    "views",
+    # People
+    "users",
+    "groups",
+    "roles",
+    "memberships",
+    "placeholder-users",
+    "principals",
+    "preferences",
+    # Time & cost
+    "time-entries",
+    "time-entry-activities",
+    "budgets",
+    # Content
+    "attachments",
+    "documents",
+    "news",
+    "wiki",
+    # Files
+    "storages",
+    "file-links",
+    # Other
     "notifications",
+    "reminders",
+    "custom-actions",
     "reports",
-    "finance",
     "system",
 ]
 
@@ -33,13 +64,16 @@ _TAG_REFERENCE = """\
 - `read` — does not modify data
 - `write` — creates, updates, or deletes data
 
-**Tier tags:**
-- `core` / `core-read` / `core-write` — everyday operations
-- `situational` / `situational-read` / `situational-write` — less common operations
-- `admin` — requires OpenProject administrator privileges
+**Resource tags** — the API endpoint a tool targets, e.g. `work-packages`, \
+`relations`, `versions`, `memberships`, `time-entries`, `attachments`. Each \
+tool carries exactly one. Use `list_capabilities` to see the full set grouped \
+by domain.
 
-**Category tags:** `work-packages`, `projects`, `users`, `queries`, \
-`storage`, `time`, `content`, `notifications`, `reports`, `finance`, `system`.
+**Composite tags** — `<resource>-<access>`, e.g. `versions-read`, \
+`relations-write`. These let you select a resource AND an access level in a \
+single include filter when mixing resources.
+
+**Permission tag:** `admin` — requires OpenProject administrator role.
 
 Each tool also carries a tag equal to its own name. Call `describe_tool` for \
 the full documentation of any tool, including inactive ones.
@@ -48,25 +82,30 @@ the full documentation of any tool, including inactive ones.
 _CONFIG_EXAMPLES = """\
 ## Filtering configuration
 
-Control which tools are active with environment variables (comma-separated tags):
+Control which tools are active with environment variables (comma-separated tags).
+Include is a UNION (any matching tag), then exclude is subtracted.
 
-- `OPENPROJECT_MCP_INCLUDE_TAGS` — if set, ONLY tools carrying one of these \
-tags are active.
-- `OPENPROJECT_MCP_EXCLUDE_TAGS` — tools carrying any of these tags are \
-disabled (applied after include).
+- `OPENPROJECT_MCP_INCLUDE_TAGS` — if set, expose only tools carrying one of these tags.
+- `OPENPROJECT_MCP_EXCLUDE_TAGS` — hide tools carrying any of these tags (applied after include).
 
 Examples:
 
 ```
-# Read-only server
-OPENPROJECT_MCP_INCLUDE_TAGS=read
+# Read-only server (all resources, reads only)
+OPENPROJECT_MCP_EXCLUDE_TAGS=write
 
-# Everyday work-package + project tools, no admin
+# Only work-package tools
+OPENPROJECT_MCP_INCLUDE_TAGS=work-packages
+
+# Work packages + projects, reads only
 OPENPROJECT_MCP_INCLUDE_TAGS=work-packages,projects
+OPENPROJECT_MCP_EXCLUDE_TAGS=write
+
+# Everything except admin operations
 OPENPROJECT_MCP_EXCLUDE_TAGS=admin
 
-# Everything except destructive admin operations
-OPENPROJECT_MCP_EXCLUDE_TAGS=admin
+# Mixed: read versions but write time entries (composites)
+OPENPROJECT_MCP_INCLUDE_TAGS=versions-read,time-entries-write
 ```
 """
 
