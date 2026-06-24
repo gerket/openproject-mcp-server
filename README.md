@@ -77,14 +77,14 @@ Add to your project `.mcp.json` or global `~/.claude/settings.json`:
       "env": {
         "OPENPROJECT_URL": "https://your-instance.openproject.com",
         "OPENPROJECT_API_KEY": "your-api-token",
-        "OPENPROJECT_MCP_INCLUDE_TAGS": "core-read"
+        "OPENPROJECT_MCP_EXCLUDE_TAGS": "write"
       }
     }
   }
 }
 ```
 
-**Tip:** Start with `OPENPROJECT_MCP_INCLUDE_TAGS=core-read` (~18 tools) for daily use. Expand to `core` or remove the filter for full access.
+**Tip:** Start with `OPENPROJECT_MCP_EXCLUDE_TAGS=write` (read-only) for daily use. Expand to specific resources (e.g., `work-packages,projects`) or remove the filter for full access.
 
 ---
 
@@ -104,6 +104,12 @@ Add to your project `.mcp.json` or global `~/.claude/settings.json`:
 
 ## Tool filtering with tags
 
+> **Migration (breaking):** the `core` / `situational` profile tags and their
+> `*-read` / `*-write` derivatives have been removed in favor of per-endpoint
+> resource tags. If you previously used `OPENPROJECT_MCP_INCLUDE_TAGS=core-read`,
+> switch to an explicit recipe such as `OPENPROJECT_MCP_EXCLUDE_TAGS=write`
+> (read-only) or list the resources you need (e.g., `work-packages,projects`).
+
 Every tool carries up to 5 tags. Setting `OPENPROJECT_MCP_INCLUDE_TAGS` / `OPENPROJECT_MCP_EXCLUDE_TAGS` controls which tools are registered with the MCP client, improving Claude's tool selection accuracy by reducing noise.
 
 ### Tag types
@@ -111,36 +117,29 @@ Every tool carries up to 5 tags. Setting `OPENPROJECT_MCP_INCLUDE_TAGS` / `OPENP
 | Tag | Values | Purpose |
 |---|---|---|
 | Access | `read`, `write` | Whether the tool reads or mutates data |
-| Category | `work-packages`, `projects`, `queries`, `users`, `time`, `content`, `storage`, `notifications`, `finance`, `reports`, `system` | API domain |
+| Resource | `work-packages`, `relations`, `versions`, `memberships`, `time-entries`, `attachments`, `queries`, `users`, `projects`, `reminders`, `custom-actions`, `placeholder-users`, `groups`, `notifications`, `news`, `documents`, `wiki`, `storages`, `file-links`, `categories`, `views`, `budgets`, `time-entry-activities`, `weekly-reports`, `system` | The API endpoint the tool targets — one per tool |
+| Composite | `<resource>-read`, `<resource>-write` (e.g., `versions-read`, `time-entries-write`) | Select a resource AND an access level in one include filter |
 | Permission | `admin` | Tools requiring OpenProject admin role |
-| Profile | `core`, `situational` | Frequency of use |
-| Composite | `core-read`, `core-write`, `situational-read`, `situational-write` | AND-style filter (access × profile) |
 | Name | `list_work_packages`, `create_query`, etc. | Exact function name — cherry-pick individual tools |
-
-### Profile definitions
-
-**`core`** (~23 tools) — every session:
-`list_work_packages`, `search_work_packages`, `create_work_package`, `update_work_package`, `add_work_package_comment`, `list_work_package_activities`, `list_projects`, `get_project`, `list_types`, `list_statuses`, `list_priorities`, `list_principals`, `list_users`, `get_user`, `list_notifications`, `mark_all_notifications_read`, `list_queries`, `get_query`, `create_query`, `list_versions`, `get_my_preferences`, `test_connection`, `check_permissions`
-
-**`situational`** (~49 tools) — specific tasks:
-relations, hierarchy, watchers, reminders, time entries, attachments, news, documents, storages/file_links, weekly_reports, `assign_work_package`, `unassign_work_package`, `list_available_assignees`, `get_activity`, `update_activity`, `mark_notification_read`, `generate_this_week_report`, `generate_last_week_report`
-
-**No profile** — admin/niche/module-gated tools (user create/update, placeholder users, custom_actions, memberships, budgets, categories, views, overdue/filter conveniences)
 
 ### Filtering examples
 
 ```bash
-# Core reads only — recommended default (~18 tools)
-OPENPROJECT_MCP_INCLUDE_TAGS=core-read
+# Read-only server (all resources, reads only)
+OPENPROJECT_MCP_EXCLUDE_TAGS=write
 
-# All core tools (read + write, ~23 tools)
-OPENPROJECT_MCP_INCLUDE_TAGS=core
+# Only work-package tools
+OPENPROJECT_MCP_INCLUDE_TAGS=work-packages
 
-# Core + situational reads (research/reporting)
-OPENPROJECT_MCP_INCLUDE_TAGS=core-read,situational-read
+# Work packages + projects, reads only
+OPENPROJECT_MCP_INCLUDE_TAGS=work-packages,projects
+OPENPROJECT_MCP_EXCLUDE_TAGS=write
 
-# Hide admin-only tools (non-admin API token)
+# Everything except admin operations
 OPENPROJECT_MCP_EXCLUDE_TAGS=admin
+
+# Mixed: read versions but write time entries (composites)
+OPENPROJECT_MCP_INCLUDE_TAGS=versions-read,time-entries-write
 
 # Hide storage tools (no file server configured)
 OPENPROJECT_MCP_EXCLUDE_TAGS=storage
