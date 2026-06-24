@@ -82,7 +82,7 @@ def _first_line(doc: str) -> str:
     return doc.split("\n", 1)[0].strip() if doc else ""
 
 
-@tracked_tool(tags={"read", "system", "core", "core-read", "list_capabilities"})
+@tracked_tool(tags={"read", "system", "system-read", "list_capabilities"})
 async def list_capabilities() -> str:
     """Summarize this server's tools and how to filter them.
 
@@ -146,7 +146,7 @@ async def list_capabilities() -> str:
         return format_error(f"Failed to build capability report: {e!s}")
 
 
-@tracked_tool(tags={"read", "system", "core", "core-read", "describe_tool"})
+@tracked_tool(tags={"read", "system", "system-read", "describe_tool"})
 async def describe_tool(tool_names: list[str]) -> str:
     """Return full documentation for one or more tools by name.
 

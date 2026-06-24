@@ -9,7 +9,7 @@ from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error
 
 
-@tracked_tool(tags={"read", "projects", "list_categories"})
+@tracked_tool(tags={"read", "categories", "categories-read", "list_categories"})
 async def list_categories(project_id: int) -> str:
     """List work package categories for a project.
 
@@ -44,7 +44,7 @@ async def list_categories(project_id: int) -> str:
         )
 
 
-@tracked_tool(tags={"read", "projects", "get_category"})
+@tracked_tool(tags={"read", "categories", "categories-read", "get_category"})
 async def get_category(category_id: int) -> str:
     """Get details of a specific work package category.
 

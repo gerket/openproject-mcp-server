@@ -13,7 +13,7 @@ from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error
 
 
-@tracked_tool(tags={"read", "finance", "list_budgets"})
+@tracked_tool(tags={"read", "budgets", "budgets-read", "list_budgets"})
 async def list_budgets(project_id: int) -> str:
     """List budgets for a project.
 
@@ -42,7 +42,7 @@ async def list_budgets(project_id: int) -> str:
         return format_error(f"Failed to list budgets: {e!s}")
 
 
-@tracked_tool(tags={"read", "finance", "get_budget"})
+@tracked_tool(tags={"read", "budgets", "budgets-read", "get_budget"})
 async def get_budget(budget_id: int) -> str:
     """Get a budget by ID.
 

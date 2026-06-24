@@ -35,9 +35,8 @@ class UpdateRelationInput(BaseModel):
 @tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "relations",
+        "relations-write",
         "create_work_package_relation",
     }
 )
@@ -111,9 +110,8 @@ async def create_work_package_relation(input: CreateRelationInput) -> str:
 @tracked_tool(
     tags={
         "read",
-        "work-packages",
-        "situational",
-        "situational-read",
+        "relations",
+        "relations-read",
         "list_work_package_relations",
     }
 )
@@ -168,9 +166,8 @@ async def list_work_package_relations(work_package_id: int) -> str:
 @tracked_tool(
     tags={
         "read",
-        "work-packages",
-        "situational",
-        "situational-read",
+        "relations",
+        "relations-read",
         "get_work_package_relation",
     }
 )
@@ -210,9 +207,8 @@ async def get_work_package_relation(relation_id: int) -> str:
 @tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "relations",
+        "relations-write",
         "update_work_package_relation",
     }
 )
@@ -261,9 +257,8 @@ async def update_work_package_relation(input: UpdateRelationInput) -> str:
 @tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "relations",
+        "relations-write",
         "delete_work_package_relation",
     }
 )

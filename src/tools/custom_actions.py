@@ -5,7 +5,9 @@ from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error, format_success
 
 
-@tracked_tool(tags={"read", "work-packages", "list_custom_actions"})
+@tracked_tool(
+    tags={"read", "custom-actions", "custom-actions-read", "list_custom_actions"}
+)
 async def list_custom_actions() -> str:
     """List all custom actions available in the OpenProject instance.
 
@@ -46,7 +48,9 @@ async def list_custom_actions() -> str:
         return format_error(f"Failed to list custom actions: {err}")
 
 
-@tracked_tool(tags={"read", "work-packages", "get_custom_action"})
+@tracked_tool(
+    tags={"read", "custom-actions", "custom-actions-read", "get_custom_action"}
+)
 async def get_custom_action(action_id: int) -> str:
     """Get details of a specific custom action by ID.
 
@@ -82,7 +86,9 @@ async def get_custom_action(action_id: int) -> str:
         return format_error(f"Failed to get custom action #{action_id}: {e!s}")
 
 
-@tracked_tool(tags={"write", "work-packages", "execute_custom_action"})
+@tracked_tool(
+    tags={"write", "custom-actions", "custom-actions-write", "execute_custom_action"}
+)
 async def execute_custom_action(action_id: int, work_package_id: int) -> str:
     """Execute a custom action against a work package.
 

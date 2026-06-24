@@ -8,9 +8,8 @@ from src.utils.formatting import format_error, format_success, format_work_packa
 @tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "hierarchy",
+        "hierarchy-write",
         "set_work_package_parent",
     }
 )
@@ -49,9 +48,8 @@ async def set_work_package_parent(child_id: int, parent_id: int) -> str:
 @tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "hierarchy",
+        "hierarchy-write",
         "remove_work_package_parent",
     }
 )
@@ -80,9 +78,8 @@ async def remove_work_package_parent(work_package_id: int) -> str:
 @tracked_tool(
     tags={
         "read",
-        "work-packages",
-        "situational",
-        "situational-read",
+        "hierarchy",
+        "hierarchy-read",
         "list_work_package_children",
     }
 )

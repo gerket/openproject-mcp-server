@@ -11,9 +11,7 @@ from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error, format_wiki_page_detail
 
 
-@tracked_tool(
-    tags={"read", "content", "situational", "situational-read", "get_wiki_page"}
-)
+@tracked_tool(tags={"read", "wiki", "wiki-read", "get_wiki_page"})
 async def get_wiki_page(wiki_page_id: int) -> str:
     """Get a wiki page by its integer ID, including full Markdown content.
 

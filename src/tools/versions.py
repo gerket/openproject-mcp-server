@@ -29,7 +29,7 @@ class CreateVersionInput(BaseModel):
     status: str | None = Field(None, description="Status (open, locked, closed)")
 
 
-@tracked_tool(tags={"read", "projects", "core", "core-read", "list_versions"})
+@tracked_tool(tags={"read", "versions", "versions-read", "list_versions"})
 async def list_versions(project_id: int) -> str:
     """List all versions/milestones in a project.
 
@@ -74,7 +74,7 @@ async def list_versions(project_id: int) -> str:
         return format_error(f"Failed to list versions: {e!s}")
 
 
-@tracked_tool(tags={"write", "projects", "create_version"})
+@tracked_tool(tags={"write", "versions", "versions-write", "create_version"})
 async def create_version(input: CreateVersionInput) -> str:
     """Create a new version/milestone in a project.
 
@@ -131,7 +131,7 @@ async def create_version(input: CreateVersionInput) -> str:
         return format_error(f"Failed to create version: {e!s}")
 
 
-@tracked_tool(tags={"write", "projects", "update_version"})
+@tracked_tool(tags={"write", "versions", "versions-write", "update_version"})
 async def update_version(input: UpdateVersionInput) -> str:
     """Update an existing version/milestone.
 
@@ -175,7 +175,7 @@ async def update_version(input: UpdateVersionInput) -> str:
         return format_error(f"Failed to update version: {e!s}")
 
 
-@tracked_tool(tags={"write", "projects", "delete_version"})
+@tracked_tool(tags={"write", "versions", "versions-write", "delete_version"})
 async def delete_version(version_id: int) -> str:
     """Delete a version/milestone by ID.
 

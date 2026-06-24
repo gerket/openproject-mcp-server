@@ -17,9 +17,7 @@ class UpdateDocumentInput(BaseModel):
     description: str | None = Field(None, description="New description (markdown)")
 
 
-@tracked_tool(
-    tags={"read", "content", "situational", "situational-read", "list_documents"}
-)
+@tracked_tool(tags={"read", "documents", "documents-read", "list_documents"})
 async def list_documents() -> str:
     """List all documents in OpenProject.
 
@@ -51,9 +49,7 @@ async def list_documents() -> str:
         return format_error(f"Failed to list documents: {e!s}")
 
 
-@tracked_tool(
-    tags={"read", "content", "situational", "situational-read", "get_document"}
-)
+@tracked_tool(tags={"read", "documents", "documents-read", "get_document"})
 async def get_document(document_id: int) -> str:
     """Get details of a specific document.
 
@@ -79,9 +75,7 @@ async def get_document(document_id: int) -> str:
         return format_error(f"Failed to get document #{document_id}: {e!s}")
 
 
-@tracked_tool(
-    tags={"write", "content", "situational", "situational-write", "update_document"}
-)
+@tracked_tool(tags={"write", "documents", "documents-write", "update_document"})
 async def update_document(input: UpdateDocumentInput) -> str:
     """Update a document's title or description.
 

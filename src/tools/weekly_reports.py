@@ -274,8 +274,7 @@ async def _generate_weekly_report_impl(input: GenerateWeeklyReportInput) -> str:
     tags={
         "read",
         "reports",
-        "situational",
-        "situational-read",
+        "reports-read",
         "generate_weekly_report",
     }
 )
@@ -319,9 +318,7 @@ async def generate_weekly_report(input: GenerateWeeklyReportInput) -> str:
     return await _generate_weekly_report_impl(input)
 
 
-@tracked_tool(
-    tags={"read", "reports", "situational", "situational-read", "get_report_data"}
-)
+@tracked_tool(tags={"read", "reports", "reports-read", "get_report_data"})
 async def get_report_data(input: GetReportDataInput) -> str:
     """Get raw data for weekly report in JSON format for custom processing.
 
@@ -496,8 +493,7 @@ async def get_report_data(input: GetReportDataInput) -> str:
     tags={
         "read",
         "reports",
-        "situational",
-        "situational-read",
+        "reports-read",
         "generate_this_week_report",
     }
 )
@@ -554,8 +550,7 @@ async def generate_this_week_report(
     tags={
         "read",
         "reports",
-        "situational",
-        "situational-read",
+        "reports-read",
         "generate_last_week_report",
     }
 )

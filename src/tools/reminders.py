@@ -5,9 +5,7 @@ from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error
 
 
-@tracked_tool(
-    tags={"read", "work-packages", "situational", "situational-read", "list_reminders"}
-)
+@tracked_tool(tags={"read", "reminders", "reminders-read", "list_reminders"})
 async def list_reminders(work_package_id: int) -> str:
     """List reminders set on a work package for the current API user.
 
@@ -40,9 +38,8 @@ async def list_reminders(work_package_id: int) -> str:
 @tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "reminders",
+        "reminders-write",
         "create_reminder",
     }
 )

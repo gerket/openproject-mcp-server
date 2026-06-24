@@ -33,9 +33,7 @@ class UpdateTimeEntryInput(BaseModel):
     comment: str | None = Field(None, description="New comment")
 
 
-@tracked_tool(
-    tags={"read", "time", "situational", "situational-read", "list_time_entries"}
-)
+@tracked_tool(tags={"read", "time-entries", "time-entries-read", "list_time_entries"})
 async def list_time_entries(
     work_package_id: int | None = None,
     user_id: int | None = None,
@@ -108,9 +106,7 @@ async def list_time_entries(
         return format_error(f"Failed to list time entries: {e!s}")
 
 
-@tracked_tool(
-    tags={"write", "time", "situational", "situational-write", "create_time_entry"}
-)
+@tracked_tool(tags={"write", "time-entries", "time-entries-write", "create_time_entry"})
 async def create_time_entry(input: CreateTimeEntryInput) -> str:
     """Create a new time entry for a work package.
 
@@ -170,9 +166,7 @@ async def create_time_entry(input: CreateTimeEntryInput) -> str:
         return format_error(f"Failed to create time entry: {e!s}")
 
 
-@tracked_tool(
-    tags={"write", "time", "situational", "situational-write", "update_time_entry"}
-)
+@tracked_tool(tags={"write", "time-entries", "time-entries-write", "update_time_entry"})
 async def update_time_entry(input: UpdateTimeEntryInput) -> str:
     """Update an existing time entry.
 
@@ -220,9 +214,7 @@ async def update_time_entry(input: UpdateTimeEntryInput) -> str:
         return format_error(f"Failed to update time entry: {e!s}")
 
 
-@tracked_tool(
-    tags={"write", "time", "situational", "situational-write", "delete_time_entry"}
-)
+@tracked_tool(tags={"write", "time-entries", "time-entries-write", "delete_time_entry"})
 async def delete_time_entry(time_entry_id: int) -> str:
     """Delete a time entry.
 
@@ -249,9 +241,8 @@ async def delete_time_entry(time_entry_id: int) -> str:
 @tracked_tool(
     tags={
         "read",
-        "time",
-        "situational",
-        "situational-read",
+        "time-entry-activities",
+        "time-entry-activities-read",
         "list_time_entry_activities",
     }
 )
