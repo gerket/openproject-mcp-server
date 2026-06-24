@@ -11,15 +11,18 @@ OPENPROJECT_API_KEY=your-api-token-here
 
 # ── Tool filtering ────────────────────────────────────────────────────────────
 
-# Expose only tools matching these tags (comma-separated)
-# Examples: core-read | core | core-read,situational-read
-# OPENPROJECT_MCP_INCLUDE_TAGS=core-read
+# Expose only tools matching these tags (comma-separated, OR/union).
+# Tools are tagged by endpoint resource (work-packages, projects, versions,
+# time-entries, …) plus a <resource>-read / <resource>-write composite.
+# Examples: work-packages | work-packages,projects | versions-read,time-entries-write
+# OPENPROJECT_MCP_INCLUDE_TAGS=work-packages,projects
 
-# Hide tools matching these tags (comma-separated)
+# Hide tools matching these tags (comma-separated). Applied after include.
 # Useful examples:
-#   admin   — hide admin-only tools when using a non-admin token
-#   storage — hide file-link tools on instances without OneDrive/Nextcloud
-# OPENPROJECT_MCP_EXCLUDE_TAGS=admin,storage
+#   write              — read-only server (hide every mutating tool)
+#   admin              — hide admin-only tools when using a non-admin token
+#   storages,file-links — hide file tools on instances without OneDrive/Nextcloud
+# OPENPROJECT_MCP_EXCLUDE_TAGS=write
 
 # ── Optional ──────────────────────────────────────────────────────────────────
 

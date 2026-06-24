@@ -30,17 +30,17 @@ uv run pytest tests/integration -m integration -v
 
 ## Tag convention
 
-Every `@mcp.tool` must carry at minimum: `{access, category, tool_name}`.
+Every `@mcp.tool` must carry: `{access, resource, resource-access, tool_name}` (plus `admin` where applicable).
 
 | Tag type | Values |
 |---|---|
-| Access | `read`, `write` |
-| Category | `work-packages`, `projects`, `queries`, `users`, `time`, `content`, `storage`, `notifications`, `finance`, `reports`, `system` |
+| Access | `read`, `write` (exactly one) |
+| Resource | the API endpoint the tool targets — one of 34 resource tags (`work-packages`, `relations`, `versions`, `memberships`, `time-entries`, `attachments`, … — see `_CATEGORY_ORDER` in `src/tools/server_info.py`) |
+| Composite | `<resource>-read` / `<resource>-write`, matching the tool's resource and access (e.g. `versions-write`) |
 | Permission | `admin` — tools requiring OpenProject administrator role |
-| Profile | `core` (every session), `situational` (task-specific) |
-| Composite | `core-read`, `core-write`, `situational-read`, `situational-write` |
+| Name | the exact function name |
 
-The `test_full_sweep` test in `tests/unit/test_tags.py` enforces that every tool has at least one access tag and one non-access tag.
+The `test_full_sweep` test in `tests/unit/test_tags.py` enforces, per tool: exactly one access tag; at least one resource tag; at least one composite whose suffix matches the access tag; and every composite's prefix equals one of the tool's resource tags.
 
 ## Commit style
 

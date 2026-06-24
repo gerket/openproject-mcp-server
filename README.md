@@ -8,35 +8,36 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server provid
 
 ## Tools summary
 
-120 tools across 25 modules, tagged for granular access control.
+123 tools across 26 modules, tagged for granular access control.
 
-| Module | Count | Key tools | Category tag |
+| Module | Count | Key tools | Resource tag(s) |
 |---|---|---|---|
-| `work_packages` | 18 | list, search, create, update, delete, assign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete | `work-packages` |
+| `work_packages` | 18 | list, search, create, update, delete, assign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete | `work-packages`, `activities`, `types`, `statuses`, `priorities` |
 | `projects` | 7 | list, get, create[admin], update, delete[admin], add_subproject, get_subprojects | `projects` |
-| `versions` | 4 | list, create, update, delete | `projects` |
-| `hierarchy` | 3 | set_parent, remove_parent, list_children | `work-packages` |
-| `relations` | 5 | list, get, create, update, delete | `work-packages` |
-| `watchers` | 7 | list, available_watchers, add, remove, get_activity, update_activity, available_assignees | `work-packages` |
-| `reminders` | 2 | list, create | `work-packages` |
-| `custom_actions` | 3 | list, get, execute | `work-packages` |
+| `versions` | 4 | list, create, update, delete | `versions` |
+| `hierarchy` | 3 | set_parent, remove_parent, list_children | `hierarchy` |
+| `relations` | 5 | list, get, create, update, delete | `relations` |
+| `watchers` | 7 | list, available_watchers, add, remove, get_activity, update_activity, available_assignees | `watchers`, `work-packages`, `activities` |
+| `reminders` | 2 | list, create | `reminders` |
+| `custom_actions` | 3 | list, get, execute | `custom-actions` |
 | `queries` | 8 | list, get, get_default, create, update, delete, star, unstar | `queries` |
-| `users` | 11 | list, get, create[admin], update[admin], list_roles, get_role, list_principals, list_project_members, list_user_projects, get_my_preferences, update_my_preferences | `users` |
-| `placeholder_users` | 5 | list, get, create, update, delete[admin] | `users` |
-| `memberships` | 5 | list, get, create, update, delete | `users` |
-| `groups` | 2 | list, get | `users` |
-| `time_entries` | 5 | list, create, update, delete, list_activities | `time` |
+| `users` | 11 | list, get, create[admin], update[admin], list_roles, get_role, list_principals, list_project_members, list_user_projects, get_my_preferences, update_my_preferences | `users`, `roles`, `principals`, `memberships`, `preferences` |
+| `placeholder_users` | 5 | list, get, create, update, delete[admin] | `placeholder-users` |
+| `memberships` | 5 | list, get, create, update, delete | `memberships` |
+| `groups` | 2 | list, get | `groups` |
+| `time_entries` | 5 | list, create, update, delete, list_activities | `time-entries`, `time-entry-activities` |
 | `notifications` | 3 | list, mark_read, mark_all_read | `notifications` |
-| `attachments` | 4 | upload, list, get, delete | `content` |
-| `news` | 5 | list, get, create, update, delete | `content` |
-| `documents` | 3 | list, get, update | `content` |
-| `wiki` | 1 | get (integer ID only — API stub) | `content` |
-| `storages` | 7 | list_storages, get_storage, list_project_storages, list/get/create/delete file_links | `storage` |
-| `categories` | 2 | list, get | `projects` |
-| `views` | 2 | list, get | `queries` |
-| `costs` | 2 | list_budgets, get_budget | `finance` |
+| `attachments` | 4 | upload, list, get, delete | `attachments` |
+| `news` | 5 | list, get, create, update, delete | `news` |
+| `documents` | 3 | list, get, update | `documents` |
+| `wiki` | 1 | get (integer ID only — API stub) | `wiki` |
+| `storages` | 7 | list_storages, get_storage, list_project_storages, list/get/create/delete file_links | `storages`, `file-links` |
+| `categories` | 2 | list, get | `categories` |
+| `views` | 2 | list, get | `views` |
+| `costs` | 2 | list_budgets, get_budget | `budgets` |
 | `weekly_reports` | 4 | generate, this_week, last_week, raw_data | `reports` |
 | `connection` | 2 | test_connection, check_permissions | `system` |
+| `server_info` | 2 | list_capabilities, describe_tool | `system` |
 
 > **Note on `[admin]` tools:** tools marked `[admin]` require OpenProject administrator role. Non-admin deployments can hide them with `OPENPROJECT_MCP_EXCLUDE_TAGS=admin`.
 
@@ -252,21 +253,6 @@ uv run pre-commit install  # hooks: ruff, mypy, trailing whitespace, YAML/TOML
 uv run pytest              # unit tests must pass before opening a PR
 ```
 
-**Tag rule for new tools:** every `@mcp.tool` must carry `{access, category, tool_name}` at minimum, plus `{profile, composite}` if applicable. `test_full_sweep` in `tests/unit/test_tags.py` enforces that every tool has exactly one access tag and at least one non-access tag.
+**Tag rule for new tools:** every `@mcp.tool` must carry `{access, resource, resource-access, tool_name}` (plus `admin` where applicable). Pick the `resource` tag for the OpenProject endpoint the tool targets — the canonical list of 34 resources is `_CATEGORY_ORDER` in `src/tools/server_info.py`; `list_capabilities` shows the live grouping. The composite is `<resource>-<access>` (e.g. a `write` tool on `versions` carries `versions-write`).
 
-**Category tag table:**
-
-| Tag | Modules |
-|---|---|
-| `work-packages` | work_packages, hierarchy, relations, watchers, reminders, custom_actions |
-| `projects` | projects, versions, categories |
-| `users` | users, placeholder_users, memberships, groups |
-| `time` | time_entries |
-| `content` | news, wiki, attachments, documents |
-| `storage` | storages (file servers + file links) |
-| `notifications` | notifications |
-| `finance` | costs (budgets) |
-| `reports` | weekly_reports |
-| `system` | connection |
-| `queries` | queries, views |
-| `admin` | tools requiring administrator role |
+`test_full_sweep` in `tests/unit/test_tags.py` enforces, per tool: exactly one access tag (`read`/`write`); at least one resource tag; at least one composite whose suffix matches the access tag; and every composite's prefix equals one of the tool's resource tags. Resource tags map to API endpoints, not source modules — e.g. comment/activity tools across `work_packages.py` and `watchers.py` all use `activities`, and file-link tools in `storages.py` use `file-links`.
