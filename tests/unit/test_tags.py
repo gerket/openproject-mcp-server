@@ -204,34 +204,63 @@ async def test_new_modules_tags():
 
 
 async def test_full_sweep():
-    """Every registered tool must have exactly one access tag and at least one category tag."""
+    """Every tool: exactly one access tag, >=1 resource tag, >=1 matching
+    composite, and every composite's prefix equals one of the tool's resources."""
     tools = await get_tools()
+
+    ACCESS = {"read", "write"}
+
+    def is_composite(t: str) -> bool:
+        return t.endswith("-read") or t.endswith("-write")
+
     missing = [name for name, t in tools.items() if not getattr(t, "tags", None)]
-    bad_values = [
-        f"{name}:{t.tags}"
-        for name, t in tools.items()
-        if getattr(t, "tags", None)
-        and t.tags - {"read", "write"} == set()
-        and len(t.tags) < 2
-    ]
     assert not missing, f"Tools without tags: {sorted(missing)}"
 
-    # Every tool must have exactly one access tag
     wrong_access = [
-        f"{name}:{t.tags}"
+        f"{name}:{sorted(t.tags)}"
         for name, t in tools.items()
-        if len(t.tags & {"read", "write"}) != 1
+        if len(t.tags & ACCESS) != 1
     ]
-    assert not wrong_access, f"Tools without exactly one read/write tag: {wrong_access}"
+    assert not wrong_access, f"Tools without exactly one access tag: {wrong_access}"
 
-    # Every tool must have at least one category tag (non-access tag)
-    no_category = [
-        name for name, t in tools.items() if not (t.tags - {"read", "write"})
-    ]
-    assert not no_category, f"Tools missing a category tag: {sorted(no_category)}"
+    bad = []
+    for name, t in tools.items():
+        tags = set(t.tags)
+        access = next(iter(tags & ACCESS))  # the single access tag
+        composites = {x for x in tags if is_composite(x)}
+        resources = {
+            x
+            for x in tags
+            if x not in ACCESS and not is_composite(x) and x != "admin" and x != name
+        }
+
+        # >=1 resource tag
+        if not resources:
+            bad.append(f"{name}: no resource tag in {sorted(tags)}")
+            continue
+
+        # >=1 composite whose suffix matches the access tag
+        matching = {c for c in composites if c.endswith(f"-{access}")}
+        if not matching:
+            bad.append(f"{name}: no {access}-suffixed composite in {sorted(tags)}")
+            continue
+
+        # every composite's prefix must equal one of the tool's resources,
+        # and every composite's suffix must equal the access tag
+        for c in composites:
+            prefix, _, suffix = c.rpartition("-")
+            if suffix != access:
+                bad.append(f"{name}: composite {c} suffix != access {access}")
+            if prefix not in resources:
+                bad.append(
+                    f"{name}: composite {c} prefix not a resource {sorted(resources)}"
+                )
+
+    assert not bad, "Tag invariant violations:\n" + "\n".join(bad)
 
     read_count = sum(1 for t in tools.values() if "read" in (t.tags or set()))
     write_count = sum(1 for t in tools.values() if "write" in (t.tags or set()))
     print(
-        f"✅ Full sweep: {len(tools)} tools, {read_count} read, {write_count} write, all have category tags"
+        f"✅ Full sweep: {len(tools)} tools, {read_count} read, {write_count} write, "
+        "resource+composite invariant holds"
     )
