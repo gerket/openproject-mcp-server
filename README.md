@@ -117,7 +117,7 @@ Every tool carries up to 5 tags. Setting `OPENPROJECT_MCP_INCLUDE_TAGS` / `OPENP
 | Tag | Values | Purpose |
 |---|---|---|
 | Access | `read`, `write` | Whether the tool reads or mutates data |
-| Resource | `work-packages`, `relations`, `versions`, `memberships`, `time-entries`, `attachments`, `queries`, `users`, `projects`, `reminders`, `custom-actions`, `placeholder-users`, `groups`, `notifications`, `news`, `documents`, `wiki`, `storages`, `file-links`, `categories`, `views`, `budgets`, `time-entry-activities`, `weekly-reports`, `system` | The API endpoint the tool targets — one per tool |
+| Resource | 34 endpoint tags: `work-packages`, `activities`, `relations`, `hierarchy`, `watchers`, `types`, `statuses`, `priorities`, `projects`, `categories`, `versions`, `queries`, `views`, `users`, `groups`, `roles`, `memberships`, `placeholder-users`, `principals`, `preferences`, `time-entries`, `time-entry-activities`, `budgets`, `attachments`, `documents`, `news`, `wiki`, `storages`, `file-links`, `notifications`, `reminders`, `custom-actions`, `reports`, `system` | The API endpoint the tool targets — one per tool |
 | Composite | `<resource>-read`, `<resource>-write` (e.g., `versions-read`, `time-entries-write`) | Select a resource AND an access level in one include filter |
 | Permission | `admin` | Tools requiring OpenProject admin role |
 | Name | `list_work_packages`, `create_query`, etc. | Exact function name — cherry-pick individual tools |
@@ -142,7 +142,7 @@ OPENPROJECT_MCP_EXCLUDE_TAGS=admin
 OPENPROJECT_MCP_INCLUDE_TAGS=versions-read,time-entries-write
 
 # Hide storage tools (no file server configured)
-OPENPROJECT_MCP_EXCLUDE_TAGS=storage
+OPENPROJECT_MCP_EXCLUDE_TAGS=storages,file-links
 
 # Full access — default when no env var is set
 ```
