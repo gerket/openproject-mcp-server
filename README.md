@@ -185,7 +185,7 @@ See `docs/integration-test-setup.md` for the full click-ops checklist required t
 
 **Costs / budgets:** The v3 API exposes budgets read-only (`list_budgets`, `get_budget`). Cost entry management (`/cost_types`, `/cost_entries`) is not in the core v3 spec — those endpoints return 404 on standard installations.
 
-**Storage / file links:** Requires a file storage (OneDrive, Nextcloud) configured in Administration → File storages. Tools skip gracefully with informative messages when no storage is configured. Use `OPENPROJECT_MCP_EXCLUDE_TAGS=storage` to hide these tools on instances without file servers.
+**Storage / file links:** Requires a file storage (OneDrive, Nextcloud) configured in Administration → File storages. Tools skip gracefully with informative messages when no storage is configured. Use `OPENPROJECT_MCP_EXCLUDE_TAGS=storages,file-links` to hide these tools on instances without file servers.
 
 **Admin tools:** `create_user`, `update_user`, `delete_placeholder_user`, `create_project`, `delete_project` require administrator role. `delete_user` is not implemented — `DELETE /users/{id}` returns 403 via API regardless of role; use `update_user(status="locked")` to disable an account.
 
@@ -203,7 +203,7 @@ See `docs/integration-test-setup.md` for the full click-ops checklist required t
 src/
   client.py          — Async OpenProject API v3 client (aiohttp, retry/backoff)
   server.py          — FastMCP server + env-var tag filtering
-  tools/             — One module per API domain (25 modules)
+  tools/             — One module per API domain (26 modules)
   utils/
     formatting.py    — Markdown formatters
     report_formatter.py — Weekly report generation

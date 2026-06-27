@@ -204,8 +204,9 @@ async def test_new_modules_tags():
 
 
 async def test_full_sweep():
-    """Every tool: exactly one access tag, exactly one resource tag, >=1 matching
-    composite, and every composite's prefix equals the tool's resource."""
+    """Every tool: exactly one access tag, exactly one resource tag, a tag equal
+    to its own name, >=1 matching composite, and every composite's prefix equals
+    the tool's resource."""
     tools = await get_tools()
 
     ACCESS = {"read", "write"}
@@ -233,6 +234,12 @@ async def test_full_sweep():
             for x in tags
             if x not in ACCESS and not is_composite(x) and x != "admin" and x != name
         }
+
+        # every tool must carry a tag equal to its own name (filter-by-name
+        # contract documented in README/CONTRIBUTING and server_info.py)
+        if name not in tags:
+            bad.append(f"{name}: missing self-name tag in {sorted(tags)}")
+            continue
 
         # exactly one resource tag
         if len(resources) != 1:
