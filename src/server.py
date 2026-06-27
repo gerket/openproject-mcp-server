@@ -95,6 +95,7 @@ from src.tools import (  # noqa: F401, E402
     queries,  # 8 tools: list_queries, get_query, get_default_query, create_query, update_query, delete_query, star_query, unstar_query
     relations,  # 5 tools
     reminders,  # 2 tools: list_reminders, create_reminder
+    server_info,  # 2 tools: list_capabilities, describe_tool
     storages,  # 7 tools: list_storages, get_storage, list_project_storages, list/get/create/delete file links
     time_entries,  # 5 tools
     users,  # 11 tools: list_users, get_user, list_roles, get_role, list_project_members, list_user_projects, list_principals, create_user[admin], update_user[admin], get_my_preferences, update_my_preferences

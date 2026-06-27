@@ -5,11 +5,12 @@ a query. They are read-only from the v3 API — creation and modification happen
 through the Phase C query tools and the web UI.
 """
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error
 
 
-@mcp.tool(tags={"read", "queries", "list_views"})
+@tracked_tool(tags={"read", "views", "views-read", "list_views"})
 async def list_views() -> str:
     """List all saved views in OpenProject.
 
@@ -39,7 +40,7 @@ async def list_views() -> str:
         return format_error(f"Failed to list views: {e!s}")
 
 
-@mcp.tool(tags={"read", "queries", "get_view"})
+@tracked_tool(tags={"read", "views", "views-read", "get_view"})
 async def get_view(view_id: int) -> str:
     """Get details of a specific view.
 

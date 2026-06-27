@@ -1,12 +1,11 @@
 """Watcher, activity, and available-assignee tools for OpenProject work packages."""
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error
 
 
-@mcp.tool(
-    tags={"read", "work-packages", "situational", "situational-read", "list_watchers"}
-)
+@tracked_tool(tags={"read", "watchers", "watchers-read", "list_watchers"})
 async def list_watchers(work_package_id: int) -> str:
     """List all users watching a work package.
 
@@ -30,12 +29,11 @@ async def list_watchers(work_package_id: int) -> str:
         return format_error(f"Failed to list watchers: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "read",
-        "work-packages",
-        "situational",
-        "situational-read",
+        "watchers",
+        "watchers-read",
         "list_available_watchers",
     }
 )
@@ -64,9 +62,7 @@ async def list_available_watchers(work_package_id: int) -> str:
         return format_error(f"Failed to list available watchers: {e!s}")
 
 
-@mcp.tool(
-    tags={"write", "work-packages", "situational", "situational-write", "add_watcher"}
-)
+@tracked_tool(tags={"write", "watchers", "watchers-write", "add_watcher"})
 async def add_watcher(work_package_id: int, user_id: int) -> str:
     """Add a user as a watcher on a work package.
 
@@ -85,12 +81,11 @@ async def add_watcher(work_package_id: int, user_id: int) -> str:
         return format_error(f"Failed to add watcher: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "watchers",
+        "watchers-write",
         "remove_watcher",
     }
 )
@@ -112,9 +107,7 @@ async def remove_watcher(work_package_id: int, user_id: int) -> str:
         return format_error(f"Failed to remove watcher: {e!s}")
 
 
-@mcp.tool(
-    tags={"read", "work-packages", "situational", "situational-read", "get_activity"}
-)
+@tracked_tool(tags={"read", "activities", "activities-read", "get_activity"})
 async def get_activity(activity_id: int) -> str:
     """Get a single activity (comment or field change) by ID.
 
@@ -147,12 +140,11 @@ async def get_activity(activity_id: int) -> str:
         return format_error(f"Failed to get activity: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "activities",
+        "activities-write",
         "update_activity",
     }
 )
@@ -186,12 +178,11 @@ async def update_activity(
         return format_error(f"Failed to update activity: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "read",
         "work-packages",
-        "situational",
-        "situational-read",
+        "work-packages-read",
         "list_available_assignees",
     }
 )

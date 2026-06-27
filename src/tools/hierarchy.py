@@ -1,15 +1,15 @@
 """Work package hierarchy management tools (parent-child relationships)."""
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error, format_success, format_work_package_list
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "hierarchy",
+        "hierarchy-write",
         "set_work_package_parent",
     }
 )
@@ -45,12 +45,11 @@ async def set_work_package_parent(child_id: int, parent_id: int) -> str:
         return format_error(f"Failed to set parent: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "hierarchy",
+        "hierarchy-write",
         "remove_work_package_parent",
     }
 )
@@ -76,12 +75,11 @@ async def remove_work_package_parent(work_package_id: int) -> str:
         return format_error(f"Failed to remove parent: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "read",
-        "work-packages",
-        "situational",
-        "situational-read",
+        "hierarchy",
+        "hierarchy-read",
         "list_work_package_children",
     }
 )

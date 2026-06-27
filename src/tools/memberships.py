@@ -4,7 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error, format_success
 
 
@@ -40,7 +41,7 @@ class UpdateMembershipInput(BaseModel):
     )
 
 
-@mcp.tool(tags={"read", "users", "list_memberships"})
+@tracked_tool(tags={"read", "memberships", "memberships-read", "list_memberships"})
 async def list_memberships(
     project_id: int | None = None, user_id: int | None = None
 ) -> str:
@@ -95,7 +96,7 @@ async def list_memberships(
         return format_error(f"Failed to list memberships: {e!s}")
 
 
-@mcp.tool(tags={"read", "users", "get_membership"})
+@tracked_tool(tags={"read", "memberships", "memberships-read", "get_membership"})
 async def get_membership(membership_id: int) -> str:
     """Get detailed information about a specific membership.
 
@@ -140,7 +141,7 @@ async def get_membership(membership_id: int) -> str:
         return format_error(f"Failed to get membership: {e!s}")
 
 
-@mcp.tool(tags={"write", "users", "create_membership"})
+@tracked_tool(tags={"write", "memberships", "memberships-write", "create_membership"})
 async def create_membership(input: CreateMembershipInput) -> str:
     """Create a new membership (add user/group to project).
 
@@ -201,7 +202,7 @@ async def create_membership(input: CreateMembershipInput) -> str:
         return format_error(f"Failed to create membership: {e!s}")
 
 
-@mcp.tool(tags={"write", "users", "update_membership"})
+@tracked_tool(tags={"write", "memberships", "memberships-write", "update_membership"})
 async def update_membership(input: UpdateMembershipInput) -> str:
     """Update an existing membership (change roles).
 
@@ -244,7 +245,7 @@ async def update_membership(input: UpdateMembershipInput) -> str:
         return format_error(f"Failed to update membership: {e!s}")
 
 
-@mcp.tool(tags={"write", "users", "delete_membership"})
+@tracked_tool(tags={"write", "memberships", "memberships-write", "delete_membership"})
 async def delete_membership(membership_id: int) -> str:
     """Delete a membership (remove user/group from project).
 

@@ -1,12 +1,11 @@
 """Reminder tools for OpenProject work packages."""
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error
 
 
-@mcp.tool(
-    tags={"read", "work-packages", "situational", "situational-read", "list_reminders"}
-)
+@tracked_tool(tags={"read", "reminders", "reminders-read", "list_reminders"})
 async def list_reminders(work_package_id: int) -> str:
     """List reminders set on a work package for the current API user.
 
@@ -36,12 +35,11 @@ async def list_reminders(work_package_id: int) -> str:
         return format_error(f"Failed to list reminders: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "reminders",
+        "reminders-write",
         "create_reminder",
     }
 )

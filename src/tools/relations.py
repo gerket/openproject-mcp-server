@@ -4,7 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error, format_success
 
 
@@ -31,12 +32,11 @@ class UpdateRelationInput(BaseModel):
     description: str | None = Field(None, description="New description")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "relations",
+        "relations-write",
         "create_work_package_relation",
     }
 )
@@ -107,12 +107,11 @@ async def create_work_package_relation(input: CreateRelationInput) -> str:
         return format_error(f"Failed to create relation: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "read",
-        "work-packages",
-        "situational",
-        "situational-read",
+        "relations",
+        "relations-read",
         "list_work_package_relations",
     }
 )
@@ -164,12 +163,11 @@ async def list_work_package_relations(work_package_id: int) -> str:
         return format_error(f"Failed to list relations: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "read",
-        "work-packages",
-        "situational",
-        "situational-read",
+        "relations",
+        "relations-read",
         "get_work_package_relation",
     }
 )
@@ -206,12 +204,11 @@ async def get_work_package_relation(relation_id: int) -> str:
         return format_error(f"Failed to get relation: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "relations",
+        "relations-write",
         "update_work_package_relation",
     }
 )
@@ -257,12 +254,11 @@ async def update_work_package_relation(input: UpdateRelationInput) -> str:
         return format_error(f"Failed to update relation: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "write",
-        "work-packages",
-        "situational",
-        "situational-write",
+        "relations",
+        "relations-write",
         "delete_work_package_relation",
     }
 )

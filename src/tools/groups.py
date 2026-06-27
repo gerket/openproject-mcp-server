@@ -1,10 +1,11 @@
 """Group management tools for OpenProject (read-only)."""
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error
 
 
-@mcp.tool(tags={"read", "users", "list_groups"})
+@tracked_tool(tags={"read", "groups", "groups-read", "list_groups"})
 async def list_groups() -> str:
     """List all groups in the OpenProject instance.
 
@@ -29,7 +30,7 @@ async def list_groups() -> str:
         return format_error(f"Failed to list groups: {e!s}")
 
 
-@mcp.tool(tags={"read", "users", "get_group"})
+@tracked_tool(tags={"read", "groups", "groups-read", "get_group"})
 async def get_group(group_id: int) -> str:
     """Get detailed information about a specific group.
 

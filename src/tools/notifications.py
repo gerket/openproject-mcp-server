@@ -1,10 +1,13 @@
 """Notification management tools for OpenProject."""
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error
 
 
-@mcp.tool(tags={"read", "notifications", "core", "core-read", "list_notifications"})
+@tracked_tool(
+    tags={"read", "notifications", "notifications-read", "list_notifications"}
+)
 async def list_notifications(
     unread_only: bool = True,
     page_size: int = 20,
@@ -61,12 +64,11 @@ async def list_notifications(
         return format_error(f"Failed to list notifications: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "write",
         "notifications",
-        "situational",
-        "situational-write",
+        "notifications-write",
         "mark_notification_read",
     }
 )
@@ -87,8 +89,13 @@ async def mark_notification_read(notification_id: int) -> str:
         return format_error(f"Failed to mark notification read: {e!s}")
 
 
-@mcp.tool(
-    tags={"write", "notifications", "core", "core-write", "mark_all_notifications_read"}
+@tracked_tool(
+    tags={
+        "write",
+        "notifications",
+        "notifications-write",
+        "mark_all_notifications_read",
+    }
 )
 async def mark_all_notifications_read() -> str:
     """Mark all notifications as read for the current API user.
