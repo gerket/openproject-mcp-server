@@ -4,7 +4,8 @@ import json
 
 from pydantic import BaseModel, Field
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import (
     format_error,
     format_news_detail,
@@ -42,7 +43,7 @@ class UpdateNewsInput(BaseModel):
 # ============================================================
 
 
-@mcp.tool(tags={"read", "content", "situational", "situational-read", "list_news"})
+@tracked_tool(tags={"read", "news", "news-read", "list_news"})
 async def list_news(
     project_id: int | None = None,
     sort_by_created: bool = True,
@@ -104,7 +105,7 @@ async def list_news(
         return format_error(f"Failed to list news: {e!s}")
 
 
-@mcp.tool(tags={"write", "content", "situational", "situational-write", "create_news"})
+@tracked_tool(tags={"write", "news", "news-write", "create_news"})
 async def create_news(input: CreateNewsInput) -> str:
     """Create a new news entry for a project.
 
@@ -157,7 +158,7 @@ async def create_news(input: CreateNewsInput) -> str:
         return format_error(f"Failed to create news: {e!s}")
 
 
-@mcp.tool(tags={"read", "content", "situational", "situational-read", "get_news"})
+@tracked_tool(tags={"read", "news", "news-read", "get_news"})
 async def get_news(news_id: int) -> str:
     """Get detailed information about a specific news entry.
 
@@ -186,7 +187,7 @@ async def get_news(news_id: int) -> str:
         return format_error(f"Failed to get news entry: {e!s}")
 
 
-@mcp.tool(tags={"write", "content", "situational", "situational-write", "update_news"})
+@tracked_tool(tags={"write", "news", "news-write", "update_news"})
 async def update_news(input: UpdateNewsInput) -> str:
     """Update an existing news entry.
 
@@ -241,7 +242,7 @@ async def update_news(input: UpdateNewsInput) -> str:
         return format_error(f"Failed to update news: {e!s}")
 
 
-@mcp.tool(tags={"write", "content", "situational", "situational-write", "delete_news"})
+@tracked_tool(tags={"write", "news", "news-write", "delete_news"})
 async def delete_news(news_id: int) -> str:
     """Delete a news entry permanently.
 

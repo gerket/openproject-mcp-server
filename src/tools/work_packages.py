@@ -6,7 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import (
     format_error,
     format_success,
@@ -90,7 +91,9 @@ class UpdateWorkPackageInput(BaseModel):
     )
 
 
-@mcp.tool(tags={"read", "work-packages", "core", "core-read", "list_work_packages"})
+@tracked_tool(
+    tags={"read", "work-packages", "work-packages-read", "list_work_packages"}
+)
 async def list_work_packages(
     # Existing parameters (backward compatible)
     project_id: int | None = None,
@@ -395,7 +398,9 @@ async def list_work_packages(
         return format_error(f"Failed to list work packages: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages", "core", "core-read", "search_work_packages"})
+@tracked_tool(
+    tags={"read", "work-packages", "work-packages-read", "search_work_packages"}
+)
 async def search_work_packages(
     query: str,
     project_id: int | None = None,
@@ -489,7 +494,9 @@ async def search_work_packages(
         return format_error(f"Failed to search work packages: {e!s}")
 
 
-@mcp.tool(tags={"write", "work-packages", "core", "core-write", "create_work_package"})
+@tracked_tool(
+    tags={"write", "work-packages", "work-packages-write", "create_work_package"}
+)
 async def create_work_package(input: CreateWorkPackageInput) -> str:
     """Create a new work package (task) - CRITICAL tool for creating tasks.
 
@@ -575,7 +582,9 @@ async def create_work_package(input: CreateWorkPackageInput) -> str:
         return format_error(f"Failed to create work package: {e!s}")
 
 
-@mcp.tool(tags={"write", "work-packages", "core", "core-write", "update_work_package"})
+@tracked_tool(
+    tags={"write", "work-packages", "work-packages-write", "update_work_package"}
+)
 async def update_work_package(input: UpdateWorkPackageInput) -> str:
     """Update an existing work package (task) - CRITICAL tool for updating tasks.
 
@@ -669,7 +678,9 @@ async def update_work_package(input: UpdateWorkPackageInput) -> str:
         return format_error(f"Failed to update work package: {e!s}")
 
 
-@mcp.tool(tags={"write", "work-packages", "delete_work_package"})
+@tracked_tool(
+    tags={"write", "work-packages", "work-packages-write", "delete_work_package"}
+)
 async def delete_work_package(work_package_id: int) -> str:
     """Delete a work package (task).
 
@@ -695,7 +706,7 @@ async def delete_work_package(work_package_id: int) -> str:
         return format_error(f"Failed to delete work package: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages", "core", "core-read", "list_types"})
+@tracked_tool(tags={"read", "types", "types-read", "list_types"})
 async def list_types(project_id: int | None = None) -> str:
     """List available work package types (Bug, Task, Feature, etc.).
 
@@ -728,7 +739,7 @@ async def list_types(project_id: int | None = None) -> str:
         return format_error(f"Failed to list work package types: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages", "core", "core-read", "list_statuses"})
+@tracked_tool(tags={"read", "statuses", "statuses-read", "list_statuses"})
 async def list_statuses() -> str:
     """List available work package statuses (New, In Progress, Closed, etc.).
 
@@ -759,7 +770,7 @@ async def list_statuses() -> str:
         return format_error(f"Failed to list work package statuses: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages", "core", "core-read", "list_priorities"})
+@tracked_tool(tags={"read", "priorities", "priorities-read", "list_priorities"})
 async def list_priorities() -> str:
     """List available work package priorities (Low, Normal, High, Immediate).
 
@@ -790,12 +801,11 @@ async def list_priorities() -> str:
         return format_error(f"Failed to list work package priorities: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "write",
         "work-packages",
-        "situational",
-        "situational-write",
+        "work-packages-write",
         "assign_work_package",
     }
 )
@@ -854,12 +864,11 @@ async def assign_work_package(work_package_id: int, assignee_id: int) -> str:
         return format_error(f"Failed to assign work package: {e!s}")
 
 
-@mcp.tool(
+@tracked_tool(
     tags={
         "write",
         "work-packages",
-        "situational",
-        "situational-write",
+        "work-packages-write",
         "unassign_work_package",
     }
 )
@@ -902,8 +911,8 @@ async def unassign_work_package(work_package_id: int) -> str:
         return format_error(f"Failed to unassign work package: {e!s}")
 
 
-@mcp.tool(
-    tags={"write", "work-packages", "core", "core-write", "add_work_package_comment"}
+@tracked_tool(
+    tags={"write", "activities", "activities-write", "add_work_package_comment"}
 )
 async def add_work_package_comment(
     work_package_id: int, comment: str, internal: bool = False
@@ -965,8 +974,8 @@ async def add_work_package_comment(
         return format_error(f"Failed to add comment: {e!s}")
 
 
-@mcp.tool(
-    tags={"read", "work-packages", "core", "core-read", "list_work_package_activities"}
+@tracked_tool(
+    tags={"read", "activities", "activities-read", "list_work_package_activities"}
 )
 async def list_work_package_activities(work_package_id: int) -> str:
     """List all activities (comments, changes) for a work package.
@@ -1037,7 +1046,7 @@ async def list_work_package_activities(work_package_id: int) -> str:
         return format_error(f"Failed to list activities: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages", "core", "core-read", "get_work_package"})
+@tracked_tool(tags={"read", "work-packages", "work-packages-read", "get_work_package"})
 async def get_work_package(work_package_id: int) -> str:
     """Get full details of a single work package by ID.
 
@@ -1102,7 +1111,9 @@ async def get_work_package(work_package_id: int) -> str:
 # ============================================================================
 
 
-@mcp.tool(tags={"read", "work-packages", "list_overdue_work_packages"})
+@tracked_tool(
+    tags={"read", "work-packages", "work-packages-read", "list_overdue_work_packages"}
+)
 async def list_overdue_work_packages(
     project_id: int | None = None,
     assignee_id: int | None = None,
@@ -1215,7 +1226,9 @@ async def list_overdue_work_packages(
         return format_error(f"Failed to list overdue work packages: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages", "list_work_packages_due_soon"})
+@tracked_tool(
+    tags={"read", "work-packages", "work-packages-read", "list_work_packages_due_soon"}
+)
 async def list_work_packages_due_soon(
     days: int = 7,
     project_id: int | None = None,
@@ -1328,7 +1341,14 @@ async def list_work_packages_due_soon(
         return format_error(f"Failed to list work packages due soon: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages", "list_unassigned_work_packages"})
+@tracked_tool(
+    tags={
+        "read",
+        "work-packages",
+        "work-packages-read",
+        "list_unassigned_work_packages",
+    }
+)
 async def list_unassigned_work_packages(
     project_id: int | None = None,
     priority_ids: str | None = None,
@@ -1418,7 +1438,14 @@ async def list_unassigned_work_packages(
         return format_error(f"Failed to list unassigned work packages: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages", "list_work_packages_created_recently"})
+@tracked_tool(
+    tags={
+        "read",
+        "work-packages",
+        "work-packages-read",
+        "list_work_packages_created_recently",
+    }
+)
 async def list_work_packages_created_recently(
     days: int = 7,
     project_id: int | None = None,
@@ -1514,7 +1541,14 @@ async def list_work_packages_created_recently(
         return format_error(f"Failed to list recently created work packages: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages", "list_high_priority_work_packages"})
+@tracked_tool(
+    tags={
+        "read",
+        "work-packages",
+        "work-packages-read",
+        "list_high_priority_work_packages",
+    }
+)
 async def list_high_priority_work_packages(
     project_id: int | None = None,
     assignee_id: int | None = None,
@@ -1608,7 +1642,14 @@ async def list_high_priority_work_packages(
         return format_error(f"Failed to list high priority work packages: {e!s}")
 
 
-@mcp.tool(tags={"read", "work-packages", "list_work_packages_nearly_complete"})
+@tracked_tool(
+    tags={
+        "read",
+        "work-packages",
+        "work-packages-read",
+        "list_work_packages_nearly_complete",
+    }
+)
 async def list_work_packages_nearly_complete(
     project_id: int | None = None,
     assignee_id: int | None = None,

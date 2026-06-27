@@ -4,7 +4,8 @@ import base64
 
 from pydantic import BaseModel, Field
 
-from src.server import get_client, mcp
+from src.server import get_client
+from src.tool_registry import tracked_tool
 from src.utils.formatting import format_error, format_success
 
 _VALID_CONTAINERS = {"work_packages", "wiki_pages", "projects"}
@@ -26,9 +27,7 @@ class UploadAttachmentInput(BaseModel):
     )
 
 
-@mcp.tool(
-    tags={"write", "content", "situational", "situational-write", "upload_attachment"}
-)
+@tracked_tool(tags={"write", "attachments", "attachments-write", "upload_attachment"})
 async def upload_attachment(input: UploadAttachmentInput) -> str:
     """Upload a file attachment to a work package, wiki page, or project.
 
@@ -85,9 +84,7 @@ async def upload_attachment(input: UploadAttachmentInput) -> str:
         return format_error(f"Failed to upload attachment: {e!s}")
 
 
-@mcp.tool(
-    tags={"read", "content", "situational", "situational-read", "list_attachments"}
-)
+@tracked_tool(tags={"read", "attachments", "attachments-read", "list_attachments"})
 async def list_attachments(container_type: str, container_id: int) -> str:
     """List all attachments on a work package, wiki page, or project.
 
@@ -127,7 +124,7 @@ async def list_attachments(container_type: str, container_id: int) -> str:
         return format_error(f"Failed to list attachments: {e!s}")
 
 
-@mcp.tool(tags={"read", "content", "situational", "situational-read", "get_attachment"})
+@tracked_tool(tags={"read", "attachments", "attachments-read", "get_attachment"})
 async def get_attachment(attachment_id: int) -> str:
     """Get metadata for a specific attachment.
 
@@ -158,9 +155,7 @@ async def get_attachment(attachment_id: int) -> str:
         return format_error(f"Failed to get attachment: {e!s}")
 
 
-@mcp.tool(
-    tags={"write", "content", "situational", "situational-write", "delete_attachment"}
-)
+@tracked_tool(tags={"write", "attachments", "attachments-write", "delete_attachment"})
 async def delete_attachment(attachment_id: int) -> str:
     """Delete an attachment permanently.
 

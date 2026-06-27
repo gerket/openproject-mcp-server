@@ -8,35 +8,36 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server provid
 
 ## Tools summary
 
-120 tools across 25 modules, tagged for granular access control.
+123 tools across 26 modules, tagged for granular access control.
 
-| Module | Count | Key tools | Category tag |
+| Module | Count | Key tools | Resource tag(s) |
 |---|---|---|---|
-| `work_packages` | 18 | list, search, create, update, delete, assign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete | `work-packages` |
+| `work_packages` | 18 | list, search, create, update, delete, assign, comment, activities, types, statuses, priorities, overdue, due_soon, unassigned, recently_created, high_priority, nearly_complete | `work-packages`, `activities`, `types`, `statuses`, `priorities` |
 | `projects` | 7 | list, get, create[admin], update, delete[admin], add_subproject, get_subprojects | `projects` |
-| `versions` | 4 | list, create, update, delete | `projects` |
-| `hierarchy` | 3 | set_parent, remove_parent, list_children | `work-packages` |
-| `relations` | 5 | list, get, create, update, delete | `work-packages` |
-| `watchers` | 7 | list, available_watchers, add, remove, get_activity, update_activity, available_assignees | `work-packages` |
-| `reminders` | 2 | list, create | `work-packages` |
-| `custom_actions` | 3 | list, get, execute | `work-packages` |
+| `versions` | 4 | list, create, update, delete | `versions` |
+| `hierarchy` | 3 | set_parent, remove_parent, list_children | `hierarchy` |
+| `relations` | 5 | list, get, create, update, delete | `relations` |
+| `watchers` | 7 | list, available_watchers, add, remove, get_activity, update_activity, available_assignees | `watchers`, `work-packages`, `activities` |
+| `reminders` | 2 | list, create | `reminders` |
+| `custom_actions` | 3 | list, get, execute | `custom-actions` |
 | `queries` | 8 | list, get, get_default, create, update, delete, star, unstar | `queries` |
-| `users` | 11 | list, get, create[admin], update[admin], list_roles, get_role, list_principals, list_project_members, list_user_projects, get_my_preferences, update_my_preferences | `users` |
-| `placeholder_users` | 5 | list, get, create, update, delete[admin] | `users` |
-| `memberships` | 5 | list, get, create, update, delete | `users` |
-| `groups` | 2 | list, get | `users` |
-| `time_entries` | 5 | list, create, update, delete, list_activities | `time` |
+| `users` | 11 | list, get, create[admin], update[admin], list_roles, get_role, list_principals, list_project_members, list_user_projects, get_my_preferences, update_my_preferences | `users`, `roles`, `principals`, `memberships`, `preferences` |
+| `placeholder_users` | 5 | list, get, create, update, delete[admin] | `placeholder-users` |
+| `memberships` | 5 | list, get, create, update, delete | `memberships` |
+| `groups` | 2 | list, get | `groups` |
+| `time_entries` | 5 | list, create, update, delete, list_activities | `time-entries`, `time-entry-activities` |
 | `notifications` | 3 | list, mark_read, mark_all_read | `notifications` |
-| `attachments` | 4 | upload, list, get, delete | `content` |
-| `news` | 5 | list, get, create, update, delete | `content` |
-| `documents` | 3 | list, get, update | `content` |
-| `wiki` | 1 | get (integer ID only — API stub) | `content` |
-| `storages` | 7 | list_storages, get_storage, list_project_storages, list/get/create/delete file_links | `storage` |
-| `categories` | 2 | list, get | `projects` |
-| `views` | 2 | list, get | `queries` |
-| `costs` | 2 | list_budgets, get_budget | `finance` |
+| `attachments` | 4 | upload, list, get, delete | `attachments` |
+| `news` | 5 | list, get, create, update, delete | `news` |
+| `documents` | 3 | list, get, update | `documents` |
+| `wiki` | 1 | get (integer ID only — API stub) | `wiki` |
+| `storages` | 7 | list_storages, get_storage, list_project_storages, list/get/create/delete file_links | `storages`, `file-links` |
+| `categories` | 2 | list, get | `categories` |
+| `views` | 2 | list, get | `views` |
+| `costs` | 2 | list_budgets, get_budget | `budgets` |
 | `weekly_reports` | 4 | generate, this_week, last_week, raw_data | `reports` |
 | `connection` | 2 | test_connection, check_permissions | `system` |
+| `server_info` | 2 | list_capabilities, describe_tool | `system` |
 
 > **Note on `[admin]` tools:** tools marked `[admin]` require OpenProject administrator role. Non-admin deployments can hide them with `OPENPROJECT_MCP_EXCLUDE_TAGS=admin`.
 
@@ -77,14 +78,14 @@ Add to your project `.mcp.json` or global `~/.claude/settings.json`:
       "env": {
         "OPENPROJECT_URL": "https://your-instance.openproject.com",
         "OPENPROJECT_API_KEY": "your-api-token",
-        "OPENPROJECT_MCP_INCLUDE_TAGS": "core-read"
+        "OPENPROJECT_MCP_EXCLUDE_TAGS": "write"
       }
     }
   }
 }
 ```
 
-**Tip:** Start with `OPENPROJECT_MCP_INCLUDE_TAGS=core-read` (~18 tools) for daily use. Expand to `core` or remove the filter for full access.
+**Tip:** Start with `OPENPROJECT_MCP_EXCLUDE_TAGS=write` (read-only) for daily use. Expand to specific resources (e.g., `work-packages,projects`) or remove the filter for full access.
 
 ---
 
@@ -104,6 +105,12 @@ Add to your project `.mcp.json` or global `~/.claude/settings.json`:
 
 ## Tool filtering with tags
 
+> **Migration (breaking):** the `core` / `situational` profile tags and their
+> `*-read` / `*-write` derivatives have been removed in favor of per-endpoint
+> resource tags. If you previously used `OPENPROJECT_MCP_INCLUDE_TAGS=core-read`,
+> switch to an explicit recipe such as `OPENPROJECT_MCP_EXCLUDE_TAGS=write`
+> (read-only) or list the resources you need (e.g., `work-packages,projects`).
+
 Every tool carries up to 5 tags. Setting `OPENPROJECT_MCP_INCLUDE_TAGS` / `OPENPROJECT_MCP_EXCLUDE_TAGS` controls which tools are registered with the MCP client, improving Claude's tool selection accuracy by reducing noise.
 
 ### Tag types
@@ -111,42 +118,41 @@ Every tool carries up to 5 tags. Setting `OPENPROJECT_MCP_INCLUDE_TAGS` / `OPENP
 | Tag | Values | Purpose |
 |---|---|---|
 | Access | `read`, `write` | Whether the tool reads or mutates data |
-| Category | `work-packages`, `projects`, `queries`, `users`, `time`, `content`, `storage`, `notifications`, `finance`, `reports`, `system` | API domain |
+| Resource | 34 endpoint tags: `work-packages`, `activities`, `relations`, `hierarchy`, `watchers`, `types`, `statuses`, `priorities`, `projects`, `categories`, `versions`, `queries`, `views`, `users`, `groups`, `roles`, `memberships`, `placeholder-users`, `principals`, `preferences`, `time-entries`, `time-entry-activities`, `budgets`, `attachments`, `documents`, `news`, `wiki`, `storages`, `file-links`, `notifications`, `reminders`, `custom-actions`, `reports`, `system` | The API endpoint the tool targets — one per tool |
+| Composite | `<resource>-read`, `<resource>-write` (e.g., `versions-read`, `time-entries-write`) | Select a resource AND an access level in one include filter |
 | Permission | `admin` | Tools requiring OpenProject admin role |
-| Profile | `core`, `situational` | Frequency of use |
-| Composite | `core-read`, `core-write`, `situational-read`, `situational-write` | AND-style filter (access × profile) |
 | Name | `list_work_packages`, `create_query`, etc. | Exact function name — cherry-pick individual tools |
-
-### Profile definitions
-
-**`core`** (~23 tools) — every session:
-`list_work_packages`, `search_work_packages`, `create_work_package`, `update_work_package`, `add_work_package_comment`, `list_work_package_activities`, `list_projects`, `get_project`, `list_types`, `list_statuses`, `list_priorities`, `list_principals`, `list_users`, `get_user`, `list_notifications`, `mark_all_notifications_read`, `list_queries`, `get_query`, `create_query`, `list_versions`, `get_my_preferences`, `test_connection`, `check_permissions`
-
-**`situational`** (~49 tools) — specific tasks:
-relations, hierarchy, watchers, reminders, time entries, attachments, news, documents, storages/file_links, weekly_reports, `assign_work_package`, `unassign_work_package`, `list_available_assignees`, `get_activity`, `update_activity`, `mark_notification_read`, `generate_this_week_report`, `generate_last_week_report`
-
-**No profile** — admin/niche/module-gated tools (user create/update, placeholder users, custom_actions, memberships, budgets, categories, views, overdue/filter conveniences)
 
 ### Filtering examples
 
 ```bash
-# Core reads only — recommended default (~18 tools)
-OPENPROJECT_MCP_INCLUDE_TAGS=core-read
+# Read-only server (all resources, reads only)
+OPENPROJECT_MCP_EXCLUDE_TAGS=write
 
-# All core tools (read + write, ~23 tools)
-OPENPROJECT_MCP_INCLUDE_TAGS=core
+# Only work-package tools
+OPENPROJECT_MCP_INCLUDE_TAGS=work-packages
 
-# Core + situational reads (research/reporting)
-OPENPROJECT_MCP_INCLUDE_TAGS=core-read,situational-read
+# Work packages + projects, reads only
+OPENPROJECT_MCP_INCLUDE_TAGS=work-packages,projects
+OPENPROJECT_MCP_EXCLUDE_TAGS=write
 
-# Hide admin-only tools (non-admin API token)
+# Everything except admin operations
 OPENPROJECT_MCP_EXCLUDE_TAGS=admin
 
+# Mixed: read versions but write time entries (composites)
+OPENPROJECT_MCP_INCLUDE_TAGS=versions-read,time-entries-write
+
 # Hide storage tools (no file server configured)
-OPENPROJECT_MCP_EXCLUDE_TAGS=storage
+OPENPROJECT_MCP_EXCLUDE_TAGS=storages,file-links
 
 # Full access — default when no env var is set
 ```
+
+### Discovery tools
+
+Two `system` tools help you inspect what's available:
+- **`list_capabilities`** — returns a filter-aware summary of active tools (grouped by category, one-line descriptions) and inactive tools (when tag filters are applied). Includes the tag reference and configuration examples.
+- **`describe_tool(tool_names: list[str])`** — returns full documentation for one or more tools by name, including inactive/filtered-out tools. The only way to inspect a tool that's been disabled.
 
 ---
 
@@ -179,7 +185,7 @@ See `docs/integration-test-setup.md` for the full click-ops checklist required t
 
 **Costs / budgets:** The v3 API exposes budgets read-only (`list_budgets`, `get_budget`). Cost entry management (`/cost_types`, `/cost_entries`) is not in the core v3 spec — those endpoints return 404 on standard installations.
 
-**Storage / file links:** Requires a file storage (OneDrive, Nextcloud) configured in Administration → File storages. Tools skip gracefully with informative messages when no storage is configured. Use `OPENPROJECT_MCP_EXCLUDE_TAGS=storage` to hide these tools on instances without file servers.
+**Storage / file links:** Requires a file storage (OneDrive, Nextcloud) configured in Administration → File storages. Tools skip gracefully with informative messages when no storage is configured. Use `OPENPROJECT_MCP_EXCLUDE_TAGS=storages,file-links` to hide these tools on instances without file servers.
 
 **Admin tools:** `create_user`, `update_user`, `delete_placeholder_user`, `create_project`, `delete_project` require administrator role. `delete_user` is not implemented — `DELETE /users/{id}` returns 403 via API regardless of role; use `update_user(status="locked")` to disable an account.
 
@@ -197,7 +203,7 @@ See `docs/integration-test-setup.md` for the full click-ops checklist required t
 src/
   client.py          — Async OpenProject API v3 client (aiohttp, retry/backoff)
   server.py          — FastMCP server + env-var tag filtering
-  tools/             — One module per API domain (25 modules)
+  tools/             — One module per API domain (26 modules)
   utils/
     formatting.py    — Markdown formatters
     report_formatter.py — Weekly report generation
@@ -247,21 +253,6 @@ uv run pre-commit install  # hooks: ruff, mypy, trailing whitespace, YAML/TOML
 uv run pytest              # unit tests must pass before opening a PR
 ```
 
-**Tag rule for new tools:** every `@mcp.tool` must carry `{access, category, tool_name}` at minimum, plus `{profile, composite}` if applicable. `test_full_sweep` in `tests/unit/test_tags.py` enforces that every tool has exactly one access tag and at least one non-access tag.
+**Tag rule for new tools:** every `@tracked_tool` must carry `{access, resource, resource-access, tool_name}` (plus `admin` where applicable). Pick the one `resource` tag for the OpenProject endpoint the tool targets — the canonical list of 34 resources is `_CATEGORY_ORDER` in `src/tools/server_info.py`; `list_capabilities` shows the live grouping. The composite is `<resource>-<access>` (e.g. a `write` tool on `versions` carries `versions-write`).
 
-**Category tag table:**
-
-| Tag | Modules |
-|---|---|
-| `work-packages` | work_packages, hierarchy, relations, watchers, reminders, custom_actions |
-| `projects` | projects, versions, categories |
-| `users` | users, placeholder_users, memberships, groups |
-| `time` | time_entries |
-| `content` | news, wiki, attachments, documents |
-| `storage` | storages (file servers + file links) |
-| `notifications` | notifications |
-| `finance` | costs (budgets) |
-| `reports` | weekly_reports |
-| `system` | connection |
-| `queries` | queries, views |
-| `admin` | tools requiring administrator role |
+`test_full_sweep` in `tests/unit/test_tags.py` enforces, per tool: exactly one access tag (`read`/`write`); exactly one resource tag; at least one composite whose suffix matches the access tag; and every composite's prefix equals the tool's resource tag. Resource tags map to API endpoints, not source modules — e.g. comment/activity tools across `work_packages.py` and `watchers.py` all use `activities`, and file-link tools in `storages.py` use `file-links`.
