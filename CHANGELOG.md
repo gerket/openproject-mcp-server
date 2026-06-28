@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.1.0](https://github.com/gerket/openproject-mcp-server/compare/v4.0.0...v4.1.0) (2026-06-27)
+
+
+### Features
+
+* **tools:** add get_work_package tool ([#930](https://github.com/gerket/openproject-mcp-server/issues/930)) ([#52](https://github.com/gerket/openproject-mcp-server/issues/52)) ([9a8379f](https://github.com/gerket/openproject-mcp-server/commit/9a8379f2a1c210db3c172fffc43025eef02d897b))
+* **tools:** add list_capabilities and describe_tool discovery tools ([#53](https://github.com/gerket/openproject-mcp-server/issues/53)) ([24be632](https://github.com/gerket/openproject-mcp-server/commit/24be6328aaf3ce93ef0312a5c2b5b7196e097bc9))
+
+
+### Bug Fixes
+
+* **api:** wrap bare-string long-text custom fields using form schema ([#50](https://github.com/gerket/openproject-mcp-server/issues/50)) ([5359309](https://github.com/gerket/openproject-mcp-server/commit/5359309617afc5aef54fc9f0250cb78672da5e85))
+
 ## [4.0.0](https://github.com/gerket/openproject-mcp-server/compare/v3.0.0...v4.0.0) (2026-06-20)
 
 
