@@ -1,0 +1,12 @@
+[mcp_servers.openproject]
+command = "uv"
+args = [
+    "--directory",
+    "/path/to/openproject-mcp-server",
+    "run",
+    "openproject-mcp",
+]
+
+[mcp_servers.openproject.env]
+OPENPROJECT_URL = "https://your-openproject-instance.example.com"
+OPENPROJECT_API_KEY = "<your-openproject-api-key>"
