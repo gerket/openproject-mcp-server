@@ -1,5 +1,47 @@
 # Changelog
 
+## [5.0.0](https://github.com/gerket/openproject-mcp-server/compare/v4.1.0...v5.0.0) (2026-06-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* **server:** fastmcp 3.0 removed the include_tags and exclude_tags constructor arguments, changed the mcp.tool decorator to return plain functions instead of FunctionTool wrappers, and replaced the get_tools method with list_tools. All call sites and test patterns were migrated to the new API.
+
+### Features
+
+* **ci:** add lint job (ruff + mypy) and fix lint debt ([#19](https://github.com/gerket/openproject-mcp-server/issues/19)) ([6d62715](https://github.com/gerket/openproject-mcp-server/commit/6d62715eb58b0cd47156aa3575c9b8f04aac4b52))
+* **ci:** require scope in all PR titles, force 4.0.0 release ([#31](https://github.com/gerket/openproject-mcp-server/issues/31)) ([4f3a31d](https://github.com/gerket/openproject-mcp-server/commit/4f3a31d5ee5d0ad1e59927080ea4e1daac3bc6ba))
+* **docs:** README rewrite for 120-tool state + mark E/F/G complete ([#8](https://github.com/gerket/openproject-mcp-server/issues/8)) ([dd823e3](https://github.com/gerket/openproject-mcp-server/commit/dd823e3a1bb3852371bb839bf9b4499ba8a6879b))
+* **server:** new API domains, read/write tags, CI, pytest, pre-commit (Phase 0 + Phase A) ([#2](https://github.com/gerket/openproject-mcp-server/issues/2)) ([6e7312d](https://github.com/gerket/openproject-mcp-server/commit/6e7312d28955cd88ced5d42be8164d0e8d403283))
+* **server:** self-hosting enhancements: custom-field values, retry/backoff, custom CA, workflow-aware transitions ([#1](https://github.com/gerket/openproject-mcp-server/issues/1)) ([0a3d8b0](https://github.com/gerket/openproject-mcp-server/commit/0a3d8b09937a9b6be625ac42f148bdb715856693))
+* **server:** upgrade to fastmcp 3.x ([#22](https://github.com/gerket/openproject-mcp-server/issues/22)) ([2e8cd36](https://github.com/gerket/openproject-mcp-server/commit/2e8cd3650ab474d38f096c7e19ec6c4dbd2b7596))
+* **tools:** add get_work_package tool ([#930](https://github.com/gerket/openproject-mcp-server/issues/930)) ([#52](https://github.com/gerket/openproject-mcp-server/issues/52)) ([41fcd27](https://github.com/gerket/openproject-mcp-server/commit/41fcd27dab71dfb858aebb1d17b89ad9032593dc))
+* **tools:** add list_capabilities and describe_tool discovery tools ([#53](https://github.com/gerket/openproject-mcp-server/issues/53)) ([7f42c78](https://github.com/gerket/openproject-mcp-server/commit/7f42c788ed0f0b772049120c5d6a27b365ef8c12))
+* **tools:** custom actions + version lifecycle + tests reorganisation ([#5](https://github.com/gerket/openproject-mcp-server/issues/5)) ([482101a](https://github.com/gerket/openproject-mcp-server/commit/482101aafd1182d4e928db0be82b85fa48e939d3))
+* **tools:** documents, storages, file links, categories, views (14 new tools) ([#7](https://github.com/gerket/openproject-mcp-server/issues/7)) ([f73dca5](https://github.com/gerket/openproject-mcp-server/commit/f73dca563d51eed0cfaac4c5c44bca6621d9c1bf))
+* **tools:** principals, placeholder users, user CRUD, preferences + admin tag ([#6](https://github.com/gerket/openproject-mcp-server/issues/6)) ([cf88fb7](https://github.com/gerket/openproject-mcp-server/commit/cf88fb7d6b38852388b812d051f03f370f1e69d0))
+* **tools:** queries + profile tags + env-var filtering ([#4](https://github.com/gerket/openproject-mcp-server/issues/4)) ([c8f8579](https://github.com/gerket/openproject-mcp-server/commit/c8f857992a9e13325f718b82015fb535404e7464))
+* **tools:** WP sub-resources + category tags on all 86 tools ([#3](https://github.com/gerket/openproject-mcp-server/issues/3)) ([17fda83](https://github.com/gerket/openproject-mcp-server/commit/17fda83f3ce76ff4eeb3a9caf9a8db5894a45472))
+
+
+### Bug Fixes
+
+* **api:** wrap bare-string long-text custom fields using form schema ([#50](https://github.com/gerket/openproject-mcp-server/issues/50)) ([71622b5](https://github.com/gerket/openproject-mcp-server/commit/71622b5693b636c775fb1e5cb5b9aa724eb591ff))
+* **ci:** guard release workflow to only run when tag is on main ([#23](https://github.com/gerket/openproject-mcp-server/issues/23)) ([28aedc1](https://github.com/gerket/openproject-mcp-server/commit/28aedc1a3443b2b851dec891491e72822a3a557c))
+* **ci:** upgrade release-please-action to v5 (node24), drop invalid package-name input ([#28](https://github.com/gerket/openproject-mcp-server/issues/28)) ([e66bc96](https://github.com/gerket/openproject-mcp-server/commit/e66bc967a95bab9bba76b885fe0741a4e777deb7))
+* **deps:** add upper bounds to mcp, aiohttp, and pydantic dependencies ([#26](https://github.com/gerket/openproject-mcp-server/issues/26)) ([7752477](https://github.com/gerket/openproject-mcp-server/commit/7752477a4e43fc13717c3d1e17a4e6567fd7729f))
+* **deps:** pin fastmcp to &lt;3.0.0 to avoid breaking API changes ([#25](https://github.com/gerket/openproject-mcp-server/issues/25)) ([a2423a2](https://github.com/gerket/openproject-mcp-server/commit/a2423a219fc717c1896b6553656caab4492c3845))
+* **release:** add packages section with include-component-in-tag false ([#34](https://github.com/gerket/openproject-mcp-server/issues/34)) ([58686af](https://github.com/gerket/openproject-mcp-server/commit/58686af7f2bbaa14a21ba4c4515f20854a1c50ac))
+* **release:** set manifest version to 3.0.0 to match last tag ([#33](https://github.com/gerket/openproject-mcp-server/issues/33)) ([38e1e9b](https://github.com/gerket/openproject-mcp-server/commit/38e1e9b9a4988b2696e7eb06bb40e8ec9ffd3698))
+* **release:** set PR title pattern to use release scope ([#48](https://github.com/gerket/openproject-mcp-server/issues/48)) ([9e111f8](https://github.com/gerket/openproject-mcp-server/commit/9e111f818e134aaa165a0711171afcdcc7f0be2c))
+
+
+### Documentation
+
+* **docs:** add NOTICE preserving upstream MIT attribution ([1af9cd7](https://github.com/gerket/openproject-mcp-server/commit/1af9cd7cd8dd379e9f56f3a0b3117142de93c706))
+* **docs:** document BREAKING CHANGE footer convention for major releases ([#46](https://github.com/gerket/openproject-mcp-server/issues/46)) ([116e9fe](https://github.com/gerket/openproject-mcp-server/commit/116e9fe6d527694b85dc576f8c7294e683bdd4b9))
+* **docs:** never enable auto-merge when opening a PR ([#35](https://github.com/gerket/openproject-mcp-server/issues/35)) ([4e5a8ae](https://github.com/gerket/openproject-mcp-server/commit/4e5a8aec0e22e6bc1f0ad007cd23145da0663518))
+
 ## [4.1.0](https://github.com/gerket/openproject-mcp-server/compare/v4.0.0...v4.1.0) (2026-06-27)
 
 
