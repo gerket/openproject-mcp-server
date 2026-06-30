@@ -173,7 +173,7 @@ cython_debug/
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+.idea/
 
 # Abstra
 # Abstra is an AI-powered process automation framework.
@@ -220,3 +220,17 @@ docs/research/
 
 # Claude Code MCP config — contains API keys; never commit
 .mcp.json
+
+# Codex MCP config — contains API keys; never commit
+.codex/config.toml
+
+# Claude Code local settings — machine-specific paths and permissions; never commit
+.claude/settings.local.json
+
+# AI tool local state and MCP configs — contain API keys or machine-specific paths
+.cursor/mcp.json
+.cursor/settings.json
+.aider.chat.history.md
+.aider.input.history
+.continue/
+.windsurf/
