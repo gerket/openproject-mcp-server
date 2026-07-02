@@ -112,10 +112,14 @@ async def list_work_package_children(
         text = f"✅ **Children of Work Package #{work_package_id}:**\n\n"
         text += format_work_package_list(children)
 
-        # Add pagination info
+        # Add pagination info (children is non-empty here; guard the next-page hint
+        # so we don't advertise an offset that would return an empty page).
         if total > page_size:
-            text += f"\n📄 **Pagination**: Showing {offset + 1}-{offset + len(children)} of {total} total\n"
-            text += f"   Use `offset={offset + page_size}` to see next page\n"
+            start = offset + 1
+            end = offset + len(children)
+            text += f"\n📄 **Pagination**: Showing {start}-{end} of {total} total\n"
+            if end < total:
+                text += f"   Use `offset={offset + page_size}` to see next page\n"
 
         return text
 
