@@ -218,9 +218,6 @@ docs/superpowers/
 docs/generated_prompts/
 docs/research/
 
-# Claude Code MCP config — contains API keys; never commit
-.mcp.json
-
 # Codex MCP config — contains API keys; never commit
 .codex/config.toml
 
