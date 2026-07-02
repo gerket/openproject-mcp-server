@@ -387,10 +387,14 @@ async def list_work_packages(
         # Format response
         text = format_work_package_list(work_packages)
 
-        # Add pagination info
-        if total > page_size:
-            text += f"\n📄 **Pagination**: Showing {offset + 1}-{offset + len(work_packages)} of {total} total\n"
-            text += f"   Use `offset={offset + page_size}` to see next page\n"
+        # Add pagination info (only when a further page exists AND rows came back,
+        # so the range can never invert to start > end on an out-of-range offset).
+        if total > page_size and work_packages:
+            start = offset + 1
+            end = offset + len(work_packages)
+            text += f"\n📄 **Pagination**: Showing {start}-{end} of {total} total\n"
+            if end < total:
+                text += f"   Use `offset={offset + page_size}` to see next page\n"
 
         return text
 
@@ -483,10 +487,14 @@ async def search_work_packages(
         text = f"🔍 **Search Results for '{query}'**: Found {total} work package(s)\n\n"
         text += format_work_package_list(work_packages)
 
-        # Add pagination info
-        if total > page_size:
-            text += f"\n📄 **Pagination**: Showing {offset + 1}-{offset + len(work_packages)} of {total} total\n"
-            text += f"   Use `offset={offset + page_size}` to see next page\n"
+        # Add pagination info (only when a further page exists AND rows came back,
+        # so the range can never invert to start > end on an out-of-range offset).
+        if total > page_size and work_packages:
+            start = offset + 1
+            end = offset + len(work_packages)
+            text += f"\n📄 **Pagination**: Showing {start}-{end} of {total} total\n"
+            if end < total:
+                text += f"   Use `offset={offset + page_size}` to see next page\n"
 
         return text
 
